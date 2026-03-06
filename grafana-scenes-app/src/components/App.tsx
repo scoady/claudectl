@@ -5,38 +5,12 @@ import { useStyles2 } from '@grafana/ui';
 import { EmbeddedScene } from '@grafana/scenes';
 import { getAgentOverviewScene } from '../scenes/agentScene';
 import { getCostExplorerScene } from '../scenes/costScene';
-import { getConstellationScene } from '../scenes/constellationScene';
-import { getSteampunkTraceScene } from '../scenes/steampunkTraceScene';
-import { getActivityFeedScene } from '../scenes/activityFeedScene';
-import { getTaskProgressScene } from '../scenes/taskProgressScene';
-import { getOrbitalTrackerScene } from '../scenes/orbitalTrackerScene';
-import { getATCRadarScene } from '../scenes/atcRadarScene';
-import { getFlightBoardScene } from '../scenes/flightBoardScene';
-import { getMissionControlScene } from '../scenes/missionControlScene';
-import { getMatrixRainScene } from '../scenes/matrixRainScene';
-import { getF1TelemetryScene } from '../scenes/f1TelemetryScene';
-import { getDeepSeaSonarScene } from '../scenes/deepSeaSonarScene';
-import { getNeuralNetworkScene } from '../scenes/neuralNetworkScene';
-import { getCasinoFloorScene } from '../scenes/casinoFloorScene';
 import { getControlCenterScene } from '../scenes/controlCenterScene';
 
 const tabs = [
   { id: 'overview', label: 'Agent Overview', getScene: getAgentOverviewScene },
   { id: 'control-center', label: 'Control Center', getScene: getControlCenterScene },
   { id: 'costs', label: 'Cost Explorer', getScene: getCostExplorerScene },
-  { id: 'constellation', label: 'Live Constellation', getScene: getConstellationScene },
-  { id: 'steampunk', label: 'Steampunk Trace', getScene: getSteampunkTraceScene },
-  { id: 'activity', label: 'Activity Feed', getScene: getActivityFeedScene },
-  { id: 'progress', label: 'Task Progress', getScene: getTaskProgressScene },
-  { id: 'orbital', label: 'Orbital Tracker', getScene: getOrbitalTrackerScene },
-  { id: 'atc-radar', label: 'ATC Radar', getScene: getATCRadarScene },
-  { id: 'flight-board', label: 'Flight Board', getScene: getFlightBoardScene },
-  { id: 'mission-control', label: 'Mission Control', getScene: getMissionControlScene },
-  { id: 'matrix-rain', label: 'Matrix Rain', getScene: getMatrixRainScene },
-  { id: 'f1-telemetry', label: 'F1 Telemetry', getScene: getF1TelemetryScene },
-  { id: 'deep-sonar', label: 'Deep Sea Sonar', getScene: getDeepSeaSonarScene },
-  { id: 'neural-network', label: 'Neural Network', getScene: getNeuralNetworkScene },
-  { id: 'casino-floor', label: 'Casino Floor', getScene: getCasinoFloorScene },
 ] as const;
 
 const getStyles = () => ({
@@ -77,8 +51,17 @@ const getStyles = () => ({
 export function App(_props: AppRootProps) {
   const styles = useStyles2(getStyles);
   const [activeTab, setActiveTab] = useState(0);
-  const [scenes] = useState<EmbeddedScene[]>(() => tabs.map((t) => t.getScene()));
-  const scene = scenes[activeTab];
+  const scenesRef = React.useRef<Record<number, EmbeddedScene>>({});
+
+  // Lazy scene construction — only build when tab is first activated
+  if (!scenesRef.current[activeTab]) {
+    try {
+      scenesRef.current[activeTab] = tabs[activeTab].getScene();
+    } catch (err) {
+      console.error(`Failed to create scene for tab "${tabs[activeTab].label}":`, err);
+    }
+  }
+  const scene = scenesRef.current[activeTab];
 
   return (
     <div className={styles.wrapper}>
@@ -94,7 +77,11 @@ export function App(_props: AppRootProps) {
         ))}
       </div>
       <div className={styles.content}>
-        <scene.Component model={scene} />
+        {scene ? (
+          <scene.Component model={scene} />
+        ) : (
+          <div style={{ color: '#ff4466', padding: 20 }}>Failed to load this tab.</div>
+        )}
       </div>
     </div>
   );

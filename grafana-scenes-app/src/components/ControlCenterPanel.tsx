@@ -5,40 +5,30 @@ import { css, keyframes } from '@emotion/css';
 
 interface Project {
   name: string;
-  status: string;
-  agent_count: number;
+  path?: string;
+  description?: string;
+  active_session_ids?: string[];
 }
 
 interface Agent {
-  id: string;
-  session_id?: string;
-  star_name?: string;
-  model?: string;
-  status: 'working' | 'idle' | 'done' | 'error' | string;
-  project?: string;
-  turns?: number;
-  cost?: number;
-  input_tokens?: number;
-  output_tokens?: number;
+  session_id: string;
+  project_name: string;
+  model: string;
+  status: string;
+  phase?: string;
+  turn_count: number;
   started_at?: string;
-  milestones?: Milestone[];
+  milestones?: string[];
   task?: string;
-}
-
-interface Milestone {
-  tool: string;
-  label: string;
-  timestamp: string;
+  pid?: number;
 }
 
 interface Stats {
-  active_agents: number;
+  total_projects: number;
+  total_agents: number;
+  working_agents: number;
   idle_agents: number;
-  done_agents: number;
-  error_agents: number;
-  uptime?: string;
-  total_agents_spawned?: number;
-  cumulative_cost?: number;
+  uptime_seconds: number;
 }
 
 interface Task {
@@ -756,11 +746,11 @@ export function ControlCenterPanel() {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [stats, setStats] = useState<Stats>({ active_agents: 0, idle_agents: 0, done_agents: 0, error_agents: 0 });
+  const [stats, setStats] = useState<Stats>({ total_projects: 0, total_agents: 0, working_agents: 0, idle_agents: 0, uptime_seconds: 0 });
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showDispatch, setShowDispatch] = useState(false);
   const [streamLines, setStreamLines] = useState<string[]>([]);
-  const [liveMilestones, setLiveMilestones] = useState<Milestone[]>([]);
+  const [liveMilestones, setLiveMilestones] = useState<string[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [confirmKill, setConfirmKill] = useState<string | null>(null);
   const [sendMsg, setSendMsg] = useState('');
@@ -778,7 +768,7 @@ export function ControlCenterPanel() {
 
   // Keep ref in sync with selectedAgent
   useEffect(() => {
-    selectedAgentRef.current = selectedAgent?.id || null;
+    selectedAgentRef.current = selectedAgent?.session_id || null;
   }, [selectedAgent]);
 
   // ── Toast auto-dismiss ──
@@ -801,7 +791,7 @@ export function ControlCenterPanel() {
       setAgents(data);
       // Update selected agent data if still exists
       if (selectedAgentRef.current) {
-        const updated = data.find((a) => a.id === selectedAgentRef.current);
+        const updated = data.find((a) => a.session_id === selectedAgentRef.current);
         if (updated) setSelectedAgent(updated);
       }
     }
@@ -865,14 +855,10 @@ export function ControlCenterPanel() {
             }
 
             if (event.type === 'agent_milestone' && agentId && agentId === selectedAgentRef.current) {
-              setLiveMilestones((prev) => [
-                ...prev,
-                {
-                  tool: event.tool || event.data?.tool || '?',
-                  label: event.label || event.milestone || event.data?.label || '',
-                  timestamp: event.timestamp || new Date().toISOString(),
-                },
-              ]);
+              const milestone = event.milestone || event.label || event.data?.label || '';
+              if (milestone) {
+                setLiveMilestones((prev) => [...prev, milestone]);
+              }
             }
 
             // Refresh agent list on key events
@@ -909,7 +895,7 @@ export function ControlCenterPanel() {
   useEffect(() => {
     setStreamLines([]);
     setLiveMilestones([]);
-  }, [selectedAgent?.id]);
+  }, [selectedAgent?.session_id]);
 
   // ── Auto-scroll terminal ──
   useEffect(() => {
@@ -920,16 +906,16 @@ export function ControlCenterPanel() {
 
   // ── Filter agents by project ──
   const filteredAgents = selectedProject
-    ? agents.filter((a) => a.project === selectedProject)
+    ? agents.filter((a) => a.project_name === selectedProject)
     : agents;
 
   // ── Handlers ──
 
-  const handleKill = async (agentId: string) => {
-    const ok = await apiDelete(`/api/agents/${agentId}`);
+  const handleKill = async (sessionId: string) => {
+    const ok = await apiDelete(`/api/agents/${sessionId}`);
     if (ok) {
       setToast({ msg: 'Agent terminated', type: 'success' });
-      if (selectedAgent?.id === agentId) setSelectedAgent(null);
+      if (selectedAgent?.session_id === sessionId) setSelectedAgent(null);
       fetchAgents();
       fetchStats();
     } else {
@@ -941,7 +927,7 @@ export function ControlCenterPanel() {
   const handleSendMessage = async () => {
     if (!selectedAgent || !sendMsg.trim()) return;
     setSending(true);
-    const result = await apiPost(`/api/agents/${selectedAgent.id}/inject`, { message: sendMsg.trim() });
+    const result = await apiPost(`/api/agents/${selectedAgent.session_id}/inject`, { message: sendMsg.trim() });
     if (result !== null) {
       setToast({ msg: 'Message sent', type: 'success' });
       setSendMsg('');
@@ -971,10 +957,20 @@ export function ControlCenterPanel() {
   };
 
   // ── Computed ──
-  const allMilestones = [
+  const allMilestones: string[] = [
     ...(selectedAgent?.milestones || []),
     ...liveMilestones,
   ];
+
+  function formatUptime(seconds: number): string {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    if (mins < 60) return `${mins}m ${seconds % 60}s`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ${mins % 60}m`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ${hrs % 24}h`;
+  }
 
   function formatDuration(started?: string): string {
     if (!started) return '--';
@@ -1008,7 +1004,7 @@ export function ControlCenterPanel() {
         <div className={styles.badges}>
           <span className={styles.badge}>
             <span className={`${styles.badgeDot} ${styles.pulsingDot}`} style={{ background: '#00ffcc' }} />
-            Active {stats.active_agents}
+            Working {stats.working_agents}
           </span>
           <span className={styles.badge}>
             <span className={styles.badgeDot} style={{ background: '#ffaa00' }} />
@@ -1016,15 +1012,11 @@ export function ControlCenterPanel() {
           </span>
           <span className={styles.badge}>
             <span className={styles.badgeDot} style={{ background: '#666' }} />
-            Done {stats.done_agents}
-          </span>
-          <span className={styles.badge}>
-            <span className={styles.badgeDot} style={{ background: '#ff4466' }} />
-            Error {stats.error_agents}
+            Total {stats.total_agents}
           </span>
         </div>
 
-        {stats.uptime && <span className={styles.uptime}>UP {stats.uptime}</span>}
+        {stats.uptime_seconds != null && <span className={styles.uptime}>UP {formatUptime(stats.uptime_seconds)}</span>}
 
         <button className={styles.dispatchBtn} onClick={() => {
           setDispatchProject(selectedProject || (projects[0]?.name || ''));
@@ -1048,8 +1040,8 @@ export function ControlCenterPanel() {
             )}
             {filteredAgents.map((agent) => (
               <div
-                key={agent.id}
-                className={`${styles.agentCard} ${selectedAgent?.id === agent.id ? styles.agentCardSelected : ''}`}
+                key={agent.session_id}
+                className={`${styles.agentCard} ${selectedAgent?.session_id === agent.session_id ? styles.agentCardSelected : ''}`}
                 onClick={() => setSelectedAgent(agent)}
               >
                 <div className={styles.agentCardTop}>
@@ -1058,12 +1050,12 @@ export function ControlCenterPanel() {
                       className={`${styles.agentStatusDot} ${agent.status === 'working' ? styles.pulsingDot : ''}`}
                       style={{ background: statusColor(agent.status) }}
                     />
-                    {agent.star_name || agent.id.slice(0, 12)}
+                    {agent.session_id.slice(0, 12)}
                   </span>
                   {(agent.status === 'working' || agent.status === 'active' || agent.status === 'idle') && (
                     <button
                       className={styles.killBtn}
-                      onClick={(e) => { e.stopPropagation(); setConfirmKill(agent.id); }}
+                      onClick={(e) => { e.stopPropagation(); setConfirmKill(agent.session_id); }}
                     >
                       Kill
                     </button>
@@ -1081,8 +1073,7 @@ export function ControlCenterPanel() {
                   >
                     {agent.status}
                   </span>
-                  {agent.turns != null && <span>{agent.turns} turns</span>}
-                  {agent.cost != null && <span>${agent.cost.toFixed(3)}</span>}
+                  {agent.turn_count != null && <span>{agent.turn_count} turns</span>}
                 </div>
               </div>
             ))}
@@ -1140,7 +1131,7 @@ export function ControlCenterPanel() {
                     className={`${styles.agentStatusDot} ${selectedAgent.status === 'working' ? styles.pulsingDot : ''}`}
                     style={{ background: statusColor(selectedAgent.status), width: 10, height: 10 }}
                   />
-                  {selectedAgent.star_name || selectedAgent.id.slice(0, 16)}
+                  {selectedAgent.session_id.slice(0, 16)}
                   <span
                     className={styles.statusBadge}
                     style={{
@@ -1154,10 +1145,10 @@ export function ControlCenterPanel() {
                   </span>
                 </div>
                 <div className={styles.detailMeta}>
-                  <span className={styles.detailMetaItem}>Session: {selectedAgent.session_id?.slice(0, 16) || '--'}...</span>
+                  <span className={styles.detailMetaItem}>Session: {selectedAgent.session_id.slice(0, 16)}...</span>
                   <span className={styles.detailMetaItem}>Model: {selectedAgent.model || '--'}</span>
                   <span className={styles.detailMetaItem}>Duration: {formatDuration(selectedAgent.started_at)}</span>
-                  {selectedAgent.project && <span className={styles.detailMetaItem}>Project: {selectedAgent.project}</span>}
+                  <span className={styles.detailMetaItem}>Project: {selectedAgent.project_name}</span>
                 </div>
               </div>
 
@@ -1167,8 +1158,8 @@ export function ControlCenterPanel() {
                   <div className={styles.milestonesLabel}>Milestones</div>
                   <div className={styles.milestonesTrack}>
                     {allMilestones.map((m, i) => (
-                      <span key={i} className={styles.milestonePill} title={m.timestamp}>
-                        {m.tool} {m.label ? `\u00b7 ${m.label}` : ''}
+                      <span key={i} className={styles.milestonePill}>
+                        {m}
                       </span>
                     ))}
                   </div>
@@ -1190,12 +1181,11 @@ export function ControlCenterPanel() {
                 </div>
               </div>
 
-              {/* Cost Breakdown */}
+              {/* Agent Info */}
               <div className={styles.costRow}>
-                <span>Turns: {selectedAgent.turns ?? '--'}</span>
-                <span>Input: {selectedAgent.input_tokens?.toLocaleString() ?? '--'} tokens</span>
-                <span>Output: {selectedAgent.output_tokens?.toLocaleString() ?? '--'} tokens</span>
-                <span>Cost: ${selectedAgent.cost?.toFixed(4) ?? '--'}</span>
+                <span>Turns: {selectedAgent.turn_count ?? '--'}</span>
+                <span>Phase: {selectedAgent.phase || '--'}</span>
+                <span>PID: {selectedAgent.pid ?? '--'}</span>
               </div>
 
               {/* Send Message */}
@@ -1299,7 +1289,7 @@ export function ControlCenterPanel() {
         <div className={styles.confirmOverlay} onClick={() => setConfirmKill(null)}>
           <div className={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
             <div className={styles.confirmText}>
-              Terminate agent <strong>{agents.find((a) => a.id === confirmKill)?.star_name || confirmKill.slice(0, 12)}</strong>?
+              Terminate agent <strong>{confirmKill.slice(0, 12)}</strong>?
               This action cannot be undone.
             </div>
             <div className={styles.confirmActions}>
