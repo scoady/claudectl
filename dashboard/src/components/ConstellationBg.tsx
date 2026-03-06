@@ -32,7 +32,7 @@ export default function ConstellationBg() {
   return (
     <>
       {/* Remotion constellation — always animating behind everything */}
-      <div className="fixed inset-0 z-0 opacity-[0.18] pointer-events-none">
+      <div className="fixed inset-0 z-0 opacity-[0.35] pointer-events-none">
         <Player
           component={AgentConstellation}
           inputProps={{ agents: constellationAgents, showLabels: false, showTitle: false }}
@@ -51,7 +51,7 @@ export default function ConstellationBg() {
       <div
         className="fixed inset-0 z-[1] pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(10, 10, 26, 0.75) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(5, 5, 16, 0.6) 100%)',
         }}
       />
     </>

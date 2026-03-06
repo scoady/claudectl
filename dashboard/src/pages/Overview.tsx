@@ -5,6 +5,10 @@ import {
 import { Bot, DollarSign, FolderKanban, Clock, Cpu, CheckCircle, AlertCircle } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import ChartPanel from '../components/ChartPanel';
+import RemotionPanel from '../components/RemotionPanel';
+import { MetricsTimeline } from '../compositions/MetricsTimeline';
+import { CostTracker } from '../compositions/CostTracker';
+import { ProjectHeatmap } from '../compositions/ProjectHeatmap';
 import { useMetrics } from '../hooks/useMetrics';
 import { useDashboard, getSince, getResolution } from '../context/DashboardContext';
 import LoadingState from '../components/LoadingState';
@@ -61,6 +65,22 @@ export default function Overview() {
   );
 
   if (!summary) return <LoadingState />;
+
+  // Derive Remotion input data from metrics hooks
+  const timelineSeries = agentData
+    ? [
+        { name: 'Active', color: '#34d399', data: agentData.series.active.map((p: any) => p.value) },
+        { name: 'Spawned', color: '#67e8f9', data: agentData.series.spawned.map((p: any) => p.value) },
+        { name: 'Completed', color: '#c084fc', data: agentData.series.completed.map((p: any) => p.value) },
+      ]
+    : undefined;
+  const costSegments = modelData
+    ? modelData.models.map((m: any, i: number) => ({
+        model: m.name.split('-').slice(-2).join('-'),
+        cost: m.cost ?? m.requests,
+        color: MODEL_COLORS[i % MODEL_COLORS.length],
+      }))
+    : undefined;
 
   return (
     <div className="space-y-4">

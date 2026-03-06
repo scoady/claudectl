@@ -28,26 +28,31 @@ export default function RemotionPanel<T extends Record<string, unknown>>({
   fps = 30,
   className = '',
   delay = 0,
-  borderColor = 'rgba(103, 232, 249, 0.15)',
 }: RemotionPanelProps<T>) {
   return (
     <motion.div
-      className={`glass glass-hover overflow-hidden flex flex-col ${className}`}
-      initial={{ opacity: 0, y: 20, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay: delay * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-      style={{ borderColor }}
+      className={`glass-remotion flex flex-col ${className}`}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8, delay: delay * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
+      {/* Title floats as ghostly overlay */}
       {(title || subtitle) && (
-        <div className="flex items-baseline justify-between px-4 pt-3 pb-1">
+        <div className="absolute top-3 left-4 z-10 flex items-baseline gap-3">
           {title && (
-            <h3 className="text-xs font-semibold tracking-wider uppercase text-cyan">
+            <span className="text-[10px] font-light uppercase tracking-[0.15em]" style={{ color: 'rgba(103, 232, 249, 0.4)' }}>
               {title}
-            </h3>
+            </span>
           )}
-          {subtitle && <span className="text-[10px] text-dim font-mono">{subtitle}</span>}
+          {subtitle && (
+            <span className="text-[9px] font-light" style={{ color: 'rgba(255,255,255,0.15)' }}>
+              {subtitle}
+            </span>
+          )}
         </div>
       )}
+
+      {/* The animation IS the panel */}
       <div className="flex-1 min-h-0">
         <Player
           component={component}

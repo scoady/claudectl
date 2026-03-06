@@ -6,6 +6,7 @@ persistence:
 
 env:
   GF_INSTALL_PLUGINS: "yesoreyeram-infinity-datasource"
+  GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "scoady-claudectl-app"
 
 adminUser: admin
 adminPassword: admin
@@ -63,3 +64,44 @@ dashboardProviders:
 
 dashboardsConfigMaps:
   default: grafana-dashboards
+
+initChownData:
+  enabled: false
+
+extraVolumeMounts:
+  - name: scenes-plugin-dir
+    mountPath: /var/lib/grafana/plugins/scoady-claudectl-app
+
+extraVolumes:
+  - name: scenes-plugin-dir
+    emptyDir: {}
+  - name: scenes-plugin-cm
+    configMap:
+      name: grafana-scenes-plugin
+
+extraConfigmapMounts:
+  - name: plugin-provisioning
+    configMap: grafana-plugin-provisioning
+    mountPath: /etc/grafana/provisioning/plugins/app.yaml
+    subPath: app.yaml
+    readOnly: true
+
+extraInitContainers:
+  - name: install-scenes-plugin
+    image: busybox:1.36
+    command: ['sh', '-c']
+    args:
+      - |
+        cp /plugin-src/module.js /plugin-dest/module.js
+        cp /plugin-src/plugin.json /plugin-dest/plugin.json
+        mkdir -p /plugin-dest/img
+        cp /plugin-src/logo.svg /plugin-dest/img/logo.svg
+        chown -R 472:472 /plugin-dest
+        echo "Scenes plugin installed"
+        ls -la /plugin-dest/
+    volumeMounts:
+      - name: scenes-plugin-cm
+        mountPath: /plugin-src
+        readOnly: true
+      - name: scenes-plugin-dir
+        mountPath: /plugin-dest

@@ -241,7 +241,7 @@ export const AgentConstellation: React.FC<AgentConstellationProps> = ({
       {/* Constellation lines */}
       <svg width="1920" height="1080" style={{ position: 'absolute', inset: 0 }}>
         <defs>
-          {Object.keys(projectGroups).map((project, gi) => (
+          {Object.keys(projectGroups).map((_project, gi) => (
             <linearGradient key={`lg-${gi}`} id={`line-grad-${gi}`}>
               <stop offset="0%" stopColor={colors.chart[gi % colors.chart.length]} stopOpacity={0.4} />
               <stop offset="50%" stopColor={colors.chart[gi % colors.chart.length]} stopOpacity={0.15} />

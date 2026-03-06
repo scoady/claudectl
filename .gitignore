@@ -2,3 +2,5 @@
 cm
 c9s
 node_modules/
+internal/server/dashboard/
+.DS_Store

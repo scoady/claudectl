@@ -15,10 +15,10 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       className="flex-1 overflow-y-auto p-4"
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {children}
     </motion.div>
@@ -30,8 +30,12 @@ function AppContent() {
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* Remotion constellation background */}
+      {/* Remotion constellation — MORE visible now */}
       <ConstellationBg />
+
+      {/* Ambient light orbs */}
+      <div className="ambient-light ambient-light-1" />
+      <div className="ambient-light ambient-light-2" />
 
       {/* CSS background layers */}
       <div className="starfield" />

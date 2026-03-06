@@ -1,0 +1,46 @@
+{
+  "type": "app",
+  "name": "Claude Agent Manager",
+  "id": "scoady-claudectl-app",
+  "info": {
+    "description": "Scenes-based agent monitoring dashboard for Claude Manager",
+    "author": {
+      "name": "scoady"
+    },
+    "keywords": ["claude", "agents", "monitoring", "scenes"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "version": "1.0.0",
+    "updated": "2026-03-06"
+  },
+  "includes": [
+    {
+      "type": "page",
+      "name": "Agent Overview",
+      "path": "/a/scoady-claudectl-app/overview",
+      "role": "Viewer",
+      "addToNav": true,
+      "defaultNav": true
+    },
+    {
+      "type": "page",
+      "name": "Cost Explorer",
+      "path": "/a/scoady-claudectl-app/costs",
+      "role": "Viewer",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Live Constellation",
+      "path": "/a/scoady-claudectl-app/constellation",
+      "role": "Viewer",
+      "addToNav": true
+    }
+  ],
+  "dependencies": {
+    "grafanaDependency": ">=11.6.0",
+    "plugins": []
+  }
+}

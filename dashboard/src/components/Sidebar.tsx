@@ -27,42 +27,51 @@ export default function Sidebar() {
     <AnimatePresence mode="wait">
       {sidebarOpen && (
         <motion.aside
-          className="w-48 shrink-0 border-r border-muted/30 bg-bg-primary/60 backdrop-blur-sm flex flex-col py-3 z-20"
+          className="glass-sidebar shrink-0 flex flex-col py-4 z-20"
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 192, opacity: 1 }}
+          animate={{ width: 56, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
-          transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <nav className="flex flex-col gap-0.5 px-2">
+          <nav className="flex flex-col gap-1 px-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className="relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200"
-                  style={{ color: isActive ? '#67e8f9' : '#94a3b8' }}
+                  className="relative flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-all duration-300"
+                  title={item.label}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="sidebar-indicator"
-                      className="absolute inset-0 rounded-lg"
+                      className="absolute inset-0 rounded-xl"
                       style={{
-                        background: 'rgba(103, 232, 249, 0.08)',
-                        border: '1px solid rgba(103, 232, 249, 0.15)',
+                        background: 'rgba(103, 232, 249, 0.06)',
+                        border: '1px solid rgba(103, 232, 249, 0.12)',
+                        boxShadow: '0 0 20px rgba(103, 232, 249, 0.06)',
                       }}
-                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <item.icon size={16} className="relative z-10 shrink-0" />
-                  <span className="relative z-10 font-medium">{item.label}</span>
+                  <item.icon
+                    size={18}
+                    className="relative z-10 transition-all duration-300"
+                    style={{
+                      color: isActive ? '#67e8f9' : 'rgba(255,255,255,0.25)',
+                      filter: isActive ? 'drop-shadow(0 0 6px rgba(103, 232, 249, 0.3))' : 'none',
+                    }}
+                  />
                 </NavLink>
               );
             })}
           </nav>
 
-          <div className="mt-auto px-4 py-3 border-t border-muted/20">
-            <p className="text-[10px] text-dim font-mono">c9s metrics v0.1.0</p>
+          <div className="mt-auto flex justify-center py-3">
+            <span className="text-[8px] font-light tracking-wider" style={{ color: 'rgba(255,255,255,0.12)', writingMode: 'vertical-rl' }}>
+              v0.1
+            </span>
           </div>
         </motion.aside>
       )}

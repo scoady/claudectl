@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -67,8 +68,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/stats", s.handleStats)
 
-	// WebSocket
-	s.mux.HandleFunc("/ws", s.Hub.HandleWS)
+	// WebSocket (upgrades use GET)
+	s.mux.HandleFunc("GET /ws", s.Hub.HandleWS)
 
 	// Projects (implemented)
 	s.mux.HandleFunc("GET /api/projects", s.handleListProjects)
@@ -152,7 +153,36 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	http.FileServerFS(s.StaticFS).ServeHTTP(w, r)
+	// Try serving the exact file first; fall back to index.html for SPA routing
+	path := r.URL.Path
+	if path == "/" {
+		path = "index.html"
+	} else {
+		path = path[1:] // strip leading /
+	}
+	if _, err := fs.Stat(s.StaticFS, path); err != nil {
+		// File not found — serve index.html for client-side routing
+		path = "index.html"
+	}
+	data, err := fs.ReadFile(s.StaticFS, path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	// Set content type
+	switch {
+	case strings.HasSuffix(path, ".html"):
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	case strings.HasSuffix(path, ".js"):
+		w.Header().Set("Content-Type", "application/javascript")
+	case strings.HasSuffix(path, ".css"):
+		w.Header().Set("Content-Type", "text/css")
+	case strings.HasSuffix(path, ".svg"):
+		w.Header().Set("Content-Type", "image/svg+xml")
+	case strings.HasSuffix(path, ".json"):
+		w.Header().Set("Content-Type", "application/json")
+	}
+	w.Write(data)
 }
 
 // ── Middleware ────────────────────────────────────────────────────────────────

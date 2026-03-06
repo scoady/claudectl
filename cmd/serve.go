@@ -19,6 +19,7 @@ func serveCmd() *cobra.Command {
 			s := server.New(server.Config{
 				ProjectsDir: os.Getenv("MANAGED_PROJECTS_DIR"),
 			})
+			s.StaticFS = server.DashboardFS()
 			fmt.Printf("c9s server listening on %s\n", addr)
 			return s.ListenAndServeAddr(addr)
 		},
