@@ -6,11 +6,19 @@ import { EmbeddedScene } from '@grafana/scenes';
 import { getAgentOverviewScene } from '../scenes/agentScene';
 import { getCostExplorerScene } from '../scenes/costScene';
 import { getConstellationScene } from '../scenes/constellationScene';
+import { getSteampunkTraceScene } from '../scenes/steampunkTraceScene';
+import { getActivityFeedScene } from '../scenes/activityFeedScene';
+import { getTaskProgressScene } from '../scenes/taskProgressScene';
+import { getOrbitalTrackerScene } from '../scenes/orbitalTrackerScene';
 
 const tabs = [
   { id: 'overview', label: 'Agent Overview', getScene: getAgentOverviewScene },
   { id: 'costs', label: 'Cost Explorer', getScene: getCostExplorerScene },
   { id: 'constellation', label: 'Live Constellation', getScene: getConstellationScene },
+  { id: 'steampunk', label: 'Steampunk Trace', getScene: getSteampunkTraceScene },
+  { id: 'activity', label: 'Activity Feed', getScene: getActivityFeedScene },
+  { id: 'progress', label: 'Task Progress', getScene: getTaskProgressScene },
+  { id: 'orbital', label: 'Orbital Tracker', getScene: getOrbitalTrackerScene },
 ] as const;
 
 const getStyles = () => ({
