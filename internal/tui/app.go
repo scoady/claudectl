@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -77,6 +78,7 @@ type App struct {
 	inject        InjectModel
 	createProject CreateProjectModel
 	confirm       ConfirmModel
+	contextMenu   ContextMenuModel
 
 	// WebSocket
 	wsClient *WSClient
@@ -260,6 +262,10 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.confirm = NewConfirmModel(msg)
 		return a, a.confirm.Init()
 
+	case ShowContextMenuMsg:
+		a.contextMenu = NewContextMenuModel(msg)
+		return a, a.contextMenu.Init()
+
 	case DispatchCompleteMsg:
 		if a.dispatch.Active() {
 			a.dispatch, _ = a.dispatch.Update(msg)
@@ -291,6 +297,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		// Overlays get priority (in order)
+		if a.contextMenu.Active() {
+			var cmd tea.Cmd
+			a.contextMenu, cmd = a.contextMenu.Update(msg)
+			return a, cmd
+		}
 		if a.confirm.Active() {
 			var cmd tea.Cmd
 			a.confirm, cmd = a.confirm.Update(msg)
@@ -607,19 +618,179 @@ func (a *App) moveSelection(delta int) {
 func (a *App) handleEnter() (tea.Model, tea.Cmd) {
 	switch a.screen {
 	case ScreenDashboard:
-		p := a.dashboard.SelectedProject()
-		if p != nil {
-			return a.navigateToProject(p.Name)
-		}
+		return a.showDashboardMenu()
+	case ScreenProject:
+		return a.showProjectMenu()
 	case ScreenAgents:
-		ag := a.agents.SelectedAgent()
-		if ag != nil {
+		return a.showAgentsMenu()
+	}
+	return a, nil
+}
+
+// ── Context menu builders ────────────────────────────────────────────────────
+
+func (a *App) showDashboardMenu() (tea.Model, tea.Cmd) {
+	p := a.dashboard.SelectedProject()
+	if p == nil {
+		return a, nil
+	}
+	projectName := p.Name
+	return a, func() tea.Msg {
+		return ShowContextMenuMsg{
+			Title: projectName,
+			Items: []MenuItem{
+				{Label: "Open", Key: "o", Icon: "▸", Action: func() tea.Msg {
+					return NavigateMsg{Screen: ScreenProject, Project: &api.Project{Name: projectName}}
+				}},
+				{Label: "Dispatch Task", Key: "d", Icon: "⚡", Action: func() tea.Msg {
+					return ShowDispatchMsg{ProjectName: projectName}
+				}},
+				{Label: "View Agents", Key: "a", Icon: "●", Action: func() tea.Msg {
+					return NavigateMsg{Screen: ScreenAgents}
+				}},
+				{Label: "Delete Project", Key: "x", Icon: "✗",
+					Style: lipgloss.NewStyle().Foreground(Rose),
+					Action: func() tea.Msg {
+						return ShowConfirmMsg{
+							Title:       "Delete Project",
+							Description: "Delete \"" + projectName + "\"?\nThis cannot be undone.",
+							Destructive: true,
+							OnConfirm: func() tea.Msg {
+								err := a.client.DeleteProject(projectName)
+								return DeleteProjectResultMsg{ProjectName: projectName, Err: err}
+							},
+						}
+					}},
+			},
+		}
+	}
+}
+
+func (a *App) showProjectMenu() (tea.Model, tea.Cmd) {
+	switch a.project.Panel {
+	case 0: // Agents panel
+		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Agents) {
+			ag := a.project.Agents[a.project.Selected]
+			sid := ag.SessionID
 			return a, func() tea.Msg {
-				return NavigateMsg{Screen: ScreenWatch, Agent: ag}
+				return ShowContextMenuMsg{
+					Title: "Agent " + truncate(sid, 16),
+					Items: []MenuItem{
+						{Label: "Watch Logs", Key: "l", Icon: "◉", Action: func() tea.Msg {
+							return NavigateMsg{Screen: ScreenWatch, Agent: &ag}
+						}},
+						{Label: "Inject Message", Key: "i", Icon: "▹", Action: func() tea.Msg {
+							return ShowInjectMsg{SessionID: sid}
+						}},
+						{Label: "Kill Agent", Key: "K", Icon: "✗",
+							Style: lipgloss.NewStyle().Foreground(Rose),
+							Action: func() tea.Msg {
+								return ShowConfirmMsg{
+									Title:       "Kill Agent",
+									Description: "Kill agent " + truncate(sid, 20) + "?",
+									Destructive: true,
+									OnConfirm: func() tea.Msg {
+										err := a.client.KillAgent(sid)
+										return KillResultMsg{SessionID: sid, Err: err}
+									},
+								}
+							}},
+					},
+				}
+			}
+		}
+	case 1: // Tasks panel
+		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Tasks) {
+			task := a.project.Tasks[a.project.Selected]
+			idx := a.project.Selected
+			projectName := a.projectName
+			isDone := strings.EqualFold(task.Status, "done") || strings.EqualFold(task.Status, "complete") || strings.EqualFold(task.Status, "completed")
+			isRunning := strings.EqualFold(task.Status, "in_progress") || strings.EqualFold(task.Status, "in-progress") || strings.EqualFold(task.Status, "running")
+			return a, func() tea.Msg {
+				return ShowContextMenuMsg{
+					Title: "Task #" + fmt.Sprintf("%d", idx),
+					Items: []MenuItem{
+						{Label: "Start Task", Key: "s", Icon: "▶",
+							Disabled: isRunning || isDone,
+							Action: func() tea.Msg {
+								_ = a.client.StartTask(projectName, idx)
+								return TickMsg{}
+							}},
+						{Label: "Complete Task", Key: "c", Icon: "✓",
+							Disabled: isDone,
+							Action: func() tea.Msg {
+								_ = a.client.CompleteTask(projectName, idx, "")
+								return TickMsg{}
+							}},
+						{Label: "Delete Task", Key: "x", Icon: "✗",
+							Style: lipgloss.NewStyle().Foreground(Rose),
+							Action: func() tea.Msg {
+								_ = a.client.DeleteTask(projectName, idx)
+								return TickMsg{}
+							}},
+					},
+				}
+			}
+		}
+	case 2: // Widgets panel
+		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Widgets) {
+			widget := a.project.Widgets[a.project.Selected]
+			widgetID := widget.ID
+			projectName := a.projectName
+			return a, func() tea.Msg {
+				return ShowContextMenuMsg{
+					Title: widget.Title,
+					Items: []MenuItem{
+						{Label: "Delete Widget", Key: "x", Icon: "✗",
+							Style: lipgloss.NewStyle().Foreground(Rose),
+							Action: func() tea.Msg {
+								_ = a.client.DeleteWidget(projectName, widgetID)
+								return TickMsg{}
+							}},
+					},
+				}
 			}
 		}
 	}
 	return a, nil
+}
+
+func (a *App) showAgentsMenu() (tea.Model, tea.Cmd) {
+	ag := a.agents.SelectedAgent()
+	if ag == nil {
+		return a, nil
+	}
+	sid := ag.SessionID
+	projectName := ag.ProjectName
+	return a, func() tea.Msg {
+		return ShowContextMenuMsg{
+			Title: "Agent " + truncate(sid, 16),
+			Items: []MenuItem{
+				{Label: "Watch Logs", Key: "l", Icon: "◉", Action: func() tea.Msg {
+					return NavigateMsg{Screen: ScreenWatch, Agent: ag}
+				}},
+				{Label: "Inject Message", Key: "i", Icon: "▹", Action: func() tea.Msg {
+					return ShowInjectMsg{SessionID: sid}
+				}},
+				{Label: "Open Project", Key: "p", Icon: "▸", Action: func() tea.Msg {
+					return NavigateMsg{Screen: ScreenProject, Project: &api.Project{Name: projectName}}
+				}},
+				{Label: "Kill Agent", Key: "K", Icon: "✗",
+					Style: lipgloss.NewStyle().Foreground(Rose),
+					Action: func() tea.Msg {
+						return ShowConfirmMsg{
+							Title:       "Kill Agent",
+							Description: "Kill agent " + truncate(sid, 20) + "?",
+							Destructive: true,
+							OnConfirm: func() tea.Msg {
+								err := a.client.KillAgent(sid)
+								return KillResultMsg{SessionID: sid, Err: err}
+							},
+						}
+					}},
+			},
+		}
+	}
 }
 
 func (a *App) handleDetail() (tea.Model, tea.Cmd) {
@@ -784,6 +955,9 @@ func (a *App) View() string {
 	var b strings.Builder
 
 	// Overlays render on top of everything
+	if a.contextMenu.Active() {
+		return a.contextMenu.View()
+	}
 	if a.confirm.Active() {
 		return a.confirm.View()
 	}
@@ -872,15 +1046,13 @@ func (a *App) View() string {
 		}
 	}
 
-	// Footer
+	// Footer — simplified since context menu handles actions
 	var hints []KeyHint
 	switch a.screen {
 	case ScreenDashboard:
 		hints = []KeyHint{
-			{"Enter", "Open"},
-			{"Ctrl+D", "Dispatch"},
+			{"Enter", "Actions"},
 			{"c", "Create"},
-			{"x", "Delete"},
 			{"/", "Filter"},
 			{":", "Cmd"},
 			{"?", "Help"},
@@ -888,20 +1060,16 @@ func (a *App) View() string {
 		}
 	case ScreenProject:
 		hints = []KeyHint{
+			{"Enter", "Actions"},
 			{"Tab", "Panel"},
-			{"l", "Logs"},
-			{"K", "Kill"},
 			{"Ctrl+D", "Dispatch"},
 			{"Esc", "Back"},
 			{"?", "Help"},
 		}
 	case ScreenAgents:
 		hints = []KeyHint{
-			{"Enter", "Watch"},
-			{"K", "Kill"},
-			{"x", "Delete"},
+			{"Enter", "Actions"},
 			{"/", "Filter"},
-			{"l", "Logs"},
 			{"Esc", "Back"},
 			{"?", "Help"},
 		}
