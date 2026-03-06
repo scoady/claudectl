@@ -30,6 +30,37 @@ Custom HTML5 canvas visualization showing agents as stars grouped by project:
 
 ![Overview with Constellation](docs/overview.png)
 
+### Steampunk Trace
+Distributed agent activity waterfall with a steampunk aesthetic:
+- Agents displayed as waterfall bars grouped by project
+- Spinning cog icons, amber-tinted animated bar fills with scrolling stripes
+- Steam particle effects and spark emissions
+- Live agent count and turn metrics per span
+- Model distribution donut chart
+
+![Steampunk Agent Trace](docs/steampunk-trace.png)
+
+### Activity Feed
+Retro CRT terminal showing live agent milestones:
+- macOS-style window chrome with scanline overlay
+- Color-coded log levels (info, warn, error, debug, success)
+- Glitch effects and blinking cursor animation
+- Auto-refreshes every 10 seconds
+
+### Task Progress
+Animated per-project task completion:
+- Progress bars with counting-up number effects
+- Neon glow shadows color-coded by completion percentage
+- Shimmer effects and canvas particle emissions
+
+### Orbital Tracker
+Agents orbiting a central "Orchestrator" planet:
+- Each project gets its own elliptical orbit ring
+- Agents leave particle trails as they orbit
+- Active agents orbit faster than idle ones
+- Telemetry readout: active/idle/total/cost
+- Shooting star easter eggs
+
 ## Architecture
 
 ```
@@ -39,15 +70,23 @@ grafana-scenes-app/
 │   ├── plugin.json            # Plugin metadata and includes
 │   ├── constants.ts           # Plugin ID, base URL, datasource config
 │   ├── components/
-│   │   ├── App.tsx            # Root component with tabbed EmbeddedScenes
-│   │   ├── ConstellationPanel.tsx  # Custom HTML5 canvas constellation
-│   │   ├── AgentHeatmap.tsx   # Agent activity heatmap
-│   │   └── StatusBoard.tsx    # Real-time status board
+│   │   ├── App.tsx                 # Root component with 7 tabbed EmbeddedScenes
+│   │   ├── ConstellationPanel.tsx  # HTML5 canvas star constellation
+│   │   ├── SteampunkTracePanel.tsx # Waterfall trace with cogs & particles
+│   │   ├── ActivityFeedPanel.tsx   # Retro CRT terminal feed
+│   │   ├── TaskProgressPanel.tsx   # Animated progress bars
+│   │   ├── OrbitalTrackerPanel.tsx # Orbital agent animation
+│   │   ├── AgentHeatmap.tsx        # Agent activity heatmap
+│   │   └── StatusBoard.tsx         # Real-time status board
 │   ├── scenes/
-│   │   ├── agentScene.ts      # Agent Overview scene (stats, timeseries, tables)
-│   │   ├── costScene.ts       # Cost Explorer scene
-│   │   ├── constellationScene.ts  # Constellation scene wrapper
-│   │   └── shared.ts          # Infinity datasource helpers
+│   │   ├── agentScene.ts           # Agent Overview (stats, timeseries, tables)
+│   │   ├── costScene.ts            # Cost Explorer
+│   │   ├── constellationScene.ts   # Constellation wrapper
+│   │   ├── steampunkTraceScene.ts  # Steampunk Trace wrapper
+│   │   ├── activityFeedScene.ts    # Activity Feed wrapper
+│   │   ├── taskProgressScene.ts    # Task Progress wrapper
+│   │   ├── orbitalTrackerScene.ts  # Orbital Tracker wrapper
+│   │   └── shared.ts              # Infinity datasource helpers
 │   └── img/
 │       └── logo.svg
 ├── webpack.config.js          # AMD output, Grafana externals
