@@ -1,0 +1,338 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Uptime",
+      "description": "System uptime",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#67e8f9", "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#67e8f9", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "uptime", "text": "Uptime", "type": "string" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Total Agents Spawned",
+      "description": "Total agents spawned since startup",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#67e8f9", "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#67e8f9", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "total_agents_spawned", "text": "Spawned", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Active Agents",
+      "description": "Currently active agents",
+      "type": "gauge",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 20,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#34d399", "value": null }, { "color": "#fbbf24", "value": 8 }, { "color": "#ef4444", "value": 15 }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "active_agents", "text": "Active", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Idle Agents",
+      "description": "Currently idle agents",
+      "type": "gauge",
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 20,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#67e8f9", "value": null }, { "color": "#fbbf24", "value": 10 }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "idle_agents", "text": "Idle", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Cumulative Cost",
+      "description": "Total cost since startup",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#34d399", "mode": "fixed" },
+          "unit": "currencyUSD",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#34d399", "value": null }, { "color": "#fbbf24", "value": 10 }, { "color": "#ef4444", "value": 50 }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "cumulative_cost", "text": "Cost", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "WebSocket Connections",
+      "description": "Active WebSocket connections",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#fbbf24", "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#fbbf24", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/health",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "active_ws_connections", "text": "WS Connections", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Project Activity",
+      "description": "Agent counts and turns per project over time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Agents",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/projects",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "parser": "backend",
+          "root_selector": "agent-reports",
+          "columns": [
+            { "selector": "time", "text": "time", "type": "timestamp" },
+            { "selector": "agent_count", "text": "agent_count", "type": "number" },
+            { "selector": "turn_count", "text": "turn_count", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Summary Stats",
+      "description": "Overall system summary",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": false }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "cumulative_cost" }, "properties": [{ "id": "unit", "value": "currencyUSD" }, { "id": "color", "value": { "fixedColor": "#34d399", "mode": "fixed" } }, { "id": "custom.cellOptions", "value": { "type": "color-text" } }] },
+          { "matcher": { "id": "byName", "options": "active_agents" }, "properties": [{ "id": "color", "value": { "fixedColor": "#67e8f9", "mode": "fixed" } }, { "id": "custom.cellOptions", "value": { "type": "color-text" } }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": { "show": false },
+        "cellHeight": "md"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/summary",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "uptime", "text": "uptime", "type": "string" },
+            { "selector": "total_agents_spawned", "text": "total_agents_spawned", "type": "number" },
+            { "selector": "active_agents", "text": "active_agents", "type": "number" },
+            { "selector": "idle_agents", "text": "idle_agents", "type": "number" },
+            { "selector": "total_turns", "text": "total_turns", "type": "number" },
+            { "selector": "cumulative_cost", "text": "cumulative_cost", "type": "number" },
+            { "selector": "active_ws_connections", "text": "active_ws_connections", "type": "number" },
+            { "selector": "total_tasks_started", "text": "tasks_started", "type": "number" },
+            { "selector": "total_tasks_completed", "text": "tasks_completed", "type": "number" },
+            { "selector": "total_tasks_failed", "text": "tasks_failed", "type": "number" }
+          ]
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["claude-manager", "health"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "System Health",
+  "uid": "cm-system-health",
+  "version": 1
+}

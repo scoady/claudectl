@@ -51,6 +51,7 @@ func main() {
 		filesCmd(),
 		milestonesCmd(),
 		metricsCmd(),
+		serveCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

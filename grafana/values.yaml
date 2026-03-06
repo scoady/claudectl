@@ -1,0 +1,65 @@
+replicas: 1
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+env:
+  GF_INSTALL_PLUGINS: "yesoreyeram-infinity-datasource"
+
+adminUser: admin
+adminPassword: admin
+
+grafana.ini:
+  server:
+    root_url: "http://grafana.localhost"
+  auth.anonymous:
+    enabled: true
+    org_role: Viewer
+  users:
+    default_theme: dark
+  security:
+    allow_embedding: true
+
+resources:
+  limits:
+    memory: 256Mi
+    cpu: 200m
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - grafana.localhost
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Claude Manager
+        type: yesoreyeram-infinity-datasource
+        access: proxy
+        url: http://host.docker.internal:4040
+        isDefault: true
+        editable: true
+        jsonData:
+          auth_method: ""
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: "Claude Manager"
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboardsConfigMaps:
+  default: grafana-dashboards

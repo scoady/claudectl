@@ -1,0 +1,175 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Agent Activity Over Time",
+      "description": "Active, idle, done, and error agents over time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "active" }, "properties": [{ "id": "color", "value": { "fixedColor": "#67e8f9", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "idle" }, "properties": [{ "id": "color", "value": { "fixedColor": "#fbbf24", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "done" }, "properties": [{ "id": "color", "value": { "fixedColor": "#34d399", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "error" }, "properties": [{ "id": "color", "value": { "fixedColor": "#ef4444", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/agents",
+          "url_options": { "method": "GET" },
+          "format": "timeseries",
+          "root_selector": "",
+          "columns": [
+            { "selector": "time", "text": "time", "type": "timestamp" },
+            { "selector": "active", "text": "active", "type": "number" },
+            { "selector": "idle", "text": "idle", "type": "number" },
+            { "selector": "done", "text": "done", "type": "number" },
+            { "selector": "error", "text": "error", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Agent Count by Project",
+      "description": "Current agent distribution across projects",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "#67e8f9" },
+          "custom": {
+            "axisBorderShow": false,
+            "fillOpacity": 80,
+            "gradientMode": "scheme",
+            "lineWidth": 1
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" },
+        "xTickLabelRotation": 0,
+        "barWidth": 0.6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/stats",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "total_projects", "text": "Projects", "type": "number" },
+            { "selector": "total_agents", "text": "Total Agents", "type": "number" },
+            { "selector": "working_agents", "text": "Working", "type": "number" },
+            { "selector": "idle_agents", "text": "Idle", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Current Agents",
+      "description": "All currently running agents",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "filterable": true
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "status" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "active": { "color": "#67e8f9", "text": "ACTIVE" }, "idle": { "color": "#fbbf24", "text": "IDLE" }, "done": { "color": "#34d399", "text": "DONE" }, "error": { "color": "#ef4444", "text": "ERROR" } } }] }] },
+          { "matcher": { "id": "byName", "options": "session_id" }, "properties": [{ "id": "custom.width", "value": 280 }] },
+          { "matcher": { "id": "byName", "options": "project_name" }, "properties": [{ "id": "custom.width", "value": 160 }] },
+          { "matcher": { "id": "byName", "options": "model" }, "properties": [{ "id": "custom.width", "value": 160 }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": { "show": false },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/agents",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "session_id", "text": "session_id", "type": "string" },
+            { "selector": "project_name", "text": "project_name", "type": "string" },
+            { "selector": "status", "text": "status", "type": "string" },
+            { "selector": "model", "text": "model", "type": "string" },
+            { "selector": "turn_count", "text": "turn_count", "type": "number" },
+            { "selector": "started_at", "text": "started_at", "type": "timestamp" },
+            { "selector": "task", "text": "task", "type": "string" }
+          ]
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["claude-manager", "agents"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Agent Activity",
+  "uid": "cm-agent-activity",
+  "version": 1
+}

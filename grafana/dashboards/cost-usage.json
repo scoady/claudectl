@@ -1,0 +1,166 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Cumulative Cost (USD)",
+      "description": "Cost accumulation over time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "#34d399", "mode": "fixed" },
+          "unit": "currencyUSD",
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Cost (USD)",
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#34d399", "value": null }, { "color": "#fbbf24", "value": 5 }, { "color": "#ef4444", "value": 20 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "incremental" }, "properties": [{ "id": "color", "value": { "fixedColor": "#67e8f9", "mode": "fixed" } }, { "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 60 }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/costs",
+          "url_options": { "method": "GET" },
+          "format": "timeseries",
+          "root_selector": "",
+          "columns": [
+            { "selector": "time", "text": "time", "type": "timestamp" },
+            { "selector": "cumulative", "text": "cumulative", "type": "number" },
+            { "selector": "incremental", "text": "incremental", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Model Usage Breakdown",
+      "description": "Agent count and cost per model",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "model" }, "properties": [{ "id": "color", "value": { "fixedColor": "#67e8f9", "mode": "fixed" } }, { "id": "custom.cellOptions", "value": { "type": "color-text" } }] },
+          { "matcher": { "id": "byName", "options": "estimated_cost" }, "properties": [{ "id": "unit", "value": "currencyUSD" }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": { "show": true, "reducer": ["sum"], "countRows": false, "fields": ["estimated_cost"] },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/models",
+          "url_options": { "method": "GET" },
+          "format": "table",
+          "root_selector": "",
+          "columns": [
+            { "selector": "model", "text": "model", "type": "string" },
+            { "selector": "count", "text": "count", "type": "number" },
+            { "selector": "total_turns", "text": "total_turns", "type": "number" },
+            { "selector": "estimated_cost", "text": "estimated_cost", "type": "number" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Task Throughput",
+      "description": "Tasks started, completed, and failed over time",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "Tasks",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "started" }, "properties": [{ "id": "color", "value": { "fixedColor": "#67e8f9", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "completed" }, "properties": [{ "id": "color", "value": { "fixedColor": "#34d399", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "#ef4444", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "" },
+          "type": "json",
+          "source": "url",
+          "url": "http://host.docker.internal:4040/api/metrics/tasks",
+          "url_options": { "method": "GET" },
+          "format": "timeseries",
+          "root_selector": "",
+          "columns": [
+            { "selector": "time", "text": "time", "type": "timestamp" },
+            { "selector": "started", "text": "started", "type": "number" },
+            { "selector": "completed", "text": "completed", "type": "number" },
+            { "selector": "failed", "text": "failed", "type": "number" }
+          ]
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["claude-manager", "costs"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cost & Usage",
+  "uid": "cm-cost-usage",
+  "version": 1
+}
