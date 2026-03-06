@@ -18,8 +18,6 @@ const (
 	ModeCommand
 	ModeFilter
 )
-
-
 // ── Messages ─────────────────────────────────────────────────────────────────
 
 // TickMsg is sent periodically to trigger data refresh.
@@ -76,12 +74,24 @@ type App struct {
 	// Settings
 	settings SettingsModel
 
+	// Mission control
+	mission MissionModel
+
+	// Timeline
+	timeline TimelineModel
+	history  *AgentHistory
+	// Canvas
+	canvas         CanvasModel
+	widgetDetail   WidgetDetailModel
+	templateBrowse TemplateBrowserModel
+
 	// Overlays
 	dispatch      DispatchModel
 	inject        InjectModel
 	createProject CreateProjectModel
 	confirm       ConfirmModel
 	contextMenu   ContextMenuModel
+	palette       PaletteModel
 
 	// WebSocket
 	wsClient *WSClient
@@ -102,6 +112,8 @@ func NewApp(apiURL string) *App {
 		screen:   ScreenDashboard,
 		mode:     ModeNormal,
 		settings: NewSettingsModel(),
+		history:  NewAgentHistory(),
+		timeline: NewTimelineModel(),
 	}
 }
 
@@ -185,6 +197,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.screen == ScreenWatch {
 			a.watch, _ = a.watch.Update(msg)
 		}
+		if a.screen == ScreenMission {
+			a.mission, _ = a.mission.Update(msg)
+		}
 		return a, nil
 
 	case TickMsg:
@@ -216,6 +231,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			a.agents.ClampSelection()
+
+			// Feed timeline history
+			if a.history != nil {
+				a.history.Update(msg.Agents)
+			}
 		}
 		if a.screen == ScreenProject {
 			if msg.Tasks != nil {
@@ -224,6 +244,28 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.Widgets != nil {
 				a.project.Widgets = msg.Widgets
 			}
+		}
+		return a, nil
+
+	case CanvasDataMsg:
+		if msg.Err == nil {
+			a.canvas.Widgets = msg.Widgets
+			a.canvas.Templates = msg.Templates
+			a.canvas.Catalog = msg.Catalog
+			a.canvas.Contract = msg.Contract
+			a.canvas.ClampSelection()
+		}
+		return a, nil
+
+	case CanvasActionResultMsg:
+		if msg.Err != nil {
+			a.statusMsg = "Canvas error: " + msg.Err.Error()
+		} else {
+			a.statusMsg = msg.Message
+		}
+		a.statusTime = time.Now()
+		if a.screen == ScreenCanvas {
+			return a, FetchCanvasDataCmd(a.client, a.canvas.ProjectName)
 		}
 		return a, nil
 
@@ -274,6 +316,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.contextMenu = NewContextMenuModel(msg)
 		return a, a.contextMenu.Init()
 
+	case showHelpMsg:
+		a.showHelp = true
+		return a, nil
+
+	case executeCommandMsg:
+		return a.executeCommand(msg.Command)
+
 	case DispatchCompleteMsg:
 		if a.dispatch.Active() {
 			a.dispatch, _ = a.dispatch.Update(msg)
@@ -293,7 +342,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, cmd
 		}
 
-	// WS events — forward to watch model when in watch screen
+	// WS events — forward to watch/mission model
 	case WSConnectedMsg, WSDisconnectedMsg, WSTextChunkMsg,
 		WSMilestoneMsg, WSAgentDoneMsg, WSPhaseChangeMsg,
 		WSAgentSpawnedMsg, WSErrorMsg:
@@ -302,9 +351,31 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.watch, cmd = a.watch.Update(msg)
 			return a, cmd
 		}
+		if a.screen == ScreenMission {
+			var cmd tea.Cmd
+			a.mission, cmd = a.mission.Update(msg)
+			return a, cmd
+		}
 
 	case tea.KeyMsg:
+		// Palette open trigger — works from anywhere (except other text inputs)
+		if !a.palette.Active() && (msg.String() == "ctrl+p" || msg.String() == "ctrl+k") {
+			// Don't open palette when in command/filter mode or text overlays
+			if a.mode == ModeNormal && !a.dispatch.Active() && !a.inject.Active() && !a.createProject.Active() {
+				actions := BuildPaletteActions(a.dashboard.Projects, a.dashboard.Agents, a.client)
+				a.palette.Open(actions)
+				a.palette.width = a.width
+				a.palette.height = a.height
+				return a, nil
+			}
+		}
+
 		// Overlays get priority (in order)
+		if a.palette.Active() {
+			var cmd tea.Cmd
+			a.palette, cmd = a.palette.Update(msg)
+			return a, cmd
+		}
 		if a.contextMenu.Active() {
 			var cmd tea.Cmd
 			a.contextMenu, cmd = a.contextMenu.Update(msg)
@@ -334,6 +405,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.screen == ScreenWatch {
 			var cmd tea.Cmd
 			a.watch, cmd = a.watch.Update(msg)
+			return a, cmd
+		}
+		// Mission control gets its own key handling
+		if a.screen == ScreenMission {
+			var cmd tea.Cmd
+			a.mission, cmd = a.mission.Update(msg)
 			return a, cmd
 		}
 		return a.handleKey(msg)
@@ -369,6 +446,11 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return a.handleFilterInput(key)
 	}
 
+	// Timeline screen key handling
+	if a.screen == ScreenTimeline {
+		return a.handleTimelineKey(key)
+	}
+
 	// Settings screen has its own key handling
 	if a.screen == ScreenSettings {
 		return a.handleSettingsKey(key)
@@ -378,7 +460,17 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q", "ctrl+c":
 		if a.screen != ScreenDashboard {
-			if a.screen == ScreenWatch && a.wsClient != nil {
+			// Canvas sub-screens go back to canvas
+			if a.screen == ScreenWidgetDetail || a.screen == ScreenTemplateBrowse {
+				a.screen = ScreenCanvas
+				return a, nil
+			}
+			// Canvas goes back to project
+			if a.screen == ScreenCanvas {
+				a.screen = ScreenProject
+				return a, nil
+			}
+			if (a.screen == ScreenWatch || a.screen == ScreenMission) && a.wsClient != nil {
 				a.wsClient.Close()
 				a.wsClient = nil
 			}
@@ -389,7 +481,17 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "esc":
 		if a.screen != ScreenDashboard {
-			if a.screen == ScreenWatch && a.wsClient != nil {
+			// Canvas sub-screens go back to canvas
+			if a.screen == ScreenWidgetDetail || a.screen == ScreenTemplateBrowse {
+				a.screen = ScreenCanvas
+				return a, nil
+			}
+			// Canvas goes back to project
+			if a.screen == ScreenCanvas {
+				a.screen = ScreenProject
+				return a, nil
+			}
+			if (a.screen == ScreenWatch || a.screen == ScreenMission) && a.wsClient != nil {
 				a.wsClient.Close()
 				a.wsClient = nil
 			}
@@ -436,10 +538,24 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return a, nil
 		}
 
+	case "t":
+		// Open timeline (dashboard only)
+		if a.screen == ScreenDashboard {
+			a.screen = ScreenTimeline
+			a.timeline = NewTimelineModel()
+			return a, nil
+		}
+
 	case "c":
 		// Create project (dashboard only)
 		if a.screen == ScreenDashboard {
 			return a, func() tea.Msg { return ShowCreateProjectMsg{} }
+		}
+
+	case "m":
+		// Mission control (dashboard or agents screen)
+		if a.screen == ScreenDashboard || a.screen == ScreenAgents {
+			return a.navigateToMission()
 		}
 
 	case "x", "delete":
@@ -464,10 +580,21 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		a.statusTime = time.Now()
 		return a, nil
 
+	case "w":
+		// Open canvas screen from project detail
+		if a.screen == ScreenProject && a.projectName != "" {
+			return a.navigateToCanvas(a.projectName)
+		}
+
 	case "tab":
 		if a.screen == ScreenProject {
 			a.project.Panel = (a.project.Panel + 1) % 3
 			a.project.Selected = 0
+			return a, nil
+		}
+		if a.screen == ScreenCanvas {
+			a.canvas.Panel = (a.canvas.Panel + 1) % 4
+			a.canvas.Selected = 0
 			return a, nil
 		}
 
@@ -511,6 +638,7 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	return a, nil
 }
+
 
 func (a *App) handleCommandInput(key string) (tea.Model, tea.Cmd) {
 	switch key {
@@ -607,9 +735,22 @@ func (a *App) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 			}
 		}
 		return a, nil
+	case "timeline":
+		a.screen = ScreenTimeline
+		a.timeline = NewTimelineModel()
+		return a, nil
 	case "create":
 		return a, func() tea.Msg { return ShowCreateProjectMsg{} }
+	case "mission":
+		return a.navigateToMission()
 	default:
+		// :canvas <project> command
+		if strings.HasPrefix(cmd, "canvas ") {
+			projectName := strings.TrimSpace(strings.TrimPrefix(cmd, "canvas "))
+			if projectName != "" {
+				return a.navigateToCanvas(projectName)
+			}
+		}
 		// Try as project name
 		for _, p := range a.dashboard.Projects {
 			if strings.EqualFold(p.Name, cmd) {
@@ -650,6 +791,12 @@ func (a *App) moveSelection(delta int) {
 	case ScreenAgents:
 		a.agents.Selected += delta
 		a.agents.ClampSelection()
+	case ScreenTimeline:
+		a.timeline.Selected += delta
+		// Clamp is handled in render
+	case ScreenCanvas:
+		a.canvas.Selected += delta
+		a.canvas.ClampSelection()
 	}
 }
 
@@ -661,6 +808,8 @@ func (a *App) handleEnter() (tea.Model, tea.Cmd) {
 		return a.showProjectMenu()
 	case ScreenAgents:
 		return a.showAgentsMenu()
+	case ScreenCanvas:
+		return a.showCanvasMenu()
 	}
 	return a, nil
 }
@@ -922,6 +1071,123 @@ func (a *App) navigateToProject(name string) (tea.Model, tea.Cmd) {
 	return a, a.fetchData()
 }
 
+func (a *App) navigateToCanvas(projectName string) (tea.Model, tea.Cmd) {
+	a.screen = ScreenCanvas
+	a.canvas = CanvasModel{
+		ProjectName: projectName,
+		Panel:       0,
+		Selected:    0,
+	}
+	return a, FetchCanvasDataCmd(a.client, projectName)
+}
+
+func (a *App) showCanvasMenu() (tea.Model, tea.Cmd) {
+	projectName := a.canvas.ProjectName
+	switch a.canvas.Panel {
+	case 0: // Widgets panel
+		w := a.canvas.SelectedWidget()
+		if w == nil {
+			return a, nil
+		}
+		widget := *w
+		widgetID := widget.ID
+		return a, func() tea.Msg {
+			return ShowContextMenuMsg{
+				Title: widget.Title,
+				Items: []MenuItem{
+					{Label: "View Details", Key: "d", Icon: "◉", Action: func() tea.Msg {
+						return NavigateMsg{Screen: ScreenWidgetDetail}
+					}},
+					{Label: "Delete Widget", Key: "x", Icon: "✗",
+						Style: lipgloss.NewStyle().Foreground(Rose),
+						Action: func() tea.Msg {
+							return ShowConfirmMsg{
+								Title:       "Delete Widget",
+								Description: "Delete widget \"" + widget.Title + "\"?",
+								Destructive: true,
+								OnConfirm: func() tea.Msg {
+									err := a.client.DeleteWidget(projectName, widgetID)
+									if err != nil {
+										return CanvasActionResultMsg{Err: err}
+									}
+									return CanvasActionResultMsg{Message: "Widget deleted: " + widgetID}
+								},
+							}
+						}},
+				},
+			}
+		}
+	case 1: // Templates panel
+		t := a.canvas.SelectedTemplate()
+		if t == nil {
+			return a, nil
+		}
+		tmpl := *t
+		return a, func() tea.Msg {
+			return ShowContextMenuMsg{
+				Title: tmpl.Title,
+				Items: []MenuItem{
+					{Label: "Deploy to Canvas", Key: "d", Icon: "▸", Action: func() tea.Msg {
+						body := map[string]interface{}{
+							"template_id": tmpl.Filename,
+						}
+						_, err := a.client.CreateWidget(projectName, body)
+						if err != nil {
+							return CanvasActionResultMsg{Err: err}
+						}
+						return CanvasActionResultMsg{Message: "Template deployed: " + tmpl.Filename}
+					}},
+				},
+			}
+		}
+	case 2: // Catalog panel
+		ct := a.canvas.SelectedCatalogItem()
+		if ct == nil {
+			return a, nil
+		}
+		catItem := *ct
+		return a, func() tea.Msg {
+			return ShowContextMenuMsg{
+				Title: catItem.Title,
+				Items: []MenuItem{
+					{Label: "View Details", Key: "d", Icon: "◉", Action: func() tea.Msg {
+						return NavigateMsg{Screen: ScreenTemplateBrowse}
+					}},
+					{Label: "Deploy to Canvas", Key: "p", Icon: "▸", Action: func() tea.Msg {
+						body := map[string]interface{}{
+							"template_id": catItem.TemplateID,
+						}
+						_, err := a.client.CreateWidget(projectName, body)
+						if err != nil {
+							return CanvasActionResultMsg{Err: err}
+						}
+						return CanvasActionResultMsg{Message: "Catalog template deployed: " + catItem.TemplateID}
+					}},
+					{Label: "Delete from Catalog", Key: "x", Icon: "✗",
+						Style: lipgloss.NewStyle().Foreground(Rose),
+						Action: func() tea.Msg {
+							return ShowConfirmMsg{
+								Title:       "Delete Catalog Template",
+								Description: "Delete \"" + catItem.Title + "\" from catalog?",
+								Destructive: true,
+								OnConfirm: func() tea.Msg {
+									err := a.client.DeleteCatalogTemplate(catItem.TemplateID)
+									if err != nil {
+										return CanvasActionResultMsg{Err: err}
+									}
+									return CanvasActionResultMsg{Message: "Catalog template deleted: " + catItem.TemplateID}
+								},
+							}
+						}},
+				},
+			}
+		}
+	case 3: // Layout panel — no context menu
+		return a, nil
+	}
+	return a, nil
+}
+
 func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	switch msg.Screen {
 	case ScreenWatch:
@@ -946,8 +1212,8 @@ func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		)
 
 	case ScreenDashboard:
-		// If coming back from watch, clean up WS
-		if a.screen == ScreenWatch && a.wsClient != nil {
+		// If coming back from watch/mission, clean up WS
+		if (a.screen == ScreenWatch || a.screen == ScreenMission) && a.wsClient != nil {
 			a.wsClient.Close()
 			a.wsClient = nil
 		}
@@ -955,7 +1221,7 @@ func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case ScreenAgents:
-		if a.screen == ScreenWatch && a.wsClient != nil {
+		if (a.screen == ScreenWatch || a.screen == ScreenMission) && a.wsClient != nil {
 			a.wsClient.Close()
 			a.wsClient = nil
 		}
@@ -965,6 +1231,46 @@ func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	case ScreenProject:
 		if msg.Project != nil {
 			return a.navigateToProject(msg.Project.Name)
+		}
+		return a, nil
+
+	case ScreenSettings:
+		a.screen = ScreenSettings
+		a.settings = NewSettingsModel()
+		for i, t := range a.settings.Themes {
+			if t.Name == ActiveThemeName {
+				a.settings.Selected = i
+				break
+			}
+		}
+		return a, nil
+
+	case ScreenCanvas:
+		if a.canvas.ProjectName != "" {
+			return a.navigateToCanvas(a.canvas.ProjectName)
+		}
+		return a, nil
+
+	case ScreenWidgetDetail:
+		// Navigate to widget detail from canvas
+		w := a.canvas.SelectedWidget()
+		if w != nil {
+			a.screen = ScreenWidgetDetail
+			a.widgetDetail = WidgetDetailModel{
+				Widget:   w,
+				Contract: a.canvas.Contract,
+			}
+		}
+		return a, nil
+
+	case ScreenTemplateBrowse:
+		// Navigate to catalog template detail from canvas
+		ct := a.canvas.SelectedCatalogItem()
+		if ct != nil {
+			a.screen = ScreenTemplateBrowse
+			a.templateBrowse = TemplateBrowserModel{
+				Template: ct,
+			}
 		}
 		return a, nil
 	}
@@ -984,6 +1290,24 @@ type wsStartMsg struct {
 	sessionID string
 }
 
+func (a *App) navigateToMission() (tea.Model, tea.Cmd) {
+	// Clean up any previous WS connection
+	if a.wsClient != nil {
+		a.wsClient.Close()
+	}
+	a.screen = ScreenMission
+	a.wsClient = NewWSClient(a.client.BaseURL)
+	a.mission = NewMissionModel(a.dashboard.Agents, a.wsClient, a.client)
+
+	return a, tea.Batch(
+		func() tea.Msg {
+			return tea.WindowSizeMsg{Width: a.width, Height: a.height}
+		},
+		// Connect WS with empty session filter to receive ALL agent events
+		a.startWSWatch(""),
+	)
+}
+
 // View renders the UI.
 func (a *App) View() string {
 	if a.width == 0 || a.height == 0 {
@@ -993,6 +1317,9 @@ func (a *App) View() string {
 	var b strings.Builder
 
 	// Overlays render on top of everything
+	if a.palette.Active() {
+		return a.palette.View()
+	}
 	if a.contextMenu.Active() {
 		return a.contextMenu.View()
 	}
@@ -1014,6 +1341,11 @@ func (a *App) View() string {
 		return a.watch.View()
 	}
 
+	// Mission control has its own full layout
+	if a.screen == ScreenMission {
+		return a.mission.View()
+	}
+
 	// Screen name for header
 	screenName := "dashboard"
 	switch a.screen {
@@ -1023,6 +1355,14 @@ func (a *App) View() string {
 		screenName = "agents"
 	case ScreenSettings:
 		screenName = "settings"
+	case ScreenTimeline:
+		screenName = "timeline"
+	case ScreenCanvas:
+		screenName = "canvas:" + a.canvas.ProjectName
+	case ScreenWidgetDetail:
+		screenName = "widget-detail"
+	case ScreenTemplateBrowse:
+		screenName = "catalog-detail"
 	}
 
 	// Header
@@ -1050,6 +1390,14 @@ func (a *App) View() string {
 			content = RenderAgents(&a.agents, a.width, contentHeight)
 		case ScreenSettings:
 			content = RenderSettings(&a.settings, a.width, contentHeight)
+		case ScreenTimeline:
+			content = RenderTimeline(&a.timeline, a.history, a.width, contentHeight)
+		case ScreenCanvas:
+			content = RenderCanvas(&a.canvas, a.width, contentHeight)
+		case ScreenWidgetDetail:
+			content = RenderWidgetDetail(&a.widgetDetail, a.width, contentHeight)
+		case ScreenTemplateBrowse:
+			content = RenderTemplateBrowser(&a.templateBrowse, a.width, contentHeight)
 		}
 
 		// Pad content to fill height
@@ -1094,6 +1442,8 @@ func (a *App) View() string {
 	case ScreenDashboard:
 		hints = []KeyHint{
 			{"Enter", "Actions"},
+			{"Ctrl+P", "Palette"},
+			{"m", "Mission"},
 			{"c", "Create"},
 			{"s", "Settings"},
 			{"/", "Filter"},
@@ -1104,7 +1454,9 @@ func (a *App) View() string {
 	case ScreenProject:
 		hints = []KeyHint{
 			{"Enter", "Actions"},
+			{"Ctrl+P", "Palette"},
 			{"Tab", "Panel"},
+			{"w", "Canvas"},
 			{"Ctrl+D", "Dispatch"},
 			{"Esc", "Back"},
 			{"?", "Help"},
@@ -1112,6 +1464,7 @@ func (a *App) View() string {
 	case ScreenAgents:
 		hints = []KeyHint{
 			{"Enter", "Actions"},
+			{"Ctrl+P", "Palette"},
 			{"/", "Filter"},
 			{"Esc", "Back"},
 			{"?", "Help"},
@@ -1121,6 +1474,26 @@ func (a *App) View() string {
 			{"j/k", "Navigate"},
 			{"Enter", "Apply"},
 			{"Esc", "Back"},
+		}
+	case ScreenTimeline:
+		hints = []KeyHint{
+			{"h/l", "Zoom"},
+			{"Left/Right", "Cursor"},
+			{"j/k", "Select"},
+			{"Esc", "Back"},
+			{"?", "Help"},
+		}
+	case ScreenCanvas:
+		hints = []KeyHint{
+			{"Enter", "Actions"},
+			{"Tab", "Panel"},
+			{"Esc", "Back"},
+			{"?", "Help"},
+		}
+	case ScreenWidgetDetail, ScreenTemplateBrowse:
+		hints = []KeyHint{
+			{"Esc", "Back"},
+			{"?", "Help"},
 		}
 	}
 	b.WriteString(RenderFooter(a.width, hints))

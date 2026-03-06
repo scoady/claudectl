@@ -115,6 +115,7 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 	colTurns := 7
 	colMilestones := 4
 	colElapsed := 9
+	colCost := 10
 
 	// Header
 	headerPad := repeatStr(" ", colIndicator)
@@ -127,7 +128,8 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 		TableHeaderStyle.Width(colModel).Render("MODEL") +
 		TableHeaderStyle.Width(colTurns).Render("TRNS") +
 		TableHeaderStyle.Width(colMilestones).Render("MS") +
-		TableHeaderStyle.Width(colElapsed).Render("ELAPSED")
+		TableHeaderStyle.Width(colElapsed).Render("ELAPSED") +
+		TableHeaderStyle.Width(colCost).Render("COST")
 	b.WriteString(header + "\n")
 
 	maxVisible := height - 10
@@ -209,7 +211,8 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 			cellStyle.Width(colModel).Render(model) +
 			cellStyle.Width(colTurns).Render(fmt.Sprintf("%d", ag.TurnCount)) +
 			cellStyle.Width(colMilestones).Render(fmt.Sprintf("%d", len(ag.Milestones))) +
-			cellStyle.Width(colElapsed).Render(ag.ElapsedString())
+			cellStyle.Width(colElapsed).Render(ag.ElapsedString()) +
+			lipgloss.NewStyle().Foreground(Amber).Padding(0, 1).Width(colCost).Render(FormatCost(EstimateCost(ag.Model, ag.TurnCount)))
 
 		if i == a.Selected {
 			row = lipgloss.NewStyle().

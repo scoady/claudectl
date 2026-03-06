@@ -22,7 +22,10 @@ func RenderHelp(width, height int) string {
 		key  string
 		desc string
 	}{
+		{"Ctrl+P / Ctrl+K", "Command palette"},
 		{"Ctrl+D", "Dispatch new task"},
+		{"t", "Agent Timeline"},
+		{"m", "Mission Control (multi-agent)"},
 		{"d", "Detail view"},
 		{"s", "Settings / Themes"},
 		{"l", "Logs / Stream view"},
@@ -38,6 +41,8 @@ func RenderHelp(width, height int) string {
 	}{
 		{":agents", "Show all agents"},
 		{":projects", "Show project list"},
+		{":timeline", "Agent Timeline"},
+		{":mission", "Mission Control"},
 		{":settings", "Theme settings"},
 		{":q / :quit", "Quit"},
 		{"/text", "Filter by text"},

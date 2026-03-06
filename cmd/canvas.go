@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/scoady/claudectl/internal/api"
 	"github.com/scoady/claudectl/internal/ui"
@@ -231,6 +232,260 @@ func canvasCmd() *cobra.Command {
 	}
 	layoutCmd.Flags().StringVar(&layoutData, "data", "", "Layout data as JSON string")
 
-	cmd.AddCommand(putCmd, rmCmd, tabsCmd, clearCmd, layoutCmd)
+	// c9s canvas templates — list saved widget templates
+	templatesCmd := &cobra.Command{
+		Use:   "templates",
+		Short: "List saved widget templates",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			templates, err := client.GetWidgetTemplates()
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render(err.Error()))
+				return nil
+			}
+
+			fmt.Println(ui.Banner())
+			fmt.Println(ui.SectionHeader("Widget Templates"))
+
+			if len(templates) == 0 {
+				fmt.Println(ui.Dim.Render("  No saved templates."))
+				fmt.Println()
+				return nil
+			}
+
+			var rows [][]string
+			for _, t := range templates {
+				title := t.Title
+				if title == "" {
+					title = "-"
+				}
+				hasJS := "-"
+				if t.JS != "" {
+					hasJS = "yes"
+				}
+				hasCSS := "-"
+				if t.CSS != "" {
+					hasCSS = "yes"
+				}
+				hasHTML := "-"
+				if t.HTML != "" {
+					hasHTML = "yes"
+				}
+				rows = append(rows, []string{
+					ui.Bold.Render(t.Filename),
+					title,
+					hasJS,
+					hasCSS,
+					hasHTML,
+				})
+			}
+
+			fmt.Println(ui.RenderTable(
+				[]string{"Filename", "Title", "JS", "CSS", "HTML"},
+				rows,
+			))
+			fmt.Println()
+			return nil
+		},
+	}
+
+	// c9s canvas catalog — list widget catalog
+	catalogCmd := &cobra.Command{
+		Use:   "catalog [template_id]",
+		Short: "List widget catalog or show template details",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 {
+				// Show specific template details
+				ct, err := client.GetCatalogTemplate(args[0])
+				if err != nil {
+					fmt.Println(ui.ErrorBox.Render(err.Error()))
+					return nil
+				}
+
+				fmt.Println(ui.Banner())
+				fmt.Println(ui.SectionHeader("Catalog Template — " + ct.Title))
+				fmt.Printf("  %s %s\n", ui.Dim.Render("ID:"), ui.Bold.Render(ct.TemplateID))
+				fmt.Printf("  %s %s\n", ui.Dim.Render("Title:"), ct.Title)
+				desc := ct.Description
+				if desc == "" {
+					desc = "-"
+				}
+				fmt.Printf("  %s %s\n", ui.Dim.Render("Description:"), desc)
+				fmt.Printf("  %s %d\n", ui.Dim.Render("Parameters:"), len(ct.Parameters))
+
+				if len(ct.Parameters) > 0 {
+					fmt.Println()
+					fmt.Println(ui.SectionHeader("Parameters"))
+					var rows [][]string
+					for _, p := range ct.Parameters {
+						defVal := p.Default
+						if defVal == "" {
+							defVal = "-"
+						}
+						pDesc := p.Description
+						if pDesc == "" {
+							pDesc = "-"
+						}
+						rows = append(rows, []string{
+							ui.Bold.Render(p.Name),
+							p.Type,
+							pDesc,
+							defVal,
+						})
+					}
+					fmt.Println(ui.RenderTable(
+						[]string{"Name", "Type", "Description", "Default"},
+						rows,
+					))
+				}
+				fmt.Println()
+				return nil
+			}
+
+			// List all catalog templates
+			catalog, err := client.GetCatalogTemplates()
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render(err.Error()))
+				return nil
+			}
+
+			fmt.Println(ui.Banner())
+			fmt.Println(ui.SectionHeader("Widget Catalog"))
+
+			if len(catalog) == 0 {
+				fmt.Println(ui.Dim.Render("  No catalog templates."))
+				fmt.Println()
+				return nil
+			}
+
+			var rows [][]string
+			for _, ct := range catalog {
+				desc := ct.Description
+				if desc == "" {
+					desc = "-"
+				}
+				rows = append(rows, []string{
+					ui.Bold.Render(ct.TemplateID),
+					ct.Title,
+					truncateStr(desc, 40),
+					fmt.Sprintf("%d", len(ct.Parameters)),
+				})
+			}
+
+			fmt.Println(ui.RenderTable(
+				[]string{"Template ID", "Title", "Description", "Params"},
+				rows,
+			))
+			fmt.Println()
+			return nil
+		},
+	}
+
+	// c9s canvas seed <project> — seed canvas with default widgets
+	seedCmd := &cobra.Command{
+		Use:   "seed <project>",
+		Short: "Seed canvas with default widgets",
+		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			project := args[0]
+			err := client.SeedCanvas(project)
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render(err.Error()))
+				return nil
+			}
+			fmt.Println(ui.SuccessText.Render("Canvas seeded for: ") + ui.Bold.Render(project))
+			return nil
+		},
+	}
+
+	// c9s canvas scene <project> --file layout.json — replace entire scene
+	var sceneFile string
+	sceneCmd := &cobra.Command{
+		Use:   "scene <project>",
+		Short: "Replace entire canvas from a JSON file",
+		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			project := args[0]
+			if sceneFile == "" {
+				fmt.Println(ui.ErrorBox.Render("--file is required (path to JSON scene file)"))
+				return nil
+			}
+			fileData, err := os.ReadFile(sceneFile)
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render("Failed to read file: " + err.Error()))
+				return nil
+			}
+			var widgets []interface{}
+			if err := json.Unmarshal(fileData, &widgets); err != nil {
+				fmt.Println(ui.ErrorBox.Render("Invalid JSON (expected array of widget objects): " + err.Error()))
+				return nil
+			}
+			err = client.ReplaceScene(project, widgets)
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render(err.Error()))
+				return nil
+			}
+			fmt.Println(ui.SuccessText.Render("Scene replaced for: ") + ui.Bold.Render(project))
+			return nil
+		},
+	}
+	sceneCmd.Flags().StringVar(&sceneFile, "file", "", "Path to JSON scene file")
+
+	// c9s canvas contract <project> — show dashboard data contract
+	contractCmd := &cobra.Command{
+		Use:   "contract <project>",
+		Short: "Show dashboard data contract",
+		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			project := args[0]
+			contract, err := client.GetDashboardContract(project)
+			if err != nil {
+				fmt.Println(ui.ErrorBox.Render(err.Error()))
+				return nil
+			}
+
+			fmt.Println(ui.Banner())
+			fmt.Println(ui.SectionHeader("Dashboard Contract — " + project))
+
+			if len(contract.Widgets) == 0 {
+				fmt.Println(ui.Dim.Render("  No contract widgets."))
+				fmt.Println()
+				return nil
+			}
+
+			for _, w := range contract.Widgets {
+				fmt.Printf("  %s %s\n", ui.StatusIdle.Render("●"), ui.Bold.Render(w.Title))
+				fmt.Printf("    %s %s\n", ui.Dim.Render("ID:"), w.ID)
+				if len(w.Schema) > 0 {
+					schemaJSON, _ := json.MarshalIndent(w.Schema, "    ", "  ")
+					fmt.Printf("    %s\n%s\n", ui.Dim.Render("Schema:"), string(schemaJSON))
+				}
+				fmt.Println()
+			}
+			return nil
+		},
+	}
+
+	cmd.AddCommand(putCmd, rmCmd, tabsCmd, clearCmd, layoutCmd,
+		templatesCmd, catalogCmd, seedCmd, sceneCmd, contractCmd)
 	return cmd
 }

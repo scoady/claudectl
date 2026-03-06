@@ -94,7 +94,18 @@ func renderProjectInfo(p *ProjectModel, maxWidth int) string {
 	modelPill := Pill(" "+model+" ", Blue, BadgeBlueBg)
 	configLine := kvKeyStyle.Render("config ") + parallelism + "  " + modelPill
 
-	return title + "\n" + pathLine + "\n" + configLine
+	// Cost estimate for project agents
+	var totalCost float64
+	for _, ag := range p.Agents {
+		totalCost += EstimateCost(ag.Model, ag.TurnCount)
+	}
+	costLine := ""
+	if totalCost > 0 {
+		costLine = "\n" + kvKeyStyle.Render("cost ") +
+			lipgloss.NewStyle().Foreground(Amber).Render(FormatCost(totalCost)+" today (est)")
+	}
+
+	return title + "\n" + pathLine + "\n" + configLine + costLine
 }
 
 func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
@@ -112,6 +123,7 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 	colModel := 12
 	colTurns := 8
 	colElapsed := 10
+	colCost := 10
 
 	// Header
 	pad := "   "
@@ -121,7 +133,8 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 		TableHeaderStyle.Width(colPhase).Render("PHASE") +
 		TableHeaderStyle.Width(colModel).Render("MODEL") +
 		TableHeaderStyle.Width(colTurns).Render("TURNS") +
-		TableHeaderStyle.Width(colElapsed).Render("ELAPSED")
+		TableHeaderStyle.Width(colElapsed).Render("ELAPSED") +
+		TableHeaderStyle.Width(colCost).Render("COST")
 	b.WriteString(header + "\n")
 
 	for i, a := range p.Agents {
@@ -184,7 +197,8 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 			cellStyle.Width(colPhase).Render(StatusColor(a.Phase).Render(a.Phase)) +
 			cellStyle.Width(colModel).Render(model) +
 			cellStyle.Width(colTurns).Render(fmt.Sprintf("%d", a.TurnCount)) +
-			cellStyle.Width(colElapsed).Render(a.ElapsedString())
+			cellStyle.Width(colElapsed).Render(a.ElapsedString()) +
+			lipgloss.NewStyle().Foreground(Amber).Padding(0, 1).Width(colCost).Render(FormatCost(EstimateCost(a.Model, a.TurnCount)))
 
 		if p.Panel == 0 && i == p.Selected {
 			row = lipgloss.NewStyle().

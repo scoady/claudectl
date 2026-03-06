@@ -18,7 +18,12 @@ const (
 	ScreenWatch
 	ScreenHelp
 	ScreenProject   // drill-into single project detail
-	ScreenSettings  // theme settings screen
+	ScreenSettings       // theme settings screen
+	ScreenCanvas         // canvas management screen
+	ScreenWidgetDetail   // widget detail view
+	ScreenTemplateBrowse // catalog template detail
+	ScreenMission        // multi-agent mission control dashboard
+	ScreenTimeline       // agent timeline view
 )
 
 // ── Navigation messages ─────────────────────────────────────────────────────
