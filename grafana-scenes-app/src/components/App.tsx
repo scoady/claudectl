@@ -10,6 +10,9 @@ import { getSteampunkTraceScene } from '../scenes/steampunkTraceScene';
 import { getActivityFeedScene } from '../scenes/activityFeedScene';
 import { getTaskProgressScene } from '../scenes/taskProgressScene';
 import { getOrbitalTrackerScene } from '../scenes/orbitalTrackerScene';
+import { getATCRadarScene } from '../scenes/atcRadarScene';
+import { getFlightBoardScene } from '../scenes/flightBoardScene';
+import { getMissionControlScene } from '../scenes/missionControlScene';
 
 const tabs = [
   { id: 'overview', label: 'Agent Overview', getScene: getAgentOverviewScene },
@@ -19,6 +22,9 @@ const tabs = [
   { id: 'activity', label: 'Activity Feed', getScene: getActivityFeedScene },
   { id: 'progress', label: 'Task Progress', getScene: getTaskProgressScene },
   { id: 'orbital', label: 'Orbital Tracker', getScene: getOrbitalTrackerScene },
+  { id: 'atc-radar', label: 'ATC Radar', getScene: getATCRadarScene },
+  { id: 'flight-board', label: 'Flight Board', getScene: getFlightBoardScene },
+  { id: 'mission-control', label: 'Mission Control', getScene: getMissionControlScene },
 ] as const;
 
 const getStyles = () => ({
