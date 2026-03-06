@@ -116,6 +116,12 @@ func (c *Client) KillAgent(sessionID string) error {
 	return c.delete("/api/agents/" + url.PathEscape(sessionID))
 }
 
+// InjectMessage sends a follow-up message to a running agent.
+func (c *Client) InjectMessage(sessionID, message string) error {
+	body := map[string]string{"message": message}
+	return c.post("/api/agents/"+url.PathEscape(sessionID)+"/inject", body, nil)
+}
+
 // ── Dispatch ─────────────────────────────────────────────────────────────────
 
 // Dispatch sends a task to a project.

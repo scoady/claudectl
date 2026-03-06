@@ -1,4 +1,4 @@
-// Package main is the entry point for claudectl.
+// Package main is the entry point for c9s.
 package main
 
 import (
@@ -10,6 +10,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/claudectl/internal/tui"
 	"github.com/scoady/claudectl/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -21,16 +22,20 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "claudectl",
-		Short: "Claude Manager CLI — manage agents, projects, and dashboards",
+		Use:   "c9s",
+		Short: "c9s — interactive TUI for Claude Agent Manager",
 		Long: ui.Banner() + "\n\n" +
-			"A powerful terminal interface for the Claude Agent Manager.\n" +
-			"Manage projects, dispatch agents, watch live output, and inspect dashboards.",
+			"A k9s-style interactive terminal interface for the Claude Agent Manager.\n" +
+			"Run with no subcommands for the interactive TUI, or use subcommands for CLI mode.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if envURL := os.Getenv("CM_API_URL"); envURL != "" && apiURL == "http://localhost:4040" {
 				apiURL = envURL
 			}
 			client = api.NewClient(apiURL)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// No subcommand — launch interactive TUI
+			return tui.Run(apiURL)
 		},
 		SilenceUsage: true,
 	}
