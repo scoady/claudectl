@@ -18,29 +18,14 @@
   "includes": [
     {
       "type": "page",
-      "name": "Agent Overview",
-      "path": "/a/scoady-claudectl-app/overview",
+      "name": "Claude Agent Manager",
+      "path": "/a/scoady-claudectl-app",
       "role": "Viewer",
-      "addToNav": true,
       "defaultNav": true
-    },
-    {
-      "type": "page",
-      "name": "Cost Explorer",
-      "path": "/a/scoady-claudectl-app/costs",
-      "role": "Viewer",
-      "addToNav": true
-    },
-    {
-      "type": "page",
-      "name": "Live Constellation",
-      "path": "/a/scoady-claudectl-app/constellation",
-      "role": "Viewer",
-      "addToNav": true
     }
   ],
   "dependencies": {
-    "grafanaDependency": ">=11.6.0",
+    "grafanaDependency": ">=10.0.0",
     "plugins": []
   }
 }

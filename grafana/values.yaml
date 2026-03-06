@@ -12,8 +12,13 @@ adminUser: admin
 adminPassword: admin
 
 grafana.ini:
+  paths:
+    plugins: "/var/lib/grafana/plugins-rw"
   server:
     root_url: "http://grafana.localhost"
+  plugins:
+    allow_loading_unsigned_plugins: "scoady-claudectl-app"
+    enable_alpha: true
   auth.anonymous:
     enabled: true
     org_role: Viewer
@@ -69,11 +74,11 @@ initChownData:
   enabled: false
 
 extraVolumeMounts:
-  - name: scenes-plugin-dir
-    mountPath: /var/lib/grafana/plugins/scoady-claudectl-app
+  - name: plugins-rw
+    mountPath: /var/lib/grafana/plugins-rw
 
 extraVolumes:
-  - name: scenes-plugin-dir
+  - name: plugins-rw
     emptyDir: {}
   - name: scenes-plugin-cm
     configMap:
@@ -92,16 +97,15 @@ extraInitContainers:
     command: ['sh', '-c']
     args:
       - |
-        cp /plugin-src/module.js /plugin-dest/module.js
-        cp /plugin-src/plugin.json /plugin-dest/plugin.json
-        mkdir -p /plugin-dest/img
-        cp /plugin-src/logo.svg /plugin-dest/img/logo.svg
-        chown -R 472:472 /plugin-dest
-        echo "Scenes plugin installed"
-        ls -la /plugin-dest/
+        mkdir -p /plugins/scoady-claudectl-app/img
+        cp /plugin-src/module.js /plugins/scoady-claudectl-app/module.js
+        cp /plugin-src/plugin.json /plugins/scoady-claudectl-app/plugin.json
+        cp /plugin-src/logo.svg /plugins/scoady-claudectl-app/img/logo.svg
+        echo "Scenes plugin installed:"
+        ls -la /plugins/scoady-claudectl-app/
     volumeMounts:
       - name: scenes-plugin-cm
         mountPath: /plugin-src
         readOnly: true
-      - name: scenes-plugin-dir
-        mountPath: /plugin-dest
+      - name: plugins-rw
+        mountPath: /plugins
