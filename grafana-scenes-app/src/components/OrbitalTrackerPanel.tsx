@@ -11,7 +11,7 @@ interface AgentOrbit {
   model: string;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#67e8f9',

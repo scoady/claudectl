@@ -30,7 +30,7 @@ interface StatsData {
   cumulative_cost?: number;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const REGION_COLORS: Record<string, string> = {
   frontal: '#9b59b6',   // purple

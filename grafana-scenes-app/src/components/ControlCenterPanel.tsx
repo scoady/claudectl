@@ -63,8 +63,8 @@ interface StreamEvent {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const API_BASE = 'http://host.docker.internal:4040';
-const WS_URL = 'ws://host.docker.internal:4040/ws';
+const API_BASE = 'http://localhost:4040';
+const WS_URL = 'ws://localhost:4040/ws';
 
 const STATUS_COLORS: Record<string, string> = {
   working: '#00ffcc',

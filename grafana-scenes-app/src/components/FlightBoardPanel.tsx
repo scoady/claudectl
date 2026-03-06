@@ -14,7 +14,7 @@ interface FlightEntry {
   rawStatus: string;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const AMBER = '#ffbf00';
 const GREEN = '#00ff41';

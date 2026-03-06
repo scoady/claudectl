@@ -10,7 +10,7 @@ interface MissionStats {
   model_breakdown: Record<string, number>;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const CYAN = '#00e5ff';
 const GREEN = '#00ff41';

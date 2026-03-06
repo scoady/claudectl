@@ -24,7 +24,7 @@ interface StatsData {
   cumulative_cost?: number;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const SONAR_CYAN = '#00e5ff';
 const SONAR_GREEN = '#00ff88';

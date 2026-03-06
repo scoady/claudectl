@@ -7,7 +7,7 @@ interface ProgressItem {
   color: string;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 function getColorForPct(pct: number): string {
   if (pct >= 90) return '#4ade80';

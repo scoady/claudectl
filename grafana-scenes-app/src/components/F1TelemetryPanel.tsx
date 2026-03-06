@@ -24,7 +24,7 @@ interface StatsData {
   cumulative_cost?: number;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const TEAM_COLORS: Record<string, string> = {
   0: '#e10600', // Ferrari red

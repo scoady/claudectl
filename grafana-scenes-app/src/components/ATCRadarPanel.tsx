@@ -25,7 +25,7 @@ interface StatsData {
   cumulative_cost?: number;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 const ATC_GREEN = '#00ff41';
 const ATC_GREEN_DIM = 'rgba(0,255,65,0.15)';

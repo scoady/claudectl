@@ -22,7 +22,7 @@ interface AgentData {
   milestone?: string;
 }
 
-const API_BASE = 'http://host.docker.internal:4040';
+const API_BASE = 'http://localhost:4040';
 
 /**
  * SteampunkTracePanel - A steampunk-themed distributed trace waterfall
