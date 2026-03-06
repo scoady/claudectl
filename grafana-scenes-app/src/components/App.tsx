@@ -13,9 +13,16 @@ import { getOrbitalTrackerScene } from '../scenes/orbitalTrackerScene';
 import { getATCRadarScene } from '../scenes/atcRadarScene';
 import { getFlightBoardScene } from '../scenes/flightBoardScene';
 import { getMissionControlScene } from '../scenes/missionControlScene';
+import { getMatrixRainScene } from '../scenes/matrixRainScene';
+import { getF1TelemetryScene } from '../scenes/f1TelemetryScene';
+import { getDeepSeaSonarScene } from '../scenes/deepSeaSonarScene';
+import { getNeuralNetworkScene } from '../scenes/neuralNetworkScene';
+import { getCasinoFloorScene } from '../scenes/casinoFloorScene';
+import { getControlCenterScene } from '../scenes/controlCenterScene';
 
 const tabs = [
   { id: 'overview', label: 'Agent Overview', getScene: getAgentOverviewScene },
+  { id: 'control-center', label: 'Control Center', getScene: getControlCenterScene },
   { id: 'costs', label: 'Cost Explorer', getScene: getCostExplorerScene },
   { id: 'constellation', label: 'Live Constellation', getScene: getConstellationScene },
   { id: 'steampunk', label: 'Steampunk Trace', getScene: getSteampunkTraceScene },
@@ -25,6 +32,11 @@ const tabs = [
   { id: 'atc-radar', label: 'ATC Radar', getScene: getATCRadarScene },
   { id: 'flight-board', label: 'Flight Board', getScene: getFlightBoardScene },
   { id: 'mission-control', label: 'Mission Control', getScene: getMissionControlScene },
+  { id: 'matrix-rain', label: 'Matrix Rain', getScene: getMatrixRainScene },
+  { id: 'f1-telemetry', label: 'F1 Telemetry', getScene: getF1TelemetryScene },
+  { id: 'deep-sonar', label: 'Deep Sea Sonar', getScene: getDeepSeaSonarScene },
+  { id: 'neural-network', label: 'Neural Network', getScene: getNeuralNetworkScene },
+  { id: 'casino-floor', label: 'Casino Floor', getScene: getCasinoFloorScene },
 ] as const;
 
 const getStyles = () => ({
