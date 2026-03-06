@@ -444,7 +444,7 @@ func RenderGridLayout(widgets []api.Widget, termWidth, maxLines int) string {
 		if pad < 0 {
 			pad = 0
 		}
-		b.WriteString(DimStyle.Render(label + strings.Repeat(" ", pad)))
+		b.WriteString(Class("dim").Render(label + strings.Repeat(" ", pad)))
 	}
 	b.WriteString("\n")
 

@@ -85,7 +85,7 @@ func RenderSparkline(values []int, width int) string {
 // RenderSparklineStyled renders a braille sparkline with explicit foreground color.
 func RenderSparklineStyled(values []int, width int, fg lipgloss.Color) string {
 	if len(values) == 0 {
-		return FaintStyle.Render("\u2581")
+		return Class("faint").Render("\u2581")
 	}
 
 	// Trim to width
@@ -134,7 +134,7 @@ func RenderSparklineStyled(values []int, width int, fg lipgloss.Color) string {
 // Ideal for chart panels and dashboard widgets.
 func RenderSparklineBraille(values []int, width, height int, fg lipgloss.Color) string {
 	if len(values) == 0 {
-		return FaintStyle.Render("\u2581")
+		return Class("faint").Render("\u2581")
 	}
 
 	// Convert and trim

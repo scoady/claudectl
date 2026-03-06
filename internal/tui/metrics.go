@@ -104,7 +104,7 @@ func RenderMetrics(m *MetricsModel, store *MetricsStore, history *AgentHistory,
 	var b strings.Builder
 
 	// ── Header bar ──
-	titleLeft := SectionStyle.Render("  Metrics Dashboard")
+	titleLeft := Class("section-title").Render("  Metrics Dashboard")
 	rangePill := Pill(fmt.Sprintf(" %s ", metricsRangeLabel(metricsTimeRanges[m.RangeIdx])), Cyan, BadgeCyanBg)
 	refreshDot := lipgloss.NewStyle().Foreground(Green).Bold(true).Render("●")
 	panelNames := []string{"Activity", "Cost", "Throughput", "Models", "Projects", "Health"}
@@ -239,7 +239,7 @@ func renderMetricsPanel(idx int, store *MetricsStore, history *AgentHistory,
 
 func renderAgentActivityChart(store *MetricsStore, history *AgentHistory, w, h int, window time.Duration) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	now := time.Now()
@@ -252,8 +252,8 @@ func renderAgentActivityChart(store *MetricsStore, history *AgentHistory, w, h i
 
 	// If no data, show placeholder
 	if len(activePoints) == 0 && len(donePoints) == 0 && len(errorPoints) == 0 {
-		return DimStyle.Render("Collecting data...") + "\n" +
-			FaintStyle.Render("Metrics populate as agents run")
+		return Class("dim").Render("Collecting data...") + "\n" +
+			Class("faint").Render("Metrics populate as agents run")
 	}
 
 	chartW := w
@@ -293,7 +293,7 @@ func renderAgentActivityChart(store *MetricsStore, history *AgentHistory, w, h i
 
 func renderCostChart(store *MetricsStore, history *AgentHistory, w, h int, window time.Duration) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	now := time.Now()
@@ -310,9 +310,9 @@ func renderCostChart(store *MetricsStore, history *AgentHistory, w, h int, windo
 		if cumCost > 0 {
 			return lipgloss.NewStyle().Foreground(Amber).Bold(true).Render(
 				fmt.Sprintf("Total estimated: %s", FormatCost(cumCost))) + "\n" +
-				FaintStyle.Render("Accumulating time series data...")
+				Class("faint").Render("Accumulating time series data...")
 		}
-		return DimStyle.Render("No cost data yet")
+		return Class("dim").Render("No cost data yet")
 	}
 
 	chartW := w
@@ -342,7 +342,7 @@ func renderCostChart(store *MetricsStore, history *AgentHistory, w, h int, windo
 
 func renderThroughputChart(store *MetricsStore, history *AgentHistory, w, h int, window time.Duration) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	now := time.Now()
@@ -414,7 +414,7 @@ func renderThroughputChart(store *MetricsStore, history *AgentHistory, w, h int,
 		total += v
 	}
 	summary := lipgloss.NewStyle().Foreground(Green).Render(fmt.Sprintf("%.0f completed", total)) +
-		DimStyle.Render(fmt.Sprintf(" in %s", metricsRangeLabel(window)))
+		Class("dim").Render(fmt.Sprintf(" in %s", metricsRangeLabel(window)))
 
 	return bc.View() + "\n" + summary
 }
@@ -423,7 +423,7 @@ func renderThroughputChart(store *MetricsStore, history *AgentHistory, w, h int,
 
 func renderModelUsageChart(agents []api.Agent, history *AgentHistory, w, h int) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	// Count model usage from history + active agents
@@ -439,7 +439,7 @@ func renderModelUsageChart(agents []api.Agent, history *AgentHistory, w, h int) 
 	}
 
 	if len(modelCounts) == 0 {
-		return DimStyle.Render("No model usage data")
+		return Class("dim").Render("No model usage data")
 	}
 
 	// Sort by count descending
@@ -524,7 +524,7 @@ func normalizeModelName(model string) string {
 
 func renderProjectSparklines(store *MetricsStore, history *AgentHistory, agents []api.Agent, w, h int) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	// Gather projects from history + active agents
@@ -538,7 +538,7 @@ func renderProjectSparklines(store *MetricsStore, history *AgentHistory, agents 
 	}
 
 	if len(projectAgents) == 0 {
-		return DimStyle.Render("No project activity")
+		return Class("dim").Render("No project activity")
 	}
 
 	// Sort by count descending
@@ -610,7 +610,7 @@ func renderProjectSparklines(store *MetricsStore, history *AgentHistory, agents 
 
 func renderHealthGauges(store *MetricsStore, health *api.HealthResponse, agents []api.Agent, w, h int) string {
 	if w < 10 || h < 3 {
-		return DimStyle.Render("(too small)")
+		return Class("dim").Render("(too small)")
 	}
 
 	var b strings.Builder

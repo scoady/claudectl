@@ -309,7 +309,7 @@ func StatusPill(status string) string {
 func Sparkline(count int) string {
 	bars := []string{"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
 	if count <= 0 {
-		return FaintStyle.Render("▁")
+		return Class("faint").Render("▁")
 	}
 	idx := count - 1
 	if idx >= len(bars) {

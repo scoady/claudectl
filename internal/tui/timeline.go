@@ -287,8 +287,8 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 	b.WriteString(repeatStr(" ", nameCol+2) + HLine(barWidth, Muted) + "\n")
 
 	if len(projectOrder) == 0 {
-		b.WriteString("\n" + DimStyle.Render("  No agent activity in the last "+zoomLabel(window)+".") + "\n")
-		b.WriteString(FaintStyle.Render("  Dispatch tasks to see timeline activity.") + "\n")
+		b.WriteString("\n" + Class("dim").Render("  No agent activity in the last "+zoomLabel(window)+".") + "\n")
+		b.WriteString(Class("faint").Render("  Dispatch tasks to see timeline activity.") + "\n")
 		return b.String()
 	}
 
@@ -364,7 +364,7 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 	} else if tm.CursorCol >= 0 {
 		cursorTime := windowStart.Add(time.Duration(float64(tm.CursorCol) / float64(barWidth) * float64(window)))
 		b.WriteString("\n")
-		b.WriteString(DimStyle.Render(fmt.Sprintf("  %s  (no activity)", cursorTime.Format("15:04:05"))))
+		b.WriteString(Class("dim").Render(fmt.Sprintf("  %s  (no activity)", cursorTime.Format("15:04:05"))))
 	}
 
 	// ── Aggregate activity sparkline (ntcharts braille) ──
@@ -374,7 +374,7 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 		activityChart := RenderSparklineBraille(activityData, barWidth, 2, Cyan)
 		b.WriteString(repeatStr(" ", nameCol+2) + activityChart + "\n")
 		b.WriteString(repeatStr(" ", nameCol+2) +
-			FaintStyle.Render("agent activity") + "\n")
+			Class("faint").Render("agent activity") + "\n")
 	}
 
 	// ── Session stats summary ──
@@ -564,7 +564,7 @@ func renderAgentLabels(spans []AgentSpan, windowStart, now time.Time, barWidth, 
 		copy(line[pos:], text)
 	}
 
-	return FaintStyle.Render(string(line))
+	return Class("faint").Render(string(line))
 }
 
 // renderTimeAxis draws the time axis at the bottom.
@@ -627,7 +627,7 @@ func renderTimeAxis(windowStart, now time.Time, barWidth, nameCol int) string {
 		copy(axisLine[start:], label)
 	}
 
-	return pad + DimStyle.Render(string(axisLine))
+	return pad + Class("dim").Render(string(axisLine))
 }
 
 // renderSpanTooltip renders detail info for the hovered span.
@@ -672,7 +672,7 @@ func renderSpanTooltip(s *AgentSpan, now time.Time) string {
 	} else {
 		timeRange += s.EndedAt.Format("15:04:05")
 	}
-	b.WriteString("  " + labelStyle.Render("Time") + FaintStyle.Render(timeRange) + "\n")
+	b.WriteString("  " + labelStyle.Render("Time") + Class("faint").Render(timeRange) + "\n")
 
 	// Turns + cost estimate
 	b.WriteString("  " + labelStyle.Render("Turns") + valStyle.Render(fmt.Sprintf("%d", s.TurnCount)) + "\n")
@@ -688,7 +688,7 @@ func renderSpanTooltip(s *AgentSpan, now time.Time) string {
 func renderSessionStats(spans []AgentSpan, now time.Time) string {
 	var b strings.Builder
 
-	b.WriteString("  " + SectionStyle.Render("Session Stats") + "\n")
+	b.WriteString("  " + Class("section-title").Render("Session Stats") + "\n")
 	b.WriteString("  " + HLine(40, Muted) + "\n")
 
 	labelStyle := lipgloss.NewStyle().Foreground(Dim).Width(22)

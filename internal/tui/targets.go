@@ -312,10 +312,10 @@ func RenderTargets(m *TargetsModel, width, height int) string {
 	}
 
 	// Refresh indicator
-	refreshStr := DimStyle.Render("Refresh: 5s")
+	refreshStr := Class("dim").Render("Refresh: 5s")
 	if !m.lastRefresh.IsZero() {
 		ago := time.Since(m.lastRefresh).Round(time.Second)
-		refreshStr = DimStyle.Render(fmt.Sprintf("Last: %s ago", ago))
+		refreshStr = Class("dim").Render(fmt.Sprintf("Last: %s ago", ago))
 	}
 
 	// Right-align refresh
@@ -329,7 +329,7 @@ func RenderTargets(m *TargetsModel, width, height int) string {
 	b.WriteString(HLine(width, Muted) + "\n")
 
 	if len(m.Groups) == 0 {
-		b.WriteString("\n" + DimStyle.Render("  No agents found. Dispatch a task to get started.") + "\n")
+		b.WriteString("\n" + Class("dim").Render("  No agents found. Dispatch a task to get started.") + "\n")
 		return b.String()
 	}
 
@@ -374,7 +374,7 @@ func RenderTargets(m *TargetsModel, width, height int) string {
 			if linesUsed >= maxLines-3 {
 				remaining := m.TotalVisible() - flatIdx
 				if remaining > 0 {
-					b.WriteString(DimStyle.Render(fmt.Sprintf("  ... %d more targets", remaining)) + "\n")
+					b.WriteString(Class("dim").Render(fmt.Sprintf("  ... %d more targets", remaining)) + "\n")
 				}
 				return b.String()
 			}
@@ -460,7 +460,7 @@ func renderTargetCard(t *TargetEntry, width int, selected, expanded bool) string
 
 	// ── Line 2: last seen + task ──
 	lastSeen := renderLastSeen(ag)
-	lastSeenStr := DimStyle.Render("Last seen: " + lastSeen)
+	lastSeenStr := Class("dim").Render("Last seen: " + lastSeen)
 
 	// Task or error on line 2
 	taskStr := ""
@@ -479,7 +479,7 @@ func renderTargetCard(t *TargetEntry, width int, selected, expanded bool) string
 		if len(task) > maxTask {
 			task = task[:maxTask-3] + "..."
 		}
-		taskStr = DimStyle.Render("Task: " + task)
+		taskStr = Class("dim").Render("Task: " + task)
 	}
 
 	line2 := "       " + lastSeenStr + "   " + taskStr
@@ -537,13 +537,13 @@ func renderExpandedDetails(ag api.Agent, maxWidth int) string {
 		lines = append(lines, "")
 		lines = append(lines, lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("  Task:"))
 		for _, tl := range taskLines {
-			lines = append(lines, SubStyle.Render("    "+tl))
+			lines = append(lines, Class("sub").Render("    "+tl))
 		}
 	}
 
 	// Phase
 	if ag.Phase != "" {
-		lines = append(lines, lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("  Phase: ")+SubStyle.Render(ag.Phase))
+		lines = append(lines, lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("  Phase: ")+Class("sub").Render(ag.Phase))
 	}
 
 	// Controller flag
@@ -553,7 +553,7 @@ func renderExpandedDetails(ag api.Agent, maxWidth int) string {
 	}
 
 	// Full session ID
-	lines = append(lines, lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("  Session: ")+DimStyle.Render(ag.SessionID))
+	lines = append(lines, lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("  Session: ")+Class("dim").Render(ag.SessionID))
 
 	// Milestones
 	if len(ag.Milestones) > 0 {
@@ -569,10 +569,10 @@ func renderExpandedDetails(ag api.Agent, maxWidth int) string {
 			if len(msText) > maxWidth-6 {
 				msText = msText[:maxWidth-9] + "..."
 			}
-			lines = append(lines, FaintStyle.Render("    "+msText))
+			lines = append(lines, Class("faint").Render("    "+msText))
 		}
 		if len(ag.Milestones) > maxMS {
-			lines = append(lines, DimStyle.Render(fmt.Sprintf("    ... and %d more", len(ag.Milestones)-maxMS)))
+			lines = append(lines, Class("dim").Render(fmt.Sprintf("    ... and %d more", len(ag.Milestones)-maxMS)))
 		}
 	}
 

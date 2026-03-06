@@ -244,7 +244,7 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 	// Show a mini braille sparkline of agent count over recent ticks
 	if len(d.AgentCountHistory) > 2 {
 		sparkWidth := Clamp(20, width/3, 50)
-		sparkLabel := FaintStyle.Render("  agents ")
+		sparkLabel := Class("faint").Render("  agents ")
 		spark := RenderSparklineBraille(d.AgentCountHistory, sparkWidth, 1, Cyan)
 		b.WriteString("\n" + sparkLabel + spark)
 

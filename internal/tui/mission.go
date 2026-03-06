@@ -480,7 +480,7 @@ func (m MissionModel) renderPane(pane *MissionPane, width, height int, focused b
 		wrappedLines := wrapText(taskText, innerW-2)
 		lines = append(lines, taskLabel)
 		for _, wl := range wrappedLines {
-			lines = append(lines, FaintStyle.Render("  "+wl))
+			lines = append(lines, Class("faint").Render("  "+wl))
 		}
 		if len(lines) > contentLines {
 			lines = lines[:contentLines]
@@ -499,7 +499,7 @@ func (m MissionModel) renderPane(pane *MissionPane, width, height int, focused b
 		if lipgloss.Width(display) > innerW {
 			display = truncate(display, innerW)
 		}
-		contentBuf.WriteString(SubStyle.Render(display))
+		contentBuf.WriteString(Class("sub").Render(display))
 		rendered++
 	}
 
@@ -536,7 +536,7 @@ func (m MissionModel) renderPaneHeader(pane *MissionPane, width int, focused boo
 	statusStr := miniStatusPill(pane.Status)
 
 	elapsed := time.Since(pane.StartTime).Round(time.Second)
-	elapsedStr := DimStyle.Render(formatElapsed(elapsed))
+	elapsedStr := Class("dim").Render(formatElapsed(elapsed))
 
 	// Sparkline in header
 	sparkVals := pane.spark.Values()
@@ -569,7 +569,7 @@ func (m MissionModel) renderPaneHeader(pane *MissionPane, width int, focused boo
 
 func (m MissionModel) renderPaneBadges(pane *MissionPane, width int) string {
 	if len(pane.badges) == 0 {
-		return FaintStyle.Render(strings.Repeat("─", minInt(width, 30)))
+		return Class("faint").Render(strings.Repeat("─", minInt(width, 30)))
 	}
 
 	// Show badges right-to-left, fitting in available width
@@ -641,7 +641,7 @@ func (m MissionModel) renderEmpty() string {
 		Foreground(Dim).
 		Render("No active agents. Dispatch a task to get started.")
 
-	hint := FaintStyle.Render("Press Esc to go back, or Ctrl+D to dispatch.")
+	hint := Class("faint").Render("Press Esc to go back, or Ctrl+D to dispatch.")
 
 	content := msg + "\n\n" + hint
 
