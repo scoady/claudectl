@@ -91,6 +91,85 @@ export interface StreamEvent {
   timestamp?: string;
 }
 
+// ── Canvas / Widget Types ────────────────────────────────────────────────────
+
+export interface CanvasWidget {
+  id: string;
+  project: string;
+  title: string;
+  html: string;
+  css: string;
+  js: string;
+  tab: string;
+  template_id?: string;
+  grid_col?: number;
+  grid_row?: number;
+  col_span?: number;
+  row_span?: number;
+  no_resize?: boolean;
+  no_move?: boolean;
+}
+
+export interface WidgetCreate {
+  title: string;
+  html: string;
+  css: string;
+  js: string;
+  tab?: string;
+  template_id?: string;
+  grid_col?: number;
+  grid_row?: number;
+  col_span?: number;
+  row_span?: number;
+  no_resize?: boolean;
+  no_move?: boolean;
+}
+
+export interface WidgetUpdate {
+  title?: string;
+  html?: string;
+  css?: string;
+  js?: string;
+  tab?: string;
+  grid_col?: number;
+  grid_row?: number;
+  col_span?: number;
+  row_span?: number;
+  no_resize?: boolean;
+  no_move?: boolean;
+}
+
+export interface WidgetCatalogEntry {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  data_schema: Record<string, any>;
+  preview_data: Record<string, any>;
+  html: string;
+  css: string;
+  js: string;
+  col_span?: number;
+  row_span?: number;
+  created_at?: string;
+}
+
+export interface LayoutPreset {
+  id: string;
+  name: string;
+  description?: string;
+  widgets: LayoutPresetWidget[];
+}
+
+export interface LayoutPresetWidget {
+  widget_type: string;
+  col: number;
+  row: number;
+  w: number;
+  h: number;
+  title?: string;
+}
+
 // ── Dispatch / Inject payloads ───────────────────────────────────────────────
 
 export interface DispatchPayload {

@@ -4,15 +4,15 @@ import {
   SceneFlexItem,
   SceneReactObject,
 } from '@grafana/scenes';
-import { TemplateBrowserPanel } from '../components/TemplateBrowserPanel';
+import { LayoutStudioPanel } from '../components/LayoutStudioPanel';
 
 /**
- * Template Library Scene
+ * Layout Studio Scene
  *
- * Browse workflow templates — card grid with expandable detail panels
- * showing roles, config schema, phase timeline, and apply action.
+ * Manage layout presets — save, browse, and apply widget arrangements.
+ * Currently a styled placeholder; full implementation TBD.
  */
-export function getTemplateScene(): EmbeddedScene {
+export function getLayoutStudioScene(): EmbeddedScene {
   return new EmbeddedScene({
     body: new SceneFlexLayout({
       direction: 'column',
@@ -20,7 +20,7 @@ export function getTemplateScene(): EmbeddedScene {
         new SceneFlexItem({
           minHeight: 600,
           body: new SceneReactObject({
-            component: TemplateBrowserPanel,
+            component: LayoutStudioPanel,
             props: {},
           }),
         }),

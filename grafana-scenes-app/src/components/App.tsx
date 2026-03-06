@@ -1,39 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { css } from '@emotion/css';
 import { AppRootProps } from '@grafana/data';
 import { useStyles2 } from '@grafana/ui';
 import { EmbeddedScene } from '@grafana/scenes';
-import { Route, Routes, Link, useLocation, Navigate } from 'react-router-dom';
 import { getAgentOverviewScene } from '../scenes/agentScene';
 import { getCostExplorerScene } from '../scenes/costScene';
 import { getControlCenterScene } from '../scenes/controlCenterScene';
-import { getTemplateScene } from '../scenes/templateScene';
-import { PLUGIN_BASE_URL } from '../constants';
+import { getMissionControlScene } from '../scenes/missionControlScene';
+import { getProjectBrowserScene } from '../scenes/projectBrowserScene';
+import { getWidgetStudioScene } from '../scenes/widgetStudioScene';
+import { getLayoutStudioScene } from '../scenes/layoutStudioScene';
 
 // ---------------------------------------------------------------------------
-// Route / tab definitions
+// Tab definitions
 // ---------------------------------------------------------------------------
+
+type TabId = 'mission-control' | 'projects' | 'widget-studio' | 'layout-studio';
 
 interface TabDef {
-  id: string;
+  id: TabId;
   label: string;
-  /** Path segment appended to PLUGIN_BASE_URL (empty string = root) */
-  path: string;
   getScene?: () => EmbeddedScene;
-  /** If set, render a placeholder instead of a scene */
   placeholder?: string;
 }
 
 const tabs: TabDef[] = [
-  { id: 'overview',       label: 'Mission Control',  path: '',          getScene: getAgentOverviewScene },
-  { id: 'control-center', label: 'Control Center',   path: 'control',   getScene: getControlCenterScene },
-  { id: 'costs',          label: 'Cost Explorer',    path: 'costs',     getScene: getCostExplorerScene },
-  { id: 'templates',      label: 'Template Library', path: 'templates', getScene: getTemplateScene },
-  { id: 'viz',            label: 'Viz Gallery',      path: 'viz',       placeholder: 'Visualization Gallery' },
+  { id: 'mission-control', label: 'Mission Control',  getScene: getMissionControlScene },
+  { id: 'projects',        label: 'Projects',         getScene: getProjectBrowserScene },
+  { id: 'widget-studio',   label: 'Widget Studio',    getScene: getWidgetStudioScene },
+  { id: 'layout-studio',   label: 'Layout Studio',    getScene: getLayoutStudioScene },
 ];
 
 // ---------------------------------------------------------------------------
-// Module-level scene cache -- scenes are expensive, create once and reuse
+// Module-level scene cache
 // ---------------------------------------------------------------------------
 
 const sceneCache: Record<string, EmbeddedScene> = {};
@@ -52,10 +51,14 @@ function getOrCreateScene(tab: TabDef): EmbeddedScene | null {
 }
 
 // ---------------------------------------------------------------------------
-// Scene renderer component
+// Tab content renderer
 // ---------------------------------------------------------------------------
 
-function SceneRoute({ tab }: { tab: TabDef }) {
+function TabContent({ tab, selectedProject, onSelectProject }: {
+  tab: TabDef;
+  selectedProject: string | null;
+  onSelectProject: (name: string | null) => void;
+}) {
   const styles = useStyles2(getStyles);
 
   if (tab.placeholder) {
@@ -66,6 +69,46 @@ function SceneRoute({ tab }: { tab: TabDef }) {
         <p className={styles.placeholderText}>Coming Soon</p>
       </div>
     );
+  }
+
+  // Project detail drill-in: when on 'projects' tab and a project is selected,
+  // render ProjectDetailPanel instead of ProjectBrowserPanel.
+  // ProjectDetailPanel is built by another agent and imported dynamically.
+  if (tab.id === 'projects' && selectedProject) {
+    // Lazy-load ProjectDetailPanel — it may not exist yet (another agent builds it).
+    // Wrap in try/catch so we degrade gracefully.
+    try {
+      const { ProjectDetailPanel } = require('./ProjectDetailPanel');
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <button
+            className={styles.backButton}
+            onClick={() => onSelectProject(null)}
+          >
+            &#8592; Back to Projects
+          </button>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <ProjectDetailPanel projectName={selectedProject} />
+          </div>
+        </div>
+      );
+    } catch {
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <button
+            className={styles.backButton}
+            onClick={() => onSelectProject(null)}
+          >
+            &#8592; Back to Projects
+          </button>
+          <div className={styles.placeholder}>
+            <div className={styles.placeholderIcon}>&#9733;</div>
+            <h2 className={styles.placeholderTitle}>Project Detail — {selectedProject}</h2>
+            <p className={styles.placeholderText}>Panel not yet available</p>
+          </div>
+        </div>
+      );
+    }
   }
 
   const scene = getOrCreateScene(tab);
@@ -105,7 +148,9 @@ const getStyles = () => ({
     letter-spacing: 0.3px;
     text-decoration: none;
     transition: color 0.2s ease, background 0.2s ease;
+    border: none;
     border-bottom: 2px solid transparent;
+    background: none;
     user-select: none;
 
     &:hover {
@@ -158,71 +203,79 @@ const getStyles = () => ({
     color: rgba(204, 204, 220, 0.4);
     margin: 0;
   `,
+  backButton: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 6px;
+    color: #00d4ff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+
+    &:hover {
+      background: rgba(0, 212, 255, 0.08);
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+  `,
 });
 
 // ---------------------------------------------------------------------------
-// Determine active tab from current URL
-// ---------------------------------------------------------------------------
-
-function useActiveTabId(): string {
-  const { pathname } = useLocation();
-
-  // Strip plugin base URL to get the relative segment
-  const relative = pathname.startsWith(PLUGIN_BASE_URL)
-    ? pathname.slice(PLUGIN_BASE_URL.length)
-    : pathname;
-
-  // Normalize: strip leading/trailing slashes
-  const segment = relative.replace(/^\/+|\/+$/g, '');
-
-  for (const tab of tabs) {
-    if (tab.path === segment) return tab.id;
-  }
-
-  return 'overview';
-}
-
-// ---------------------------------------------------------------------------
-// App root component
-//
-// Grafana's app plugin framework renders setRootPage components inside
-// a <Route path="/a/:pluginId/*"> so our <Routes> uses paths relative
-// to that mount point.
+// App root — simple useState tab switching (no react-router dependency)
 // ---------------------------------------------------------------------------
 
 export function App(_props: AppRootProps) {
   const styles = useStyles2(getStyles);
-  const activeTabId = useActiveTabId();
+  const [activeTabId, setActiveTabId] = useState<TabId>('mission-control');
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+
+  // Expose project selection globally so ProjectBrowserPanel can call it
+  // (it lives inside a Scene and cannot receive props directly).
+  React.useEffect(() => {
+    (window as any).__c9s_selectProject = (name: string) => {
+      setSelectedProject(name);
+    };
+    return () => {
+      delete (window as any).__c9s_selectProject;
+    };
+  }, []);
+
+  const handleTabClick = (tabId: TabId) => {
+    setActiveTabId(tabId);
+    // Clear project selection when switching away from projects tab
+    if (tabId !== 'projects') {
+      setSelectedProject(null);
+    }
+  };
 
   return (
     <div className={styles.wrapper}>
-      {/* Navigation bar */}
       <nav className={styles.nav}>
         {tabs.map((tab) => (
-          <Link
+          <button
             key={tab.id}
-            to={`${PLUGIN_BASE_URL}${tab.path ? '/' + tab.path : ''}`}
             className={`${styles.tab} ${tab.id === activeTabId ? styles.tabActive : ''}`}
+            onClick={() => handleTabClick(tab.id)}
           >
             {tab.label}
-          </Link>
+          </button>
         ))}
       </nav>
 
-      {/* Routed content */}
       <div className={styles.content}>
-        <Routes>
-          <Route index element={<SceneRoute tab={tabs[0]} />} />
-          {tabs.slice(1).map((tab) => (
-            <Route
-              key={tab.id}
-              path={tab.path}
-              element={<SceneRoute tab={tab} />}
-            />
-          ))}
-          {/* Unknown sub-paths redirect to Mission Control */}
-          <Route path="*" element={<Navigate to={PLUGIN_BASE_URL} replace />} />
-        </Routes>
+        <TabContent
+          tab={activeTab}
+          selectedProject={selectedProject}
+          onSelectProject={setSelectedProject}
+        />
       </div>
     </div>
   );
