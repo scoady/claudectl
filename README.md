@@ -54,6 +54,23 @@ c9s
 | `c9s canvas <project>` | Widget listing |
 | `c9s canvas put/rm` | Create/delete widgets |
 
+## Shell Completion
+
+Tab-complete commands, project names, session IDs, widget IDs, and model names.
+
+```bash
+# Bash
+c9s completion bash > /etc/bash_completion.d/c9s
+
+# Zsh (add to fpath before compinit)
+c9s completion zsh > "${fpath[1]}/_c9s"
+
+# Fish
+c9s completion fish > ~/.config/fish/completions/c9s.fish
+```
+
+Dynamic completions fetch live data from the backend -- project names, session IDs, widget IDs, and model names are all completed from the running API.
+
 ## Configuration
 
 Default API: `http://localhost:4040`

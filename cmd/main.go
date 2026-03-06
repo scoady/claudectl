@@ -245,6 +245,12 @@ func projectsCmd() *cobra.Command {
 		Use:   "projects [name]",
 		Short: "List projects or show project detail",
 		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				return showProjectDetail(args[0])
@@ -445,6 +451,12 @@ func agentsCmd() *cobra.Command {
 		Use:   "stop <session_id>",
 		Short: "Stop an agent by session ID",
 		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeAgentSessions(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sessionID := args[0]
 			err := client.KillAgent(sessionID)
@@ -473,6 +485,12 @@ func dispatchCmd() *cobra.Command {
 		Use:   "dispatch <project> <task>",
 		Short: "Dispatch a task to a project",
 		Args:  cobra.ExactArgs(2),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project := args[0]
 			task := args[1]
@@ -512,6 +530,9 @@ func dispatchCmd() *cobra.Command {
 
 	cmd.Flags().BoolVarP(&follow, "follow", "f", false, "Follow agent output after dispatch")
 	cmd.Flags().StringVar(&model, "model", "", "Override model for this dispatch")
+	cmd.RegisterFlagCompletionFunc("model", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeModels(toComplete)
+	})
 
 	return cmd
 }
@@ -525,6 +546,12 @@ func watchCmd() *cobra.Command {
 		Use:   "watch <session_id or project_name>",
 		Short: "Stream live agent output via WebSocket",
 		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjectsAndSessions(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			target := args[0]
 
@@ -724,6 +751,12 @@ func tasksCmd() *cobra.Command {
 		Use:   "tasks <project>",
 		Short: "List tasks for a project",
 		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project := args[0]
 			tasks, err := client.GetTasks(project)
@@ -769,6 +802,12 @@ func canvasCmd() *cobra.Command {
 		Use:   "canvas <project>",
 		Short: "List or manage canvas widgets",
 		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project := args[0]
 			widgets, err := client.GetWidgets(project)
@@ -823,6 +862,12 @@ func canvasCmd() *cobra.Command {
 		Use:   "put <project>",
 		Short: "Create a widget on the canvas",
 		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project := args[0]
 
@@ -857,6 +902,15 @@ func canvasCmd() *cobra.Command {
 		Use:   "rm <project> <widget_id>",
 		Short: "Remove a widget from the canvas",
 		Args:  cobra.ExactArgs(2),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) == 0 {
+				return completeProjects(toComplete)
+			}
+			if len(args) == 1 {
+				return completeWidgets(args[0], toComplete)
+			}
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project := args[0]
 			widgetID := args[1]
