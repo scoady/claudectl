@@ -68,6 +68,39 @@ function statusColor(status: string): string {
   return STATUS_COLORS[status] || '#666';
 }
 
+/** Parse model string like "claude-opus-4-6" → "opus", "claude-sonnet-4-6" → "sonnet" */
+function shortModel(model: string): string {
+  if (!model) return '??';
+  const lower = model.toLowerCase();
+  if (lower.includes('opus')) return 'opus';
+  if (lower.includes('sonnet')) return 'sonnet';
+  if (lower.includes('haiku')) return 'haiku';
+  // fallback: last meaningful segment
+  const parts = lower.split('-').filter((p) => !/^\d+$/.test(p) && p !== 'claude');
+  return parts[0] || model.slice(0, 8);
+}
+
+const MODEL_COLORS: Record<string, string> = {
+  opus: '#c084fc',
+  sonnet: '#60a5fa',
+  haiku: '#34d399',
+};
+
+function modelColor(model: string): string {
+  return MODEL_COLORS[shortModel(model)] || '#888';
+}
+
+const TASK_STATUS_COLORS: Record<string, { bg: string; fg: string; border: string }> = {
+  done: { bg: 'rgba(0,255,204,0.08)', fg: '#00ffcc', border: 'rgba(0,255,204,0.2)' },
+  'in-progress': { bg: 'rgba(96,165,250,0.08)', fg: '#60a5fa', border: 'rgba(96,165,250,0.2)' },
+  pending: { bg: 'rgba(255,170,0,0.08)', fg: '#ffaa00', border: 'rgba(255,170,0,0.2)' },
+  blocked: { bg: 'rgba(255,68,102,0.08)', fg: '#ff4466', border: 'rgba(255,68,102,0.2)' },
+};
+
+function taskColors(status: string) {
+  return TASK_STATUS_COLORS[status] || TASK_STATUS_COLORS['pending'];
+}
+
 // ── API Helpers ────────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string): Promise<T | null> {
@@ -112,12 +145,32 @@ const fadeIn = keyframes`
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.5; }
+  50%      { opacity: 0.4; }
 `;
 
-const slideIn = keyframes`
-  from { opacity: 0; transform: translateX(12px); }
+const slideInRight = keyframes`
+  from { opacity: 0; transform: translateX(16px); }
   to   { opacity: 1; transform: translateX(0); }
+`;
+
+const slideInLeft = keyframes`
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+`;
+
+const scanline = keyframes`
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+`;
+
+const glowPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 4px rgba(0,255,204,0.15); }
+  50%      { box-shadow: 0 0 12px rgba(0,255,204,0.3); }
+`;
+
+const staggerIn = keyframes`
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
 const shimmer = keyframes`
@@ -127,108 +180,152 @@ const shimmer = keyframes`
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const styles = {
+const s = {
   root: css`
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 600px;
-    color: #ccc;
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: #0d1117;
-    border-radius: 6px;
+    color: #c8cdd5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(170deg, #0a0e14 0%, #0d1117 40%, #0f1419 100%);
+    border-radius: 8px;
     overflow: hidden;
-    animation: ${fadeIn} 0.3s ease;
+    animation: ${fadeIn} 0.35s ease;
+    position: relative;
+
+    /* subtle noise texture */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    & > * { position: relative; z-index: 1; }
   `,
 
-  // ── Top Bar ──
-  topBar: css`
+  /* ── Stats Bar ── */
+  statsBar: css`
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    background: linear-gradient(135deg, rgba(15, 20, 30, 0.95), rgba(10, 14, 20, 0.98));
+    border-bottom: 1px solid rgba(0, 255, 204, 0.08);
+    flex-shrink: 0;
+  `,
+  statsTitle: css`
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, rgba(20, 25, 35, 0.95), rgba(15, 20, 30, 0.98));
-    border-bottom: 1px solid rgba(0, 255, 204, 0.12);
-    flex-shrink: 0;
-    flex-wrap: wrap;
+    padding: 14px 20px;
+    gap: 10px;
+    border-right: 1px solid rgba(255,255,255,0.04);
+    min-width: 180px;
   `,
-  topBarTitle: css`
-    font-size: 15px;
-    font-weight: 700;
+  statsTitleText: css`
+    font-size: 13px;
+    font-weight: 800;
     color: #00ffcc;
-    text-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
-    letter-spacing: 1.5px;
+    text-shadow: 0 0 16px rgba(0, 255, 204, 0.5);
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin-right: 8px;
-    white-space: nowrap;
+  `,
+  statsTitleIcon: css`
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(0, 255, 204, 0.12);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #00ffcc;
+  `,
+  statCell: css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-right: 1px solid rgba(255,255,255,0.04);
+    min-width: 90px;
+    transition: background 0.2s;
+    &:hover { background: rgba(255,255,255,0.02); }
+  `,
+  statNumber: css`
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    line-height: 1;
+    margin-bottom: 2px;
+  `,
+  statLabel: css`
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.35);
+  `,
+  statsRight: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    padding: 10px 16px;
   `,
   projectSelect: css`
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    appearance: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 255, 204, 0.12);
     border-radius: 6px;
     color: #ddd;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 7px 32px 7px 12px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
     cursor: pointer;
     outline: none;
-    min-width: 160px;
-    transition: border-color 0.2s;
-    &:hover { border-color: rgba(0, 255, 204, 0.4); }
-    &:focus { border-color: #00ffcc; box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.15); }
-    option { background: #1a1f2e; color: #ddd; }
-  `,
-  badges: css`
-    display: flex;
-    gap: 10px;
-    flex: 1;
-    justify-content: center;
-    flex-wrap: wrap;
-  `,
-  badge: css`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    white-space: nowrap;
-  `,
-  badgeDot: css`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
+    min-width: 150px;
+    transition: all 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300ffcc' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    &:hover { border-color: rgba(0, 255, 204, 0.3); background-color: rgba(255,255,255,0.06); }
+    &:focus { border-color: #00ffcc; box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.12); }
+    option { background: #0d1117; color: #ddd; }
   `,
   uptime: css`
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    font-family: monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: 'JetBrains Mono', monospace;
     white-space: nowrap;
+    letter-spacing: 0.5px;
   `,
   dispatchBtn: css`
-    background: linear-gradient(135deg, #00ffcc, #00ccaa);
-    color: #0d1117;
-    border: none;
+    background: linear-gradient(135deg, rgba(0, 255, 204, 0.15), rgba(0, 204, 170, 0.1));
+    color: #00ffcc;
+    border: 1px solid rgba(0, 255, 204, 0.25);
     border-radius: 6px;
-    padding: 7px 18px;
-    font-size: 13px;
+    padding: 7px 16px;
+    font-size: 11px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     white-space: nowrap;
     &:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 204, 0.25), rgba(0, 204, 170, 0.2));
+      box-shadow: 0 0 24px rgba(0, 255, 204, 0.2);
       transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(0, 255, 204, 0.35);
     }
     &:active { transform: translateY(0); }
   `,
 
-  // ── Main Content ──
+  /* ── Main Split ── */
   main: css`
     display: flex;
     flex: 1;
@@ -236,95 +333,128 @@ const styles = {
     overflow: hidden;
   `,
 
-  // ── Left Column — Agent List ──
+  /* ── Left Column ── */
   leftCol: css`
-    width: 40%;
+    width: 340px;
     min-width: 280px;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    max-width: 400px;
+    border-right: 1px solid rgba(0, 255, 204, 0.06);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: rgba(0, 0, 0, 0.15);
   `,
-  leftHeader: css`
+  sectionHeader: css`
     padding: 10px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: rgba(0, 0, 0, 0.2);
   `,
+  sectionCount: css`
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(0, 255, 204, 0.5);
+    font-family: 'JetBrains Mono', monospace;
+  `,
+
+  /* ── Agent List ── */
   agentList: css`
     flex: 1;
     overflow-y: auto;
-    padding: 8px;
-    &::-webkit-scrollbar { width: 4px; }
+    padding: 6px 8px;
+    &::-webkit-scrollbar { width: 3px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    &::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.1); border-radius: 3px; }
   `,
-  agentCard: css`
-    padding: 10px 14px;
-    margin-bottom: 4px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.02);
-    &:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-  `,
-  agentCardSelected: css`
-    background: rgba(0, 255, 204, 0.06) !important;
-    border-color: rgba(0, 255, 204, 0.25) !important;
-    box-shadow: 0 0 20px rgba(0, 255, 204, 0.05);
-  `,
-  agentCardTop: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  `,
-  agentName: css`
-    font-size: 14px;
-    font-weight: 600;
-    color: #eee;
+  agentRow: css`
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 7px 10px;
+    margin-bottom: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 12px;
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
   `,
-  agentStatusDot: css`
-    width: 8px;
-    height: 8px;
+  agentRowSelected: css`
+    background: rgba(0, 255, 204, 0.05) !important;
+    border-color: rgba(0, 255, 204, 0.15) !important;
+    box-shadow: inset 0 0 20px rgba(0, 255, 204, 0.03);
+  `,
+  agentDot: css`
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
   `,
-  agentMeta: css`
-    display: flex;
-    gap: 12px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    font-family: monospace;
+  agentDotActive: css`
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    box-shadow: 0 0 6px currentColor;
   `,
-  killBtn: css`
-    background: transparent;
-    border: 1px solid rgba(255, 68, 102, 0.3);
-    color: #ff4466;
-    border-radius: 4px;
-    padding: 2px 8px;
+  agentId: css`
+    font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
+    color: rgba(255, 255, 255, 0.75);
+    flex-shrink: 0;
+    min-width: 72px;
+  `,
+  modelBadge: css`
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  `,
+  agentTurns: css`
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: right;
+  `,
+  agentDuration: css`
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.25);
+    flex-shrink: 0;
+    min-width: 40px;
+    text-align: right;
+  `,
+  killBtnSmall: css`
+    background: transparent;
+    border: none;
+    color: rgba(255, 68, 102, 0.4);
+    font-size: 13px;
     cursor: pointer;
-    opacity: 0.6;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-left: auto;
     transition: all 0.2s;
-    &:hover { opacity: 1; background: rgba(255, 68, 102, 0.15); }
+    opacity: 0;
+    .${css`&`}:hover & { opacity: 1; }
+    &:hover { color: #ff4466; text-shadow: 0 0 8px rgba(255, 68, 102, 0.5); }
   `,
 
-  // ── Right Column ──
+  /* ── Right Column ── */
   rightCol: css`
     flex: 1;
     display: flex;
@@ -338,163 +468,31 @@ const styles = {
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: rgba(255, 255, 255, 0.25);
-    font-size: 14px;
-    gap: 8px;
-  `,
-
-  // ── Agent Detail ──
-  detailHeader: css`
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-    animation: ${slideIn} 0.25s ease;
-  `,
-  detailTitle: css`
-    font-size: 18px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 13px;
     gap: 10px;
+    animation: ${fadeIn} 0.5s ease;
   `,
-  detailMeta: css`
-    display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.45);
-    font-family: monospace;
-    flex-wrap: wrap;
-  `,
-  detailMetaItem: css`
+  placeholderIcon: css`
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 255, 204, 0.08);
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    font-size: 20px;
+    color: rgba(0, 255, 204, 0.2);
+    margin-bottom: 4px;
   `,
 
-  // ── Milestones ──
-  milestonesSection: css`
-    padding: 12px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-  `,
-  milestonesLabel: css`
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-  `,
-  milestonesTrack: css`
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    &::-webkit-scrollbar { height: 3px; }
-    &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-  `,
-  milestonePill: css`
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-family: monospace;
-    white-space: nowrap;
-    background: rgba(0, 255, 204, 0.08);
-    border: 1px solid rgba(0, 255, 204, 0.15);
-    color: rgba(255, 255, 255, 0.7);
-    flex-shrink: 0;
-  `,
-
-  // ── Live Output ──
-  outputSection: css`
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-  `,
-  outputLabel: css`
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 10px 20px 6px;
-    flex-shrink: 0;
-  `,
-  outputTerminal: css`
-    flex: 1;
-    background: #0a0e14;
-    margin: 0 12px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 12px;
-    overflow-y: auto;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 12px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.7);
-    white-space: pre-wrap;
-    word-break: break-word;
-    &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
-  `,
-
-  // ── Cost Breakdown ──
-  costRow: css`
-    display: flex;
-    gap: 20px;
-    padding: 10px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-    font-size: 12px;
-    font-family: monospace;
-    color: rgba(255, 255, 255, 0.5);
-    flex-wrap: wrap;
-  `,
-
-  // ── Send Message ──
-  sendRow: css`
-    display: flex;
-    gap: 8px;
-    padding: 10px 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-  `,
-  sendInput: css`
-    flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: #ddd;
-    padding: 8px 12px;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-    &:focus { border-color: #00ffcc; box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.1); }
-    &::placeholder { color: rgba(255, 255, 255, 0.25); }
-  `,
-  sendBtn: css`
-    background: rgba(0, 255, 204, 0.15);
-    border: 1px solid rgba(0, 255, 204, 0.3);
-    border-radius: 6px;
-    color: #00ffcc;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    &:hover { background: rgba(0, 255, 204, 0.25); }
-    &:disabled { opacity: 0.4; cursor: default; }
-  `,
-
-  // ── Task List (project overview) ──
+  /* ── Task List ── */
   taskList: css`
     flex: 1;
     overflow-y: auto;
-    padding: 16px 20px;
-    &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    padding: 8px 16px;
+    &::-webkit-scrollbar { width: 3px; }
+    &::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.1); border-radius: 3px; }
   `,
   taskItem: css`
     display: flex;
@@ -502,22 +500,286 @@ const styles = {
     gap: 10px;
     padding: 8px 12px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.02);
-    margin-bottom: 4px;
-    transition: background 0.15s;
-    &:hover { background: rgba(255, 255, 255, 0.04); }
+    background: rgba(255, 255, 255, 0.015);
+    margin-bottom: 3px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.04);
+    }
   `,
   taskStatus: css`
-    font-size: 11px;
-    font-family: monospace;
+    font-size: 9px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  `,
+  taskTitle: css`
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  taskAgent: css`
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.25);
+    font-family: 'JetBrains Mono', monospace;
     flex-shrink: 0;
   `,
 
-  // ── Dispatch Modal ──
+  /* ── Agent Detail ── */
+  detailPanel: css`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    animation: ${slideInRight} 0.3s ease;
+  `,
+  detailHeader: css`
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid rgba(0, 255, 204, 0.06);
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(0,255,204,0.02) 0%, transparent 100%);
+  `,
+  detailTopRow: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  `,
+  detailSessionId: css`
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #eee;
+  `,
+  detailStatusBadge: css`
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 10px;
+    border-radius: 4px;
+  `,
+  detailModelBadge: css`
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 10px;
+    border-radius: 4px;
+  `,
+  detailMeta: css`
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: 'JetBrains Mono', monospace;
+    flex-wrap: wrap;
+  `,
+  detailMetaItem: css`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    & > span:first-child {
+      color: rgba(255,255,255,0.2);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  `,
+  detailTask: css`
+    padding: 8px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    flex-shrink: 0;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+    max-height: 60px;
+    overflow-y: auto;
+    &::-webkit-scrollbar { width: 2px; }
+    &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+  `,
+
+  /* ── Milestones ── */
+  milestonesBar: css`
+    padding: 8px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `,
+  milestonesLabel: css`
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    flex-shrink: 0;
+  `,
+  milestonesTrack: css`
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 2px 0;
+    flex: 1;
+    &::-webkit-scrollbar { height: 2px; }
+    &::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.1); border-radius: 2px; }
+  `,
+  milestonePill: css`
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    background: rgba(0, 255, 204, 0.06);
+    border: 1px solid rgba(0, 255, 204, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+    transition: all 0.2s;
+    &:hover {
+      background: rgba(0, 255, 204, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+    }
+  `,
+  milestonePillLatest: css`
+    background: rgba(0, 255, 204, 0.12);
+    border-color: rgba(0, 255, 204, 0.25);
+    color: #00ffcc;
+    animation: ${glowPulse} 2s ease-in-out infinite;
+  `,
+
+  /* ── Terminal Output ── */
+  outputSection: css`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  `,
+  outputLabel: css`
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 8px 20px 4px;
+    flex-shrink: 0;
+  `,
+  outputTerminal: css`
+    flex: 1;
+    background: #060a0f;
+    margin: 0 12px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 255, 204, 0.06);
+    padding: 12px 14px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+    &::-webkit-scrollbar { width: 3px; }
+    &::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.08); border-radius: 3px; }
+
+    /* Scanline effect */
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 204, 0.15), transparent);
+      animation: ${scanline} 4s linear infinite;
+      pointer-events: none;
+    }
+  `,
+  outputEmpty: css`
+    color: rgba(255, 255, 255, 0.15);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(0, 255, 204, 0.2);
+      animation: ${pulse} 2s ease-in-out infinite;
+    }
+  `,
+
+  /* ── Info Row ── */
+  infoRow: css`
+    display: flex;
+    gap: 20px;
+    padding: 6px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255, 255, 255, 0.3);
+    flex-wrap: wrap;
+  `,
+
+  /* ── Send Message ── */
+  sendRow: css`
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(0, 255, 204, 0.05);
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.15);
+  `,
+  sendInput: css`
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 255, 204, 0.08);
+    border-radius: 6px;
+    color: #ddd;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    transition: all 0.25s;
+    &:focus {
+      border-color: rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.06);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    &::placeholder { color: rgba(255, 255, 255, 0.2); }
+  `,
+  sendBtn: css`
+    background: rgba(0, 255, 204, 0.1);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    border-radius: 6px;
+    color: #00ffcc;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    &:hover { background: rgba(0, 255, 204, 0.18); box-shadow: 0 0 12px rgba(0, 255, 204, 0.15); }
+    &:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+  `,
+
+  /* ── Dispatch Modal ── */
   modalBackdrop: css`
     position: fixed;
     inset: 0;
@@ -525,88 +787,96 @@ const styles = {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(12px);
     animation: ${fadeIn} 0.2s ease;
   `,
   modal: css`
-    background: linear-gradient(145deg, #1a1f2e, #151a26);
-    border: 1px solid rgba(0, 255, 204, 0.15);
-    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(20, 26, 38, 0.98), rgba(13, 17, 23, 0.99));
+    border: 1px solid rgba(0, 255, 204, 0.12);
+    border-radius: 14px;
     padding: 28px 32px;
     width: 480px;
     max-width: 90vw;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 255, 204, 0.08);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 255, 204, 0.06);
+    backdrop-filter: blur(20px);
   `,
   modalTitle: css`
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     color: #00ffcc;
-    margin-bottom: 20px;
-    text-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+    margin-bottom: 22px;
+    text-shadow: 0 0 16px rgba(0, 255, 204, 0.4);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
   `,
   formGroup: css`
     margin-bottom: 16px;
   `,
   formLabel: css`
     display: block;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
     margin-bottom: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
   `,
   formSelect: css`
     width: 100%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    appearance: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 255, 204, 0.1);
     border-radius: 6px;
     color: #ddd;
-    padding: 8px 12px;
+    padding: 9px 12px;
     font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
     outline: none;
     transition: border-color 0.2s;
-    &:focus { border-color: #00ffcc; }
-    option { background: #1a1f2e; color: #ddd; }
+    &:focus { border-color: rgba(0, 255, 204, 0.4); }
+    option { background: #0d1117; color: #ddd; }
   `,
   formTextarea: css`
     width: 100%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(0, 255, 204, 0.1);
     border-radius: 6px;
     color: #ddd;
     padding: 10px 12px;
     font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
     outline: none;
     resize: vertical;
     min-height: 80px;
-    font-family: inherit;
     transition: border-color 0.2s;
-    &:focus { border-color: #00ffcc; }
-    &::placeholder { color: rgba(255, 255, 255, 0.25); }
+    &:focus { border-color: rgba(0, 255, 204, 0.4); }
+    &::placeholder { color: rgba(255, 255, 255, 0.2); }
   `,
   radioGroup: css`
     display: flex;
-    gap: 12px;
+    gap: 8px;
   `,
   radioLabel: css`
     display: flex;
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
-    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 6px 16px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     transition: all 0.2s;
-    &:hover { background: rgba(255, 255, 255, 0.04); }
+    &:hover { background: rgba(255, 255, 255, 0.03); }
     input { display: none; }
   `,
   radioSelected: css`
-    border-color: rgba(0, 255, 204, 0.4);
-    background: rgba(0, 255, 204, 0.08);
+    border-color: rgba(0, 255, 204, 0.35);
+    background: rgba(0, 255, 204, 0.06);
     color: #00ffcc;
+    box-shadow: 0 0 12px rgba(0, 255, 204, 0.08);
   `,
   modalActions: css`
     display: flex;
@@ -616,84 +886,62 @@ const styles = {
   `,
   cancelBtn: css`
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
     padding: 8px 20px;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+    &:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
   `,
   launchBtn: css`
-    background: linear-gradient(135deg, #00ffcc, #00ccaa);
-    border: none;
+    background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(0, 204, 170, 0.15));
+    border: 1px solid rgba(0, 255, 204, 0.35);
     border-radius: 6px;
-    color: #0d1117;
+    color: #00ffcc;
     padding: 8px 24px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s;
-    &:hover { box-shadow: 0 4px 20px rgba(0, 255, 204, 0.35); transform: translateY(-1px); }
-    &:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+    transition: all 0.25s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    &:hover {
+      box-shadow: 0 0 24px rgba(0, 255, 204, 0.25);
+      transform: translateY(-1px);
+    }
+    &:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
   `,
 
-  // ── Toast ──
+  /* ── Toast ── */
   toast: css`
     position: fixed;
     bottom: 24px;
     right: 24px;
     z-index: 10001;
-    padding: 12px 20px;
+    padding: 10px 18px;
     border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
     animation: ${fadeIn} 0.2s ease;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
   `,
   toastSuccess: css`
-    background: rgba(0, 255, 204, 0.15);
-    border: 1px solid rgba(0, 255, 204, 0.3);
+    background: rgba(0, 255, 204, 0.12);
+    border: 1px solid rgba(0, 255, 204, 0.25);
     color: #00ffcc;
   `,
   toastError: css`
-    background: rgba(255, 68, 102, 0.15);
-    border: 1px solid rgba(255, 68, 102, 0.3);
+    background: rgba(255, 68, 102, 0.12);
+    border: 1px solid rgba(255, 68, 102, 0.25);
     color: #ff4466;
   `,
 
-  // ── Status badge ──
-  statusBadge: css`
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  `,
-
-  // ── Pulsing dot for active ──
-  pulsingDot: css`
-    animation: ${pulse} 1.5s ease-in-out infinite;
-  `,
-
-  // ── Empty state ──
-  emptyState: css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: rgba(255, 255, 255, 0.2);
-    font-size: 13px;
-    gap: 8px;
-    padding: 40px;
-    text-align: center;
-  `,
-
-  // ── Confirm overlay ──
+  /* ── Confirm Kill ── */
   confirmOverlay: css`
     position: fixed;
     inset: 0;
@@ -701,23 +949,24 @@ const styles = {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
     animation: ${fadeIn} 0.15s ease;
   `,
   confirmBox: css`
-    background: #1a1f2e;
-    border: 1px solid rgba(255, 68, 102, 0.3);
-    border-radius: 10px;
+    background: linear-gradient(145deg, rgba(25, 20, 25, 0.98), rgba(17, 12, 18, 0.99));
+    border: 1px solid rgba(255, 68, 102, 0.2);
+    border-radius: 12px;
     padding: 24px 28px;
     max-width: 360px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 68, 102, 0.05);
   `,
   confirmText: css`
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.75);
     margin-bottom: 18px;
-    line-height: 1.5;
+    line-height: 1.6;
+    & strong { color: #ff4466; font-family: 'JetBrains Mono', monospace; }
   `,
   confirmActions: css`
     display: flex;
@@ -725,18 +974,39 @@ const styles = {
     justify-content: flex-end;
   `,
   confirmKillBtn: css`
-    background: rgba(255, 68, 102, 0.2);
-    border: 1px solid rgba(255, 68, 102, 0.4);
+    background: rgba(255, 68, 102, 0.15);
+    border: 1px solid rgba(255, 68, 102, 0.35);
     border-radius: 6px;
     color: #ff4466;
     padding: 7px 18px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    &:hover { background: rgba(255, 68, 102, 0.35); }
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    &:hover { background: rgba(255, 68, 102, 0.25); box-shadow: 0 0 16px rgba(255, 68, 102, 0.15); }
+  `,
+
+  /* ── Empty state ── */
+  emptyState: css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 12px;
+    gap: 6px;
+    padding: 40px;
+    text-align: center;
   `,
 };
+
+// Kill button visibility trick: make it show on parent hover
+const agentRowHoverKill = css`
+  &:hover .kill-btn-hover { opacity: 1 !important; }
+`;
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -765,6 +1035,7 @@ export function ControlCenterPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const selectedAgentRef = useRef<string | null>(null);
+  const milestonesTrackRef = useRef<HTMLDivElement>(null);
 
   // Keep ref in sync with selectedAgent
   useEffect(() => {
@@ -789,7 +1060,6 @@ export function ControlCenterPanel() {
     const data = await apiFetch<Agent[]>('/api/agents');
     if (data) {
       setAgents(data);
-      // Update selected agent data if still exists
       if (selectedAgentRef.current) {
         const updated = data.find((a) => a.session_id === selectedAgentRef.current);
         if (updated) setSelectedAgent(updated);
@@ -848,7 +1118,6 @@ export function ControlCenterPanel() {
               if (text) {
                 setStreamLines((prev) => {
                   const next = [...prev, text];
-                  // Keep last 500 lines
                   return next.length > 500 ? next.slice(-500) : next;
                 });
               }
@@ -861,7 +1130,6 @@ export function ControlCenterPanel() {
               }
             }
 
-            // Refresh agent list on key events
             if (['agent_spawned', 'agent_done', 'agent_id_assigned', 'agent_update'].includes(event.type)) {
               fetchAgents();
               fetchStats();
@@ -903,6 +1171,13 @@ export function ControlCenterPanel() {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [streamLines]);
+
+  // ── Auto-scroll milestones track to end ──
+  useEffect(() => {
+    if (milestonesTrackRef.current) {
+      milestonesTrackRef.current.scrollLeft = milestonesTrackRef.current.scrollWidth;
+    }
+  }, [liveMilestones]);
 
   // ── Filter agents by project ──
   const filteredAgents = selectedProject
@@ -978,187 +1253,283 @@ export function ControlCenterPanel() {
     const secs = Math.floor(ms / 1000);
     if (secs < 60) return `${secs}s`;
     const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ${secs % 60}s`;
+    if (mins < 60) return `${mins}m`;
     const hrs = Math.floor(mins / 60);
     return `${hrs}h ${mins % 60}m`;
   }
 
+  const isAgentAlive = (status: string) => ['working', 'active', 'idle'].includes(status);
+
   // ── Render ──
   return (
-    <div className={styles.root}>
-      {/* ── Top Bar ── */}
-      <div className={styles.topBar}>
-        <div className={styles.topBarTitle}>Control Center</div>
-
-        <select
-          className={styles.projectSelect}
-          value={selectedProject}
-          onChange={(e) => { setSelectedProject(e.target.value); setSelectedAgent(null); }}
-        >
-          <option value="">All Projects</option>
-          {projects.map((p) => (
-            <option key={p.name} value={p.name}>{p.name}</option>
-          ))}
-        </select>
-
-        <div className={styles.badges}>
-          <span className={styles.badge}>
-            <span className={`${styles.badgeDot} ${styles.pulsingDot}`} style={{ background: '#00ffcc' }} />
-            Working {stats.working_agents}
-          </span>
-          <span className={styles.badge}>
-            <span className={styles.badgeDot} style={{ background: '#ffaa00' }} />
-            Idle {stats.idle_agents}
-          </span>
-          <span className={styles.badge}>
-            <span className={styles.badgeDot} style={{ background: '#666' }} />
-            Total {stats.total_agents}
-          </span>
+    <div className={s.root}>
+      {/* ── Stats Bar ── */}
+      <div className={s.statsBar}>
+        <div className={s.statsTitle}>
+          <div className={s.statsTitleIcon}>&#9670;</div>
+          <span className={s.statsTitleText}>Control</span>
         </div>
 
-        {stats.uptime_seconds != null && <span className={styles.uptime}>UP {formatUptime(stats.uptime_seconds)}</span>}
+        <div className={s.statCell}>
+          <span className={s.statNumber} style={{ color: '#00ffcc', textShadow: '0 0 12px rgba(0,255,204,0.4)' }}>
+            {stats.working_agents}
+          </span>
+          <span className={s.statLabel}>Working</span>
+        </div>
 
-        <button className={styles.dispatchBtn} onClick={() => {
-          setDispatchProject(selectedProject || (projects[0]?.name || ''));
-          setShowDispatch(true);
-        }}>
-          + Dispatch Agent
-        </button>
+        <div className={s.statCell}>
+          <span className={s.statNumber} style={{ color: '#ffaa00', textShadow: '0 0 10px rgba(255,170,0,0.3)' }}>
+            {stats.idle_agents}
+          </span>
+          <span className={s.statLabel}>Idle</span>
+        </div>
+
+        <div className={s.statCell}>
+          <span className={s.statNumber} style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {stats.total_agents}
+          </span>
+          <span className={s.statLabel}>Total</span>
+        </div>
+
+        <div className={s.statCell}>
+          <span className={s.statNumber} style={{ color: '#60a5fa', textShadow: '0 0 10px rgba(96,165,250,0.3)' }}>
+            {stats.total_projects}
+          </span>
+          <span className={s.statLabel}>Projects</span>
+        </div>
+
+        <div className={s.statsRight}>
+          <select
+            className={s.projectSelect}
+            value={selectedProject}
+            onChange={(e) => { setSelectedProject(e.target.value); setSelectedAgent(null); }}
+          >
+            <option value="">All Projects</option>
+            {projects.map((p) => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
+          </select>
+
+          {stats.uptime_seconds != null && (
+            <span className={s.uptime}>UP {formatUptime(stats.uptime_seconds)}</span>
+          )}
+
+          <button className={s.dispatchBtn} onClick={() => {
+            setDispatchProject(selectedProject || (projects[0]?.name || ''));
+            setShowDispatch(true);
+          }}>
+            + Dispatch
+          </button>
+        </div>
       </div>
 
-      {/* ── Main ── */}
-      <div className={styles.main}>
+      {/* ── Main Split ── */}
+      <div className={s.main}>
         {/* ── Left: Agent List ── */}
-        <div className={styles.leftCol}>
-          <div className={styles.leftHeader}>
+        <div className={s.leftCol}>
+          <div className={s.sectionHeader}>
             <span>Agents</span>
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{filteredAgents.length}</span>
+            <span className={s.sectionCount}>{filteredAgents.length}</span>
           </div>
-          <div className={styles.agentList}>
+          <div className={s.agentList}>
             {filteredAgents.length === 0 && (
-              <div className={styles.emptyState}>No agents found</div>
+              <div className={s.emptyState}>
+                <span style={{ fontSize: 18, opacity: 0.3 }}>&#9673;</span>
+                No agents active
+              </div>
             )}
-            {filteredAgents.map((agent) => (
-              <div
-                key={agent.session_id}
-                className={`${styles.agentCard} ${selectedAgent?.session_id === agent.session_id ? styles.agentCardSelected : ''}`}
-                onClick={() => setSelectedAgent(agent)}
-              >
-                <div className={styles.agentCardTop}>
-                  <span className={styles.agentName}>
-                    <span
-                      className={`${styles.agentStatusDot} ${agent.status === 'working' ? styles.pulsingDot : ''}`}
-                      style={{ background: statusColor(agent.status) }}
-                    />
-                    {agent.session_id.slice(0, 12)}
+            {filteredAgents.map((agent, idx) => {
+              const sm = shortModel(agent.model);
+              const mc = modelColor(agent.model);
+              const sc = statusColor(agent.status);
+              const isActive = agent.status === 'working' || agent.status === 'active';
+              const isSelected = selectedAgent?.session_id === agent.session_id;
+
+              return (
+                <div
+                  key={agent.session_id}
+                  className={`${s.agentRow} ${isSelected ? s.agentRowSelected : ''} ${agentRowHoverKill}`}
+                  onClick={() => setSelectedAgent(agent)}
+                  style={{ animationDelay: `${idx * 30}ms`, animation: `${staggerIn} 0.3s ease both` }}
+                >
+                  {/* Status dot */}
+                  <span
+                    className={`${s.agentDot} ${isActive ? s.agentDotActive : ''}`}
+                    style={{ background: sc, color: sc }}
+                  />
+
+                  {/* Short ID */}
+                  <span className={s.agentId}>{agent.session_id.slice(0, 8)}</span>
+
+                  {/* Model badge */}
+                  <span
+                    className={s.modelBadge}
+                    style={{
+                      background: mc + '15',
+                      color: mc,
+                      border: `1px solid ${mc}30`,
+                    }}
+                  >
+                    {sm}
                   </span>
-                  {(agent.status === 'working' || agent.status === 'active' || agent.status === 'idle') && (
+
+                  {/* Turn count */}
+                  <span className={s.agentTurns}>
+                    {agent.turn_count != null ? `${agent.turn_count}t` : ''}
+                  </span>
+
+                  {/* Duration */}
+                  <span className={s.agentDuration}>
+                    {formatDuration(agent.started_at)}
+                  </span>
+
+                  {/* Kill btn */}
+                  {isAgentAlive(agent.status) && (
                     <button
-                      className={styles.killBtn}
+                      className={`kill-btn-hover`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'rgba(255, 68, 102, 0.4)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        padding: '0 2px',
+                        lineHeight: 1,
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                        transition: 'all 0.2s',
+                        opacity: 0,
+                      }}
                       onClick={(e) => { e.stopPropagation(); setConfirmKill(agent.session_id); }}
+                      title="Kill agent"
                     >
-                      Kill
+                      &#10005;
                     </button>
                   )}
                 </div>
-                <div className={styles.agentMeta}>
-                  <span>{agent.model || 'unknown'}</span>
-                  <span
-                    className={styles.statusBadge}
-                    style={{
-                      background: statusColor(agent.status) + '18',
-                      color: statusColor(agent.status),
-                      border: `1px solid ${statusColor(agent.status)}33`,
-                    }}
-                  >
-                    {agent.status}
-                  </span>
-                  {agent.turn_count != null && <span>{agent.turn_count} turns</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        </div>
 
-        {/* ── Right: Detail ── */}
-        <div className={styles.rightCol}>
-          {!selectedAgent ? (
-            // ── Project Overview / Placeholder ──
-            selectedProject ? (
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div className={styles.leftHeader}>
-                  <span>Tasks - {selectedProject}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{tasks.length}</span>
-                </div>
-                <div className={styles.taskList}>
-                  {tasks.length === 0 && <div className={styles.emptyState}>No tasks found</div>}
-                  {tasks.map((task, i) => (
-                    <div key={task.id || i} className={styles.taskItem}>
+          {/* ── Task List (below agents when project selected) ── */}
+          {selectedProject && (
+            <>
+              <div className={s.sectionHeader}>
+                <span>Tasks</span>
+                <span className={s.sectionCount}>{tasks.length}</span>
+              </div>
+              <div className={s.taskList} style={{ maxHeight: '35%' }}>
+                {tasks.length === 0 && (
+                  <div className={s.emptyState} style={{ padding: 20 }}>No tasks</div>
+                )}
+                {tasks.map((task, i) => {
+                  const tc = taskColors(task.status);
+                  return (
+                    <div
+                      key={task.id || i}
+                      className={s.taskItem}
+                      style={{ animation: `${staggerIn} 0.25s ease both`, animationDelay: `${i * 25}ms` }}
+                    >
                       <span
-                        className={styles.taskStatus}
-                        style={{
-                          background: task.status === 'done' ? 'rgba(0,255,204,0.1)' : 'rgba(255,170,0,0.1)',
-                          color: task.status === 'done' ? '#00ffcc' : '#ffaa00',
-                          border: `1px solid ${task.status === 'done' ? 'rgba(0,255,204,0.2)' : 'rgba(255,170,0,0.2)'}`,
-                        }}
+                        className={s.taskStatus}
+                        style={{ background: tc.bg, color: tc.fg, border: `1px solid ${tc.border}` }}
                       >
                         {task.status}
                       </span>
-                      <span style={{ flex: 1 }}>{task.title}</span>
-                      {task.agent && (
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>
-                          {task.agent}
-                        </span>
-                      )}
+                      <span className={s.taskTitle}>{task.title}</span>
+                      {task.agent && <span className={s.taskAgent}>{task.agent}</span>}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ) : (
-              <div className={styles.rightPlaceholder}>
-                <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.3 }}>&#9678;</div>
-                <div>Select an agent to view details</div>
-                <div style={{ fontSize: 12 }}>or choose a project to see its tasks</div>
+            </>
+          )}
+        </div>
+
+        {/* ── Right: Detail ── */}
+        <div className={s.rightCol}>
+          {!selectedAgent ? (
+            <div className={s.rightPlaceholder}>
+              <div className={s.placeholderIcon}>&#9678;</div>
+              <div style={{ color: 'rgba(255,255,255,0.25)' }}>Select an agent to view details</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.12)' }}>
+                {selectedProject ? `Showing agents for ${selectedProject}` : 'or choose a project to filter'}
               </div>
-            )
+            </div>
           ) : (
-            // ── Agent Detail ──
-            <>
-              {/* Header */}
-              <div className={styles.detailHeader}>
-                <div className={styles.detailTitle}>
+            <div className={s.detailPanel}>
+              {/* ── Detail Header ── */}
+              <div className={s.detailHeader}>
+                <div className={s.detailTopRow}>
                   <span
-                    className={`${styles.agentStatusDot} ${selectedAgent.status === 'working' ? styles.pulsingDot : ''}`}
-                    style={{ background: statusColor(selectedAgent.status), width: 10, height: 10 }}
-                  />
-                  {selectedAgent.session_id.slice(0, 16)}
-                  <span
-                    className={styles.statusBadge}
+                    className={`${s.agentDot} ${(selectedAgent.status === 'working' || selectedAgent.status === 'active') ? s.agentDotActive : ''}`}
                     style={{
-                      background: statusColor(selectedAgent.status) + '18',
+                      background: statusColor(selectedAgent.status),
                       color: statusColor(selectedAgent.status),
-                      border: `1px solid ${statusColor(selectedAgent.status)}33`,
-                      fontSize: 12,
+                      width: 9,
+                      height: 9,
+                    }}
+                  />
+                  <span className={s.detailSessionId}>
+                    {selectedAgent.session_id.slice(0, 16)}
+                  </span>
+                  <span
+                    className={s.detailStatusBadge}
+                    style={{
+                      background: statusColor(selectedAgent.status) + '15',
+                      color: statusColor(selectedAgent.status),
+                      border: `1px solid ${statusColor(selectedAgent.status)}30`,
                     }}
                   >
                     {selectedAgent.status}
                   </span>
+                  <span
+                    className={s.detailModelBadge}
+                    style={{
+                      background: modelColor(selectedAgent.model) + '15',
+                      color: modelColor(selectedAgent.model),
+                      border: `1px solid ${modelColor(selectedAgent.model)}30`,
+                    }}
+                  >
+                    {shortModel(selectedAgent.model)}
+                  </span>
                 </div>
-                <div className={styles.detailMeta}>
-                  <span className={styles.detailMetaItem}>Session: {selectedAgent.session_id.slice(0, 16)}...</span>
-                  <span className={styles.detailMetaItem}>Model: {selectedAgent.model || '--'}</span>
-                  <span className={styles.detailMetaItem}>Duration: {formatDuration(selectedAgent.started_at)}</span>
-                  <span className={styles.detailMetaItem}>Project: {selectedAgent.project_name}</span>
+                <div className={s.detailMeta}>
+                  <span className={s.detailMetaItem}>
+                    <span>project</span> {selectedAgent.project_name}
+                  </span>
+                  <span className={s.detailMetaItem}>
+                    <span>turns</span> {selectedAgent.turn_count ?? '--'}
+                  </span>
+                  <span className={s.detailMetaItem}>
+                    <span>duration</span> {formatDuration(selectedAgent.started_at)}
+                  </span>
+                  <span className={s.detailMetaItem}>
+                    <span>phase</span> {selectedAgent.phase || '--'}
+                  </span>
+                  <span className={s.detailMetaItem}>
+                    <span>pid</span> {selectedAgent.pid ?? '--'}
+                  </span>
                 </div>
               </div>
 
-              {/* Milestones */}
+              {/* ── Task description ── */}
+              {selectedAgent.task && (
+                <div className={s.detailTask}>
+                  {selectedAgent.task}
+                </div>
+              )}
+
+              {/* ── Milestones Track ── */}
               {allMilestones.length > 0 && (
-                <div className={styles.milestonesSection}>
-                  <div className={styles.milestonesLabel}>Milestones</div>
-                  <div className={styles.milestonesTrack}>
+                <div className={s.milestonesBar}>
+                  <span className={s.milestonesLabel}>Milestones</span>
+                  <div className={s.milestonesTrack} ref={milestonesTrackRef}>
                     {allMilestones.map((m, i) => (
-                      <span key={i} className={styles.milestonePill}>
+                      <span
+                        key={i}
+                        className={`${s.milestonePill} ${i === allMilestones.length - 1 ? s.milestonePillLatest : ''}`}
+                      >
                         {m}
                       </span>
                     ))}
@@ -1166,12 +1537,12 @@ export function ControlCenterPanel() {
                 </div>
               )}
 
-              {/* Live Output */}
-              <div className={styles.outputSection}>
-                <div className={styles.outputLabel}>Live Output</div>
-                <div className={styles.outputTerminal} ref={terminalRef}>
+              {/* ── Terminal Output ── */}
+              <div className={s.outputSection}>
+                <div className={s.outputLabel}>Live Output</div>
+                <div className={s.outputTerminal} ref={terminalRef}>
                   {streamLines.length === 0 && (
-                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>
+                    <span className={s.outputEmpty}>
                       Waiting for stream data...
                     </span>
                   )}
@@ -1181,18 +1552,11 @@ export function ControlCenterPanel() {
                 </div>
               </div>
 
-              {/* Agent Info */}
-              <div className={styles.costRow}>
-                <span>Turns: {selectedAgent.turn_count ?? '--'}</span>
-                <span>Phase: {selectedAgent.phase || '--'}</span>
-                <span>PID: {selectedAgent.pid ?? '--'}</span>
-              </div>
-
-              {/* Send Message */}
-              {(selectedAgent.status === 'working' || selectedAgent.status === 'active' || selectedAgent.status === 'idle') && (
-                <div className={styles.sendRow}>
+              {/* ── Send Message ── */}
+              {isAgentAlive(selectedAgent.status) && (
+                <div className={s.sendRow}>
                   <input
-                    className={styles.sendInput}
+                    className={s.sendInput}
                     type="text"
                     placeholder="Send message to agent..."
                     value={sendMsg}
@@ -1200,29 +1564,29 @@ export function ControlCenterPanel() {
                     onKeyDown={(e) => { if (e.key === 'Enter' && !sending) handleSendMessage(); }}
                   />
                   <button
-                    className={styles.sendBtn}
+                    className={s.sendBtn}
                     disabled={sending || !sendMsg.trim()}
                     onClick={handleSendMessage}
                   >
-                    {sending ? 'Sending...' : 'Send'}
+                    {sending ? '...' : 'Send'}
                   </button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
 
       {/* ── Dispatch Modal ── */}
       {showDispatch && (
-        <div className={styles.modalBackdrop} onClick={() => setShowDispatch(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalTitle}>Dispatch Agent</div>
+        <div className={s.modalBackdrop} onClick={() => setShowDispatch(false)}>
+          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={s.modalTitle}>Dispatch Agent</div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Project</label>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Project</label>
               <select
-                className={styles.formSelect}
+                className={s.formSelect}
                 value={dispatchProject}
                 onChange={(e) => setDispatchProject(e.target.value)}
               >
@@ -1233,27 +1597,28 @@ export function ControlCenterPanel() {
               </select>
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Task Description</label>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Task Description</label>
               <textarea
-                className={styles.formTextarea}
+                className={s.formTextarea}
                 placeholder="Describe the task for the agent..."
                 value={dispatchTask}
                 onChange={(e) => setDispatchTask(e.target.value)}
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Model</label>
-              <div className={styles.radioGroup}>
+            <div className={s.formGroup}>
+              <label className={s.formLabel}>Model</label>
+              <div className={s.radioGroup}>
                 {[
-                  { value: 'opus', label: 'Opus' },
-                  { value: 'sonnet', label: 'Sonnet' },
-                  { value: 'haiku', label: 'Haiku' },
+                  { value: 'opus', label: 'Opus', color: '#c084fc' },
+                  { value: 'sonnet', label: 'Sonnet', color: '#60a5fa' },
+                  { value: 'haiku', label: 'Haiku', color: '#34d399' },
                 ].map((m) => (
                   <label
                     key={m.value}
-                    className={`${styles.radioLabel} ${dispatchModel === m.value ? styles.radioSelected : ''}`}
+                    className={`${s.radioLabel} ${dispatchModel === m.value ? s.radioSelected : ''}`}
+                    style={dispatchModel === m.value ? { borderColor: m.color + '60', color: m.color, background: m.color + '10' } : {}}
                   >
                     <input
                       type="radio"
@@ -1268,12 +1633,12 @@ export function ControlCenterPanel() {
               </div>
             </div>
 
-            <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setShowDispatch(false)}>
+            <div className={s.modalActions}>
+              <button className={s.cancelBtn} onClick={() => setShowDispatch(false)}>
                 Cancel
               </button>
               <button
-                className={styles.launchBtn}
+                className={s.launchBtn}
                 disabled={dispatching || !dispatchProject || !dispatchTask.trim()}
                 onClick={handleDispatch}
               >
@@ -1286,17 +1651,17 @@ export function ControlCenterPanel() {
 
       {/* ── Kill Confirm ── */}
       {confirmKill && (
-        <div className={styles.confirmOverlay} onClick={() => setConfirmKill(null)}>
-          <div className={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.confirmText}>
+        <div className={s.confirmOverlay} onClick={() => setConfirmKill(null)}>
+          <div className={s.confirmBox} onClick={(e) => e.stopPropagation()}>
+            <div className={s.confirmText}>
               Terminate agent <strong>{confirmKill.slice(0, 12)}</strong>?
               This action cannot be undone.
             </div>
-            <div className={styles.confirmActions}>
-              <button className={styles.cancelBtn} onClick={() => setConfirmKill(null)}>
+            <div className={s.confirmActions}>
+              <button className={s.cancelBtn} onClick={() => setConfirmKill(null)}>
                 Cancel
               </button>
-              <button className={styles.confirmKillBtn} onClick={() => handleKill(confirmKill)}>
+              <button className={s.confirmKillBtn} onClick={() => handleKill(confirmKill)}>
                 Kill Agent
               </button>
             </div>
@@ -1306,7 +1671,7 @@ export function ControlCenterPanel() {
 
       {/* ── Toast ── */}
       {toast && (
-        <div className={`${styles.toast} ${toast.type === 'success' ? styles.toastSuccess : styles.toastError}`}>
+        <div className={`${s.toast} ${toast.type === 'success' ? s.toastSuccess : s.toastError}`}>
           {toast.msg}
         </div>
       )}

@@ -7,7 +7,6 @@ interface AgentBlip {
   status: string;
   model: string;
   turns: number;
-  cost: number;
   // Position on radar (polar: angle + distance from center)
   angle: number;
   dist: number;
@@ -19,10 +18,10 @@ interface AgentBlip {
 }
 
 interface StatsData {
-  active_agents?: number;
+  working_agents?: number;
   idle_agents?: number;
-  total_agents_spawned?: number;
-  cumulative_cost?: number;
+  total_agents?: number;
+  uptime_seconds?: number;
 }
 
 const API_BASE = 'http://localhost:4040';
@@ -36,14 +35,14 @@ const ATC_CYAN = '#00e5ff';
 const ATC_BG = '#0a100a';
 
 const STATUS_TO_AVIATION: Record<string, string> = {
-  active: 'CLIMBING',
+  working: 'CLIMBING',
   idle: 'CRUISING',
   done: 'LANDED',
   error: 'MAYDAY',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: ATC_GREEN,
+  working: ATC_GREEN,
   idle: ATC_CYAN,
   done: '#6e7681',
   error: ATC_RED,
@@ -72,22 +71,23 @@ export function ATCRadarPanel() {
           const raw: any[] = await agentsResp.json();
           const blips: AgentBlip[] = raw.map((a, i) => {
             const existing = agentsRef.current.find(b => b.id === (a.session_id || `a-${i}`));
-            const sectorAngle = getSectorAngle(a.project || 'unknown', raw);
+            const sectorAngle = getSectorAngle(a.project_name || 'unknown', raw);
             const dist = 0.3 + Math.random() * 0.5;
+            const turnCount = a.turn_count || 0;
+            const elapsedMin = a.started_at ? Math.max(1, (Date.now() - new Date(a.started_at).getTime()) / 60000) : 1;
             return {
               id: a.session_id || `a-${i}`,
-              callsign: a.star_name || a.session_id?.slice(0, 6) || `AGT${i}`,
-              project: a.project || 'unknown',
+              callsign: a.session_id?.slice(0, 8) || `AGT${i}`,
+              project: a.project_name || 'unknown',
               status: a.status || 'idle',
               model: a.model || '',
-              turns: a.turns || 0,
-              cost: a.estimated_cost || 0,
+              turns: turnCount,
               angle: existing?.angle ?? (sectorAngle + (Math.random() - 0.5) * 0.8),
               dist: existing?.dist ?? dist,
               targetAngle: sectorAngle + (Math.random() - 0.5) * 0.6,
               targetDist: a.status === 'done' ? 0.1 : (0.25 + Math.random() * 0.55),
-              altitude: (a.turns || 0) * 100,
-              speed: Math.max(1, Math.floor((a.turns || 0) / Math.max(1, parseElapsedMin(a.elapsed)))),
+              altitude: turnCount * 100,
+              speed: Math.max(1, Math.floor(turnCount / elapsedMin)),
             };
           });
           agentsRef.current = blips;
@@ -102,7 +102,7 @@ export function ATCRadarPanel() {
         const demo = buildDemoBlips();
         agentsRef.current = demo;
         setAgents(demo);
-        setStats({ active_agents: 4, idle_agents: 2, total_agents_spawned: 8, cumulative_cost: 2.34 });
+        setStats({ working_agents: 4, idle_agents: 2, total_agents: 8, uptime_seconds: 3600 });
       }
     };
 
@@ -282,7 +282,7 @@ export function ATCRadarPanel() {
         blip.dist += (blip.targetDist - blip.dist) * 0.005;
 
         // Active agents drift slightly
-        if (blip.status === 'active') {
+        if (blip.status === 'working') {
           blip.angle += 0.001;
           blip.targetAngle += 0.001;
         }
@@ -299,7 +299,7 @@ export function ATCRadarPanel() {
         }
 
         const color = STATUS_COLORS[blip.status] || ATC_GREEN;
-        const isActive = blip.status === 'active';
+        const isActive = blip.status === 'working';
         const isMayday = blip.status === 'error';
 
         // Blip glow
@@ -374,7 +374,7 @@ export function ATCRadarPanel() {
 
         // Tag text: Line 3 = aviation status
         const avStatus = STATUS_TO_AVIATION[blip.status] || 'UNK';
-        ctx.fillStyle = isMayday ? ATC_RED : (blip.status === 'active' ? ATC_GREEN : 'rgba(0,255,65,0.5)');
+        ctx.fillStyle = isMayday ? ATC_RED : (blip.status === 'working' ? ATC_GREEN : 'rgba(0,255,65,0.5)');
         ctx.font = '7px monospace';
         ctx.fillText(avStatus, tagX, tagY + 20);
       }
@@ -441,9 +441,9 @@ export function ATCRadarPanel() {
     };
   }, [agents]);
 
-  const activeCount = stats.active_agents ?? 0;
-  const totalSpawned = stats.total_agents_spawned ?? 0;
-  const doneCount = totalSpawned - (stats.active_agents ?? 0) - (stats.idle_agents ?? 0);
+  const activeCount = stats.working_agents ?? 0;
+  const totalSpawned = stats.total_agents ?? 0;
+  const doneCount = totalSpawned - (stats.working_agents ?? 0) - (stats.idle_agents ?? 0);
 
   return (
     <div style={{
@@ -529,19 +529,10 @@ function ATCClock() {
 
 /* Helpers */
 function getSectorAngle(project: string, allAgents: any[]): number {
-  const projects = [...new Set(allAgents.map((a: any) => a.project || 'unknown'))];
+  const projects = [...new Set(allAgents.map((a: any) => a.project_name || 'unknown'))];
   const idx = projects.indexOf(project);
   if (idx < 0) return 0;
   return (idx / Math.max(projects.length, 1)) * Math.PI * 2 - Math.PI / 2;
-}
-
-function parseElapsedMin(elapsed?: string): number {
-  if (!elapsed) return 1;
-  const m = elapsed.match(/(\d+)m/);
-  if (m) return parseInt(m[1]) || 1;
-  const h = elapsed.match(/(\d+)h/);
-  if (h) return (parseInt(h[1]) || 1) * 60;
-  return 1;
 }
 
 function buildDemoBlips(): AgentBlip[] {
