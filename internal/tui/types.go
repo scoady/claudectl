@@ -17,7 +17,8 @@ const (
 	ScreenAgents
 	ScreenWatch
 	ScreenHelp
-	ScreenProject // drill-into single project detail
+	ScreenProject   // drill-into single project detail
+	ScreenSettings  // theme settings screen
 )
 
 // ── Navigation messages ─────────────────────────────────────────────────────

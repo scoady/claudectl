@@ -24,6 +24,7 @@ func RenderHelp(width, height int) string {
 	}{
 		{"Ctrl+D", "Dispatch new task"},
 		{"d", "Detail view"},
+		{"s", "Settings / Themes"},
 		{"l", "Logs / Stream view"},
 		{"K", "Kill / Stop agent"},
 		{"i", "Inject message (in watch)"},
@@ -37,6 +38,7 @@ func RenderHelp(width, height int) string {
 	}{
 		{":agents", "Show all agents"},
 		{":projects", "Show project list"},
+		{":settings", "Theme settings"},
 		{":q / :quit", "Quit"},
 		{"/text", "Filter by text"},
 	}

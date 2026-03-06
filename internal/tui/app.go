@@ -73,6 +73,9 @@ type App struct {
 	agents    AgentsModel
 	watch     WatchModel
 
+	// Settings
+	settings SettingsModel
+
 	// Overlays
 	dispatch      DispatchModel
 	inject        InjectModel
@@ -90,10 +93,15 @@ type App struct {
 
 // NewApp creates a new TUI app.
 func NewApp(apiURL string) *App {
+	// Load persisted theme
+	cfg := LoadConfig()
+	ApplyTheme(ThemeByName(cfg.Theme))
+
 	return &App{
-		client: api.NewClient(apiURL),
-		screen: ScreenDashboard,
-		mode:   ModeNormal,
+		client:   api.NewClient(apiURL),
+		screen:   ScreenDashboard,
+		mode:     ModeNormal,
+		settings: NewSettingsModel(),
 	}
 }
 
@@ -361,6 +369,11 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return a.handleFilterInput(key)
 	}
 
+	// Settings screen has its own key handling
+	if a.screen == ScreenSettings {
+		return a.handleSettingsKey(key)
+	}
+
 	// Normal mode
 	switch key {
 	case "q", "ctrl+c":
@@ -407,6 +420,21 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "d":
 		return a.handleDetail()
+
+	case "s":
+		// Open settings (dashboard only)
+		if a.screen == ScreenDashboard {
+			a.screen = ScreenSettings
+			a.settings = NewSettingsModel()
+			// Pre-select the currently active theme
+			for i, t := range a.settings.Themes {
+				if t.Name == ActiveThemeName {
+					a.settings.Selected = i
+					break
+				}
+			}
+			return a, nil
+		}
 
 	case "c":
 		// Create project (dashboard only)
@@ -568,6 +596,16 @@ func (a *App) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 		return a, nil
 	case "projects", "dashboard", "home":
 		a.screen = ScreenDashboard
+		return a, nil
+	case "settings":
+		a.screen = ScreenSettings
+		a.settings = NewSettingsModel()
+		for i, t := range a.settings.Themes {
+			if t.Name == ActiveThemeName {
+				a.settings.Selected = i
+				break
+			}
+		}
 		return a, nil
 	case "create":
 		return a, func() tea.Msg { return ShowCreateProjectMsg{} }
@@ -983,6 +1021,8 @@ func (a *App) View() string {
 		screenName = "project:" + a.projectName
 	case ScreenAgents:
 		screenName = "agents"
+	case ScreenSettings:
+		screenName = "settings"
 	}
 
 	// Header
@@ -1008,6 +1048,8 @@ func (a *App) View() string {
 			content = RenderProject(&a.project, a.width, contentHeight)
 		case ScreenAgents:
 			content = RenderAgents(&a.agents, a.width, contentHeight)
+		case ScreenSettings:
+			content = RenderSettings(&a.settings, a.width, contentHeight)
 		}
 
 		// Pad content to fill height
@@ -1053,6 +1095,7 @@ func (a *App) View() string {
 		hints = []KeyHint{
 			{"Enter", "Actions"},
 			{"c", "Create"},
+			{"s", "Settings"},
 			{"/", "Filter"},
 			{":", "Cmd"},
 			{"?", "Help"},
@@ -1072,6 +1115,12 @@ func (a *App) View() string {
 			{"/", "Filter"},
 			{"Esc", "Back"},
 			{"?", "Help"},
+		}
+	case ScreenSettings:
+		hints = []KeyHint{
+			{"j/k", "Navigate"},
+			{"Enter", "Apply"},
+			{"Esc", "Back"},
 		}
 	}
 	b.WriteString(RenderFooter(a.width, hints))

@@ -329,3 +329,123 @@ func HLine(width int, color lipgloss.Color) string {
 	}
 	return lipgloss.NewStyle().Foreground(color).Render(s)
 }
+
+// ActiveThemeName holds the name of the currently applied theme.
+var ActiveThemeName = "constellation"
+
+// ApplyTheme overwrites all package-level color and style vars from the given theme.
+// The TUI re-renders automatically on the next tick, picking up the new values.
+func ApplyTheme(t Theme) {
+	ActiveThemeName = t.Name
+
+	// ── Colors ──
+	Cyan = t.Cyan
+	Amber = t.Amber
+	Purple = t.Purple
+	Green = t.Green
+	Rose = t.Rose
+	Blue = t.Blue
+
+	White = t.White
+	SubText = t.SubText
+	Dim = t.Dim
+	Faint = t.Faint
+	Muted = t.Muted
+
+	Glass = t.Glass
+	Surface0 = t.Surface0
+	Surface1 = t.Surface1
+	Surface2 = t.Surface2
+	BorderColor = t.BorderColor
+	GlowBorder = t.GlowBorder
+
+	BadgeCyanBg = t.BadgeCyanBg
+	BadgeAmberBg = t.BadgeAmberBg
+	BadgePurpleBg = t.BadgePurpleBg
+	BadgeGreenBg = t.BadgeGreenBg
+	BadgeRoseBg = t.BadgeRoseBg
+	BadgeBlueBg = t.BadgeBlueBg
+
+	// ── Regenerate all styles ──
+
+	// Header
+	LogoStyle = lipgloss.NewStyle().Bold(true).Foreground(Cyan)
+	LogoAccent = lipgloss.NewStyle().Bold(true).Foreground(Purple)
+	HeaderBarStyle = lipgloss.NewStyle().Background(Surface0)
+	HeaderStatusOK = lipgloss.NewStyle().Foreground(Green).Bold(true)
+	HeaderStatusErr = lipgloss.NewStyle().Foreground(Rose).Bold(true)
+	HeaderDim = lipgloss.NewStyle().Foreground(Dim)
+	HeaderBadge = lipgloss.NewStyle().Foreground(Cyan).Background(BadgeCyanBg).Bold(true).Padding(0, 1)
+	HeaderScreenBadge = lipgloss.NewStyle().Foreground(Purple).Background(BadgePurpleBg).Bold(true).Padding(0, 1)
+
+	// Footer
+	FooterKeyStyle = lipgloss.NewStyle().Foreground(Surface0).Background(Cyan).Bold(true).Padding(0, 1)
+	FooterDescStyle = lipgloss.NewStyle().Foreground(SubText)
+	FooterBarStyle = lipgloss.NewStyle().Background(Surface1)
+	FooterSep = lipgloss.NewStyle().Foreground(Muted)
+
+	// Table
+	TableHeaderStyle = lipgloss.NewStyle().Bold(true).Foreground(Purple).Padding(0, 1)
+	TableCellStyle = lipgloss.NewStyle().Foreground(SubText).Padding(0, 1)
+	TableSelectedStyle = lipgloss.NewStyle().Background(Surface1).Foreground(Cyan).Bold(true).Padding(0, 1)
+	TableDivider = lipgloss.NewStyle().Foreground(Muted)
+
+	// Status
+	StatusWorkingStyle = lipgloss.NewStyle().Foreground(Amber).Bold(true)
+	StatusIdleStyle = lipgloss.NewStyle().Foreground(Cyan)
+	StatusDoneStyle = lipgloss.NewStyle().Foreground(Green)
+	StatusErrorStyle = lipgloss.NewStyle().Foreground(Rose).Bold(true)
+
+	// Card
+	CardStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(BorderColor).Padding(0, 1).Background(Surface0)
+	CardTitleStyle = lipgloss.NewStyle().Bold(true).Foreground(White)
+	CardSubtitle = lipgloss.NewStyle().Foreground(Dim).Italic(true)
+
+	// Tab bar
+	TabActiveStyle = lipgloss.NewStyle().Foreground(Cyan).Background(Surface1).Bold(true).Padding(0, 2).
+		Border(lipgloss.Border{Bottom: "\u2580"}, false, false, true, false).BorderForeground(Cyan)
+	TabInactiveStyle = lipgloss.NewStyle().Foreground(Dim).Padding(0, 2)
+	TabBarSeparator = lipgloss.NewStyle().Foreground(Muted)
+
+	// Section
+	SectionStyle = lipgloss.NewStyle().Bold(true).Foreground(Purple)
+
+	// Command bar
+	CmdBarStyle = lipgloss.NewStyle().Foreground(Cyan).Bold(true)
+	CmdInputStyle = lipgloss.NewStyle().Foreground(White)
+
+	// Help overlay
+	HelpOverlayStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(Purple).Padding(1, 3).Background(Surface0)
+	HelpKeyStyle = lipgloss.NewStyle().Foreground(Cyan).Bold(true).Width(16)
+	HelpDescStyle = lipgloss.NewStyle().Foreground(SubText)
+	HelpTitleStyle = lipgloss.NewStyle().Foreground(Purple).Bold(true).MarginBottom(1)
+	HelpSectionStyle = lipgloss.NewStyle().Foreground(Amber).Bold(true).MarginTop(1).MarginBottom(0)
+
+	// Dialog
+	DialogStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(GlowBorder).Padding(1, 2).Background(Surface0)
+	DialogTitleBar = lipgloss.NewStyle().Background(BadgeCyanBg).Foreground(Cyan).Bold(true).Padding(0, 2).MarginBottom(1)
+	DialogLabel = lipgloss.NewStyle().Foreground(Dim).Width(12)
+	DialogValue = lipgloss.NewStyle().Foreground(White).Bold(true)
+	DialogSuccess = lipgloss.NewStyle().Foreground(Green).Background(BadgeGreenBg).Bold(true).Padding(0, 1)
+	DialogError = lipgloss.NewStyle().Foreground(Rose).Background(BadgeRoseBg).Bold(true).Padding(0, 1)
+	DialogHint = lipgloss.NewStyle().Foreground(Dim)
+
+	// Misc
+	BoldStyle = lipgloss.NewStyle().Bold(true).Foreground(White)
+	DimStyle = lipgloss.NewStyle().Foreground(Dim)
+	FaintStyle = lipgloss.NewStyle().Foreground(Faint)
+	MutedStyle = lipgloss.NewStyle().Foreground(Muted)
+	SubStyle = lipgloss.NewStyle().Foreground(SubText)
+
+	// Filter
+	FilterStyle = lipgloss.NewStyle().Foreground(Amber).Bold(true)
+
+	// Pill
+	PillStyle = lipgloss.NewStyle().Padding(0, 1).Bold(true)
+
+	// Selection
+	SelectionIndicator = lipgloss.NewStyle().Foreground(Cyan).Bold(true)
+
+	// Spark
+	SparkStyle = lipgloss.NewStyle().Foreground(Green)
+}
