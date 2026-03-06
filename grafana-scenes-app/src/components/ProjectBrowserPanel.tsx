@@ -12,7 +12,7 @@ import type { Project, Agent, Stats, Task } from '../types';
 // ── Props ───────────────────────────────────────────────────────────────────
 
 interface ProjectBrowserPanelProps {
-  onSelectProject: (name: string) => void;
+  onSelectProject?: (name: string) => void;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -32,7 +32,15 @@ function timeAgo(iso?: string): string {
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-const ProjectBrowserPanel: React.FC<ProjectBrowserPanelProps> = ({ onSelectProject }) => {
+const ProjectBrowserPanel: React.FC<ProjectBrowserPanelProps> = ({ onSelectProject: onSelectProjectProp }) => {
+  const onSelectProject = (name: string) => {
+    if (onSelectProjectProp) {
+      onSelectProjectProp(name);
+    } else if ((window as any).__c9s_selectProject) {
+      (window as any).__c9s_selectProject(name);
+    }
+  };
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -513,4 +521,5 @@ const styles = {
   `,
 };
 
+export { ProjectBrowserPanel };
 export default ProjectBrowserPanel;
