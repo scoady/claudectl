@@ -471,6 +471,21 @@ func (m MissionModel) renderPane(pane *MissionPane, width, height int, focused b
 		}
 	}
 
+	// If no streamed content, show task description as placeholder
+	if len(lines) == 0 && pane.Task != "" {
+		taskLabel := lipgloss.NewStyle().Foreground(Dim).Italic(true).Render("Task:")
+		// Word-wrap task into multiple lines
+		taskText := pane.Task
+		wrappedLines := wrapText(taskText, innerW-2)
+		lines = append(lines, taskLabel)
+		for _, wl := range wrappedLines {
+			lines = append(lines, FaintStyle.Render("  "+wl))
+		}
+		if len(lines) > contentLines {
+			lines = lines[:contentLines]
+		}
+	}
+
 	// Wrap lines to fit inner width and render
 	var contentBuf strings.Builder
 	rendered := 0
@@ -712,4 +727,27 @@ func formatElapsed(d time.Duration) string {
 		return fmt.Sprintf("%dm%ds", int(d.Minutes()), int(d.Seconds())%60)
 	}
 	return fmt.Sprintf("%dh%dm", int(d.Hours()), int(d.Minutes())%60)
+}
+
+// wrapText breaks text into lines of at most maxWidth characters, splitting on spaces.
+func wrapText(text string, maxWidth int) []string {
+	if maxWidth <= 0 {
+		return []string{text}
+	}
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return nil
+	}
+	var lines []string
+	current := words[0]
+	for _, w := range words[1:] {
+		if len(current)+1+len(w) > maxWidth {
+			lines = append(lines, current)
+			current = w
+		} else {
+			current += " " + w
+		}
+	}
+	lines = append(lines, current)
+	return lines
 }
