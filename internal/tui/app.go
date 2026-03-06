@@ -53,6 +53,7 @@ type App struct {
 	client *api.Client
 	width  int
 	height int
+	layout Layout
 
 	screen     Screen
 	mode       Mode
@@ -80,6 +81,13 @@ type App struct {
 	// Timeline
 	timeline TimelineModel
 	history  *AgentHistory
+
+	// Metrics
+	metrics      MetricsModel
+	metricsStore *MetricsStore
+
+	// Targets
+	targets TargetsModel
 	// Canvas
 	canvas         CanvasModel
 	widgetDetail   WidgetDetailModel
@@ -108,12 +116,14 @@ func NewApp(apiURL string) *App {
 	ApplyTheme(ThemeByName(cfg.Theme))
 
 	return &App{
-		client:   api.NewClient(apiURL),
-		screen:   ScreenDashboard,
-		mode:     ModeNormal,
-		settings: NewSettingsModel(),
-		history:  NewAgentHistory(),
-		timeline: NewTimelineModel(),
+		client:       api.NewClient(apiURL),
+		screen:       ScreenDashboard,
+		mode:         ModeNormal,
+		settings:     NewSettingsModel(),
+		history:      NewAgentHistory(),
+		timeline:     NewTimelineModel(),
+		metrics:      NewMetricsModel(),
+		metricsStore: NewMetricsStore(),
 	}
 }
 
@@ -194,6 +204,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
+		a.layout = NewLayout(msg.Width, msg.Height)
 		if a.screen == ScreenWatch {
 			a.watch, _ = a.watch.Update(msg)
 		}
@@ -232,9 +243,20 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			a.agents.ClampSelection()
 
+			// Record agent count for dashboard sparkline
+			a.dashboard.RecordAgentCount()
+
 			// Feed timeline history
 			if a.history != nil {
 				a.history.Update(msg.Agents)
+			}
+
+			// Feed metrics store
+			UpdateMetricsFromAgents(a.metricsStore, msg.Agents, a.history)
+
+			// Feed targets screen
+			if a.screen == ScreenTargets {
+				a.targets.UpdateAgents(msg.Agents)
 			}
 		}
 		if a.screen == ScreenProject {
@@ -451,6 +473,16 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return a.handleTimelineKey(key)
 	}
 
+	// Metrics screen key handling
+	if a.screen == ScreenMetrics {
+		return a.handleMetricsKey(key)
+	}
+
+	// Targets screen key handling
+	if a.screen == ScreenTargets {
+		return a.handleTargetsKey(key)
+	}
+
 	// Settings screen has its own key handling
 	if a.screen == ScreenSettings {
 		return a.handleSettingsKey(key)
@@ -543,6 +575,22 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if a.screen == ScreenDashboard {
 			a.screen = ScreenTimeline
 			a.timeline = NewTimelineModel()
+			return a, nil
+		}
+
+	case "g":
+		// Open metrics (dashboard only)
+		if a.screen == ScreenDashboard {
+			a.screen = ScreenMetrics
+			a.metrics = NewMetricsModel()
+			return a, nil
+		}
+
+	case "T":
+		// Open targets (dashboard only)
+		if a.screen == ScreenDashboard {
+			a.screen = ScreenTargets
+			a.targets = NewTargetsModel(a.dashboard.Agents)
 			return a, nil
 		}
 
@@ -739,6 +787,14 @@ func (a *App) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 		a.screen = ScreenTimeline
 		a.timeline = NewTimelineModel()
 		return a, nil
+	case "metrics", "graphs":
+		a.screen = ScreenMetrics
+		a.metrics = NewMetricsModel()
+		return a, nil
+	case "targets":
+		a.screen = ScreenTargets
+		a.targets = NewTargetsModel(a.dashboard.Agents)
+		return a, nil
 	case "create":
 		return a, func() tea.Msg { return ShowCreateProjectMsg{} }
 	case "mission":
@@ -797,6 +853,9 @@ func (a *App) moveSelection(delta int) {
 	case ScreenCanvas:
 		a.canvas.Selected += delta
 		a.canvas.ClampSelection()
+	case ScreenTargets:
+		a.targets.Selected += delta
+		a.targets.ClampSelection()
 	}
 }
 
@@ -1245,6 +1304,24 @@ func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		}
 		return a, nil
 
+	case ScreenTimeline:
+		a.screen = ScreenTimeline
+		a.timeline = NewTimelineModel()
+		return a, nil
+
+	case ScreenMetrics:
+		a.screen = ScreenMetrics
+		a.metrics = NewMetricsModel()
+		return a, nil
+
+	case ScreenMission:
+		return a.navigateToMission()
+
+	case ScreenTargets:
+		a.screen = ScreenTargets
+		a.targets = NewTargetsModel(a.dashboard.Agents)
+		return a, nil
+
 	case ScreenCanvas:
 		if a.canvas.ProjectName != "" {
 			return a.navigateToCanvas(a.canvas.ProjectName)
@@ -1357,6 +1434,10 @@ func (a *App) View() string {
 		screenName = "settings"
 	case ScreenTimeline:
 		screenName = "timeline"
+	case ScreenMetrics:
+		screenName = "metrics"
+	case ScreenTargets:
+		screenName = "targets"
 	case ScreenCanvas:
 		screenName = "canvas:" + a.canvas.ProjectName
 	case ScreenWidgetDetail:
@@ -1370,10 +1451,7 @@ func (a *App) View() string {
 	b.WriteString("\n")
 
 	// Content area
-	contentHeight := a.height - 5 // header(2) + footer(2) + cmd/filter bar + status
-	if contentHeight < 5 {
-		contentHeight = 5
-	}
+	contentHeight := a.layout.ContentHeight
 
 	// Help overlay
 	if a.showHelp {
@@ -1392,6 +1470,11 @@ func (a *App) View() string {
 			content = RenderSettings(&a.settings, a.width, contentHeight)
 		case ScreenTimeline:
 			content = RenderTimeline(&a.timeline, a.history, a.width, contentHeight)
+		case ScreenMetrics:
+			content = RenderMetrics(&a.metrics, a.metricsStore, a.history,
+				a.dashboard.Agents, a.health, a.width, contentHeight)
+		case ScreenTargets:
+			content = RenderTargets(&a.targets, a.width, contentHeight)
 		case ScreenCanvas:
 			content = RenderCanvas(&a.canvas, a.width, contentHeight)
 		case ScreenWidgetDetail:
@@ -1415,7 +1498,7 @@ func (a *App) View() string {
 	// Command/filter bar or status message
 	switch a.mode {
 	case ModeCommand:
-		cmdLine := CmdBarStyle.Render(":") + CmdInputStyle.Render(a.cmdInput) + lipgloss.NewStyle().Foreground(Cyan).Render("█")
+		cmdLine := Class("cmd-bar").Render(":") + Class("cmd-input").Render(a.cmdInput) + lipgloss.NewStyle().Foreground(Cyan).Render("█")
 		b.WriteString(cmdLine + "\n")
 	case ModeFilter:
 		filterText := ""
@@ -1425,12 +1508,12 @@ func (a *App) View() string {
 		case ScreenAgents:
 			filterText = a.agents.Filter
 		}
-		filterLine := FilterStyle.Render("/") + CmdInputStyle.Render(filterText) + lipgloss.NewStyle().Foreground(Amber).Render("█")
+		filterLine := Class("filter-bar").Render("/") + Class("cmd-input").Render(filterText) + lipgloss.NewStyle().Foreground(Amber).Render("█")
 		b.WriteString(filterLine + "\n")
 	default:
 		// Status message (auto-clear after 5 seconds)
 		if a.statusMsg != "" && time.Since(a.statusTime) < 5*time.Second {
-			b.WriteString(DimStyle.Render("  "+a.statusMsg) + "\n")
+			b.WriteString(Class("dim").Render("  "+a.statusMsg) + "\n")
 		} else {
 			b.WriteString("\n")
 		}
@@ -1444,6 +1527,8 @@ func (a *App) View() string {
 			{"Enter", "Actions"},
 			{"Ctrl+P", "Palette"},
 			{"m", "Mission"},
+			{"g", "Metrics"},
+			{"T", "Targets"},
 			{"c", "Create"},
 			{"s", "Settings"},
 			{"/", "Filter"},
@@ -1480,6 +1565,23 @@ func (a *App) View() string {
 			{"h/l", "Zoom"},
 			{"Left/Right", "Cursor"},
 			{"j/k", "Select"},
+			{"Esc", "Back"},
+			{"?", "Help"},
+		}
+	case ScreenMetrics:
+		hints = []KeyHint{
+			{"Tab", "Panel"},
+			{"[/]", "Time Range"},
+			{"Enter", "Expand"},
+			{"Esc", "Back"},
+			{"?", "Help"},
+		}
+	case ScreenTargets:
+		hints = []KeyHint{
+			{"j/k", "Navigate"},
+			{"Tab", "Jump Group"},
+			{"Enter", "Expand"},
+			{"r", "Refresh"},
 			{"Esc", "Back"},
 			{"?", "Help"},
 		}

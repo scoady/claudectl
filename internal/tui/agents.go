@@ -56,6 +56,7 @@ func (a *AgentsModel) ClampSelection() {
 
 // RenderAgents renders the agents list screen.
 func RenderAgents(a *AgentsModel, width, height int) string {
+	ly := NewLayout(width, height)
 	filtered := a.FilteredAgents()
 
 	// ── Status summary badges ──
@@ -88,48 +89,52 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 		summary.WriteString(Pill(fmt.Sprintf(" %d error ", errCount), Rose, BadgeRoseBg) + "  ")
 	}
 	if len(filtered) == 0 {
-		summary.WriteString(DimStyle.Render("no agents"))
+		summary.WriteString(Class("dim").Render("no agents"))
 	}
 
 	var b strings.Builder
 	b.WriteString(summary.String() + "\n")
-	b.WriteString(HLine(minInt(width, 130), Muted) + "\n")
+	b.WriteString(HLine(ly.HLineMaxWidth, Muted) + "\n")
 
 	if len(filtered) == 0 {
 		if a.Filter != "" {
-			b.WriteString("\n" + DimStyle.Render("  No agents matching filter.") + "\n")
+			b.WriteString("\n" + Class("dim").Render("  No agents matching filter.") + "\n")
 		} else {
-			b.WriteString("\n" + DimStyle.Render("  No agents running.") + "\n")
+			b.WriteString("\n" + Class("dim").Render("  No agents running.") + "\n")
 		}
 		return b.String()
 	}
 
-	// Column widths
+	// Column widths from layout
 	colIndicator := 3
-	colSID := 16
-	colProject := 16
-	colTask := 24
-	colStatus := 10
-	colPhase := 12
-	colModel := 12
-	colTurns := 7
-	colMilestones := 4
-	colElapsed := 9
-	colCost := 10
+	colSID := ly.AgentColSID
+	colProject := ly.AgentColProject
+	colTask := ly.AgentColTask
+	colStatus := ly.AgentColStatus
+	colPhase := ly.AgentColPhase
+	colModel := ly.AgentColModel
+	colTurns := ly.AgentColTurns
+	colMilestones := ly.AgentColMilestones
+	colElapsed := ly.AgentColElapsed
+	colCost := ly.AgentColCost
+
+	th := Class("th")
+	td := Class("td")
+	tdSel := Class("td-selected")
 
 	// Header
 	headerPad := repeatStr(" ", colIndicator)
 	header := headerPad +
-		TableHeaderStyle.Width(colSID).Render("SESSION") +
-		TableHeaderStyle.Width(colProject).Render("PROJECT") +
-		TableHeaderStyle.Width(colTask).Render("TASK") +
-		TableHeaderStyle.Width(colStatus).Render("STATUS") +
-		TableHeaderStyle.Width(colPhase).Render("PHASE") +
-		TableHeaderStyle.Width(colModel).Render("MODEL") +
-		TableHeaderStyle.Width(colTurns).Render("TRNS") +
-		TableHeaderStyle.Width(colMilestones).Render("MS") +
-		TableHeaderStyle.Width(colElapsed).Render("ELAPSED") +
-		TableHeaderStyle.Width(colCost).Render("COST")
+		th.Width(colSID).Render("SESSION") +
+		th.Width(colProject).Render("PROJECT") +
+		th.Width(colTask).Render("TASK") +
+		th.Width(colStatus).Render("STATUS") +
+		th.Width(colPhase).Render("PHASE") +
+		th.Width(colModel).Render("MODEL") +
+		th.Width(colTurns).Render("TRNS") +
+		th.Width(colMilestones).Render("MS") +
+		th.Width(colElapsed).Render("ELAPSED") +
+		th.Width(colCost).Render("COST")
 	b.WriteString(header + "\n")
 
 	maxVisible := height - 10
@@ -149,13 +154,13 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 	for i := startIdx; i < endIdx; i++ {
 		ag := filtered[i]
 
-		// Session ID — monospaced and dimmed
+		// Session ID -- monospaced and dimmed
 		sid := ag.SessionID
 		if len(sid) > colSID-2 {
 			sid = sid[:colSID-5] + "..."
 		}
 
-		// Task text — visual focus
+		// Task text -- visual focus
 		task := ag.Task
 		if ag.IsController {
 			task = lipgloss.NewStyle().Foreground(Purple).Render("[C]") + " " + task
@@ -193,11 +198,11 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 		}
 
 		// Styles per row
-		cellStyle := TableCellStyle
-		sidStyle := lipgloss.NewStyle().Foreground(Faint).Padding(0, 1) // dimmed monospace metadata
-		taskStyle := lipgloss.NewStyle().Foreground(White).Padding(0, 1) // task is the visual focus
+		cellStyle := td
+		sidStyle := Class("td-muted")
+		taskStyle := lipgloss.NewStyle().Foreground(White).Padding(0, 1)
 		if i == a.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = tdSel
 			sidStyle = lipgloss.NewStyle().Foreground(Dim).Background(Surface1).Padding(0, 1)
 			taskStyle = lipgloss.NewStyle().Foreground(White).Bold(true).Background(Surface1).Padding(0, 1)
 		}
@@ -217,7 +222,7 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 		if i == a.Selected {
 			row = lipgloss.NewStyle().
 				Background(Surface1).
-				Width(minInt(width, 140)).
+				Width(ly.SelectedRowWidth).
 				Render(row)
 		}
 
@@ -226,7 +231,7 @@ func RenderAgents(a *AgentsModel, width, height int) string {
 
 	if len(filtered) > maxVisible {
 		scrollPct := float64(a.Selected) / float64(len(filtered)-1) * 100
-		scrollInfo := DimStyle.Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", a.Selected+1, len(filtered), scrollPct))
+		scrollInfo := Class("dim").Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", a.Selected+1, len(filtered), scrollPct))
 		b.WriteString("\n" + scrollInfo + "\n")
 	}
 

@@ -33,8 +33,8 @@ func RenderSettings(m *SettingsModel, width, height int) string {
 	var b strings.Builder
 
 	// Title
-	title := lipgloss.NewStyle().Bold(true).Foreground(Purple).Render("Settings")
-	subtitle := lipgloss.NewStyle().Foreground(Dim).Render(" / Theme")
+	title := Class("h2").Render("Settings")
+	subtitle := Class("dim").Render(" / Theme")
 	b.WriteString("  " + title + subtitle + "\n")
 	b.WriteString("  " + HLine(width-4, Muted) + "\n\n")
 
@@ -85,7 +85,7 @@ func RenderSettings(m *SettingsModel, width, height int) string {
 
 	// Footer hints
 	b.WriteString("\n")
-	b.WriteString("  " + lipgloss.NewStyle().Foreground(Dim).Render("j/k navigate  Enter apply  Esc back"))
+	b.WriteString("  " + Class("dim").Render("j/k navigate  Enter apply  Esc back"))
 
 	return b.String()
 }

@@ -15,6 +15,19 @@ type DashboardModel struct {
 	Stats    *api.StatsResponse
 	Selected int
 	Filter   string
+
+	// Agent count history for the dashboard sparkline (last 60 ticks = ~2 min at 2s tick)
+	AgentCountHistory []int
+}
+
+// RecordAgentCount appends the current agent count to the history ring buffer.
+// Called on each data refresh tick.
+func (d *DashboardModel) RecordAgentCount() {
+	const maxHistory = 60
+	d.AgentCountHistory = append(d.AgentCountHistory, len(d.Agents))
+	if len(d.AgentCountHistory) > maxHistory {
+		d.AgentCountHistory = d.AgentCountHistory[len(d.AgentCountHistory)-maxHistory:]
+	}
 }
 
 // FilteredProjects returns projects matching the current filter.
@@ -56,6 +69,7 @@ func (d *DashboardModel) ClampSelection() {
 
 // RenderDashboard renders the dashboard screen.
 func RenderDashboard(d *DashboardModel, width, height int) string {
+	ly := NewLayout(width, height)
 	var b strings.Builder
 
 	// ── Stats bar ──
@@ -67,7 +81,7 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 
 		statsBar := " " + projCount + "  " + agentCount + "  " + workingCount + "  " + idleCount
 		b.WriteString(statsBar + "\n")
-		b.WriteString(HLine(minInt(width, 120), Muted) + "\n")
+		b.WriteString(HLine(ly.HLineMaxWidth, Muted) + "\n")
 	} else {
 		b.WriteString("\n")
 	}
@@ -91,27 +105,28 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 		return b.String()
 	}
 
-	// Column widths
+	// Column widths from layout
 	colIndicator := 3
-	colNum := 4
-	colName := 22
-	colActivity := 4
-	colAgents := 8
-	colStatus := 18
-	colDesc := width - colIndicator - colNum - colName - colActivity - colAgents - colStatus - 12
-	if colDesc < 20 {
-		colDesc = 20
-	}
+	colNum := ly.DashColNum
+	colName := ly.DashColName
+	colActivity := ly.DashColActivity
+	colAgents := ly.DashColAgents
+	colStatus := ly.DashColStatus
+	colDesc := ly.DashColDesc
+
+	th := Class("th")
+	td := Class("td")
+	tdSel := Class("td-selected")
 
 	// Header row
 	headerPad := repeatStr(" ", colIndicator)
 	header := headerPad +
-		TableHeaderStyle.Width(colNum).Render("#") +
-		TableHeaderStyle.Width(colName).Render("PROJECT") +
-		TableHeaderStyle.Width(colActivity).Render("") +
-		TableHeaderStyle.Width(colAgents).Render("AGENTS") +
-		TableHeaderStyle.Width(colStatus).Render("STATUS") +
-		TableHeaderStyle.Width(colDesc).Render("DESCRIPTION")
+		th.Width(colNum).Render("#") +
+		th.Width(colName).Render("PROJECT") +
+		th.Width(colActivity).Render("") +
+		th.Width(colAgents).Render("AGENTS") +
+		th.Width(colStatus).Render("STATUS") +
+		th.Width(colDesc).Render("DESCRIPTION")
 	b.WriteString(header + "\n")
 
 	// Calculate visible range for scrolling
@@ -144,11 +159,11 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 		// Status pill
 		var statusStr string
 		if working > 0 {
-			statusStr = StatusWorkingStyle.Render(fmt.Sprintf("● %d working", working))
+			statusStr = Class("status-active").Render(fmt.Sprintf("● %d working", working))
 		} else if len(pa) > 0 {
-			statusStr = StatusIdleStyle.Render("◌ idle")
+			statusStr = Class("status-idle").Render("◌ idle")
 		} else {
-			statusStr = DimStyle.Render("· no agents")
+			statusStr = Class("dim").Render("· no agents")
 		}
 
 		// Activity sparkline
@@ -167,14 +182,14 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 		// Selection indicator
 		indicator := "   "
 		if i == d.Selected {
-			indicator = SelectionIndicator.Render(" ▌ ")
+			indicator = Class("selection-indicator").Render(" ▌ ")
 		}
 
 		// Row style
-		cellStyle := TableCellStyle
-		numStyle := DimStyle
+		cellStyle := td
+		numStyle := Class("dim")
 		if i == d.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = tdSel
 			numStyle = lipgloss.NewStyle().Foreground(Cyan).Bold(true)
 		}
 
@@ -198,7 +213,7 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 		if i == d.Selected {
 			row = lipgloss.NewStyle().
 				Background(Surface1).
-				Width(minInt(width, 140)).
+				Width(ly.SelectedRowWidth).
 				Render(row)
 		}
 
@@ -208,7 +223,7 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 	// Scroll indicator
 	if len(filtered) > maxVisible {
 		scrollPct := float64(d.Selected) / float64(len(filtered)-1) * 100
-		scrollInfo := DimStyle.Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", d.Selected+1, len(filtered), scrollPct))
+		scrollInfo := Class("dim").Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", d.Selected+1, len(filtered), scrollPct))
 
 		// Mini scrollbar
 		barLen := 10
@@ -225,6 +240,30 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 		b.WriteString("\n" + scrollInfo + "  " + scrollBar + "\n")
 	}
 
+	// ── Compact agent activity sparkline ──
+	// Show a mini braille sparkline of agent count over recent ticks
+	if len(d.AgentCountHistory) > 2 {
+		sparkWidth := Clamp(20, width/3, 50)
+		sparkLabel := FaintStyle.Render("  agents ")
+		spark := RenderSparklineBraille(d.AgentCountHistory, sparkWidth, 1, Cyan)
+		b.WriteString("\n" + sparkLabel + spark)
+
+		// Append cost estimate if we have stats
+		if d.Stats != nil && d.Stats.TotalAgents > 0 {
+			// Estimate total cost from all visible agents
+			var totalCost float64
+			for _, a := range d.Agents {
+				totalCost += EstimateCost(a.Model, a.TurnCount)
+			}
+			if totalCost > 0 {
+				costStr := lipgloss.NewStyle().Foreground(Amber).
+					Render("  " + FormatCost(totalCost))
+				b.WriteString(costStr)
+			}
+		}
+		b.WriteString("\n")
+	}
+
 	return b.String()
 }
 
@@ -238,15 +277,12 @@ func renderEmptyState(width int, message string) string {
 		lipgloss.NewStyle().Foreground(Faint).Render(".    ") +
 		lipgloss.NewStyle().Foreground(Muted).Render("·   .") + "\n"
 
-	msg := DimStyle.Render("  " + message)
-	hint := FaintStyle.Render("  Press Ctrl+D to dispatch or : to enter a command")
+	msg := Class("dim").Render("  " + message)
+	hint := Class("faint").Render("  Press Ctrl+D to dispatch or : to enter a command")
 
 	content := art + "\n" + msg + "\n" + hint
 
-	boxWidth := 50
-	if boxWidth > width-4 {
-		boxWidth = width - 4
-	}
+	boxWidth := Clamp(30, 50, width-4)
 
 	return lipgloss.NewStyle().
 		Padding(1, 2).

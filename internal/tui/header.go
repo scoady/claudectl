@@ -10,15 +10,15 @@ import (
 // RenderHeader renders the top bar with logo, status, and stats.
 func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsResponse, screen string) string {
 	// ── Logo ──
-	logo := LogoStyle.Render("  c9s") + LogoAccent.Render(" ") + DimStyle.Render("claudectl")
+	logo := Class("logo").Render("  c9s") + Class("logo-accent").Render(" ") + Class("dim").Render("claudectl")
 
 	// ── Connection status dot ──
 	var statusDot string
 	if health != nil && health.Status == "ok" {
-		statusDot = lipgloss.NewStyle().Foreground(Green).Bold(true).Render("●") +
+		statusDot = Class("header-status-ok").Render("●") +
 			lipgloss.NewStyle().Foreground(Green).Render(" connected")
 	} else {
-		statusDot = lipgloss.NewStyle().Foreground(Rose).Bold(true).Render("○") +
+		statusDot = Class("header-status-err").Render("○") +
 			lipgloss.NewStyle().Foreground(Rose).Render(" disconnected")
 	}
 
@@ -37,11 +37,11 @@ func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsRespons
 	// ── Uptime ──
 	uptime := ""
 	if health != nil && health.Uptime > 0 {
-		uptime = DimStyle.Render("up " + formatUptime(health.Uptime))
+		uptime = Class("dim").Render("up " + formatUptime(health.Uptime))
 	}
 
 	// ── Screen breadcrumb pill ──
-	screenBadge := HeaderScreenBadge.Render(" " + screen + " ")
+	screenBadge := Class("header-screen-badge").Render(" " + screen + " ")
 
 	// Compose left side
 	left := logo + "  " + statusDot
@@ -63,7 +63,7 @@ func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsRespons
 	}
 	filler := repeatStr(" ", gap)
 
-	bar := HeaderBarStyle.
+	bar := Class("header").
 		Width(width).
 		Render(left + filler + right)
 

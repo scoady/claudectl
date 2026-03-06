@@ -24,6 +24,8 @@ const (
 	ScreenTemplateBrowse // catalog template detail
 	ScreenMission        // multi-agent mission control dashboard
 	ScreenTimeline       // agent timeline view
+	ScreenMetrics        // Prometheus-style metrics dashboard
+	ScreenTargets        // Prometheus-style targets health screen
 )
 
 // ── Navigation messages ─────────────────────────────────────────────────────

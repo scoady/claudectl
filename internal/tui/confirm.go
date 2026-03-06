@@ -82,6 +82,8 @@ func (m ConfirmModel) View() string {
 		return ""
 	}
 
+	ly := NewLayout(m.width, m.height)
+
 	// Pick border color based on destructive flag
 	borderColor := GlowBorder
 	if m.destructive {
@@ -93,16 +95,16 @@ func (m ConfirmModel) View() string {
 		BorderForeground(borderColor).
 		Padding(1, 3).
 		Background(Surface0).
-		Width(50)
+		Width(ly.DialogWidth)
 
 	// Title
-	titleStyle := lipgloss.NewStyle().Foreground(White).Bold(true)
+	titleStyle := Class("h1")
 	if m.destructive {
 		titleStyle = lipgloss.NewStyle().Foreground(Rose).Bold(true)
 	}
 
 	content := titleStyle.Render(m.title) + "\n\n"
-	content += SubStyle.Render(m.description) + "\n\n"
+	content += Class("body").Render(m.description) + "\n\n"
 
 	// Y/N hints
 	yStyle := lipgloss.NewStyle().Foreground(Surface0).Background(Green).Bold(true).Padding(0, 1)
@@ -112,8 +114,8 @@ func (m ConfirmModel) View() string {
 		nStyle = lipgloss.NewStyle().Foreground(Surface0).Background(Dim).Bold(true).Padding(0, 1)
 	}
 
-	content += yStyle.Render("Y") + DimStyle.Render(" confirm  ") +
-		nStyle.Render("N") + DimStyle.Render(" cancel")
+	content += yStyle.Render("Y") + Class("dim").Render(" confirm  ") +
+		nStyle.Render("N") + Class("dim").Render(" cancel")
 
 	overlay := dialogBox.Render(content)
 

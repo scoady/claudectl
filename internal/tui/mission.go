@@ -381,13 +381,14 @@ func (m MissionModel) View() string {
 	cols, rows := gridLayout(len(m.panes))
 
 	// Compute pane dimensions
+	ly := NewLayout(m.width, m.height)
 	paneW := m.width / cols
 	paneH := availHeight / rows
-	if paneW < 20 {
-		paneW = 20
+	if paneW < ly.MissionPaneMinW {
+		paneW = ly.MissionPaneMinW
 	}
-	if paneH < 6 {
-		paneH = 6
+	if paneH < ly.MissionPaneMinH {
+		paneH = ly.MissionPaneMinH
 	}
 
 	// Build grid rows
@@ -662,14 +663,14 @@ func (m MissionModel) renderStatusBar() string {
 	sep := HLine(m.width, Muted)
 
 	// Connection indicator
-	connIcon := lipgloss.NewStyle().Foreground(Green).Bold(true).Render("●")
+	connIcon := Class("header-status-ok").Render("●")
 	if !m.connected {
-		connIcon = lipgloss.NewStyle().Foreground(Rose).Bold(true).Render("○")
+		connIcon = Class("header-status-err").Render("○")
 	}
 
 	// Status text
-	title := lipgloss.NewStyle().Foreground(Cyan).Bold(true).Render(" Mission Control")
-	agentInfo := DimStyle.Render(fmt.Sprintf(" %d active", activeCount))
+	title := Class("logo").Render(" Mission Control")
+	agentInfo := Class("dim").Render(fmt.Sprintf(" %d active", activeCount))
 	if doneCount > 0 {
 		agentInfo += lipgloss.NewStyle().Foreground(Green).Render(fmt.Sprintf("  %d done", doneCount))
 	}
@@ -696,7 +697,7 @@ func (m MissionModel) renderStatusBar() string {
 		gap = 1
 	}
 
-	bar := FooterBarStyle.Width(m.width).Render(left + repeatStr(" ", gap) + right)
+	bar := Class("footer-bar").Width(m.width).Render(left + repeatStr(" ", gap) + right)
 
 	return sep + "\n" + bar
 }

@@ -21,9 +21,9 @@ type CreateProjectCompleteMsg struct {
 
 // CreateProjectModel is a modal dialog for creating a new project.
 type CreateProjectModel struct {
-	nameInput textinput.Model
-	descInput textinput.Model
-	focused   int // 0=name, 1=desc
+	nameInput  textinput.Model
+	descInput  textinput.Model
+	focused    int // 0=name, 1=desc
 	submitting bool
 	result     string
 	err        error
@@ -142,39 +142,41 @@ func (m CreateProjectModel) View() string {
 		return ""
 	}
 
+	ly := NewLayout(m.width, m.height)
+
 	var content strings.Builder
 
 	// Title bar
-	content.WriteString(DialogTitleBar.Render("  Create Project") + "\n\n")
+	content.WriteString(Class("dialog-title").Render("  Create Project") + "\n\n")
 
 	// Name field (required)
-	nameLabel := lipgloss.NewStyle().Foreground(White).Bold(true).Render("Name")
+	nameLabel := Class("h1").Render("Name")
 	required := lipgloss.NewStyle().Foreground(Rose).Render(" *")
 	content.WriteString(nameLabel + required + "\n")
 	content.WriteString(m.nameInput.View() + "\n\n")
 
 	// Description field (optional)
-	descLabel := lipgloss.NewStyle().Foreground(SubText).Render("Description")
-	optional := DimStyle.Render(" (optional)")
+	descLabel := Class("body").Render("Description")
+	optional := Class("dim").Render(" (optional)")
 	content.WriteString(descLabel + optional + "\n")
 	content.WriteString(m.descInput.View() + "\n")
 
 	// Status messages
 	if m.submitting {
-		content.WriteString("\n" + DimStyle.Render("  Creating..."))
+		content.WriteString("\n" + Class("dim").Render("  Creating..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + DialogError.Render(" Error: "+m.err.Error()+" "))
+		content.WriteString("\n" + Class("dialog-error").Render(" Error: "+m.err.Error()+" "))
 	}
 	if m.result != "" {
-		content.WriteString("\n" + DialogSuccess.Render("  Created: "+m.result+" "))
+		content.WriteString("\n" + Class("dialog-success").Render("  Created: "+m.result+" "))
 	}
 
 	// Action hints
-	content.WriteString("\n\n" + DialogHint.Render("Enter create  |  Tab next field  |  Esc cancel"))
+	content.WriteString("\n\n" + Class("dialog-hint").Render("Enter create  |  Tab next field  |  Esc cancel"))
 
 	// Render dialog
-	overlay := DialogStyle.Width(56).Render(content.String())
+	overlay := Class("dialog").Width(ly.DialogWidth).Render(content.String())
 
 	if m.width > 0 && m.height > 0 {
 		overlay = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)

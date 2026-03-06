@@ -20,8 +20,8 @@ func RenderFooter(width int, hints []KeyHint) string {
 			parts += "  "
 		}
 		// Key as a pill badge
-		keyPill := FooterKeyStyle.Render(h.Key)
-		desc := FooterDescStyle.Render(" " + h.Desc)
+		keyPill := Class("footer-key").Render(h.Key)
+		desc := Class("footer-desc").Render(" " + h.Desc)
 		parts += keyPill + desc
 	}
 
@@ -32,7 +32,7 @@ func RenderFooter(width int, hints []KeyHint) string {
 		pad = 0
 	}
 
-	bar := FooterBarStyle.
+	bar := Class("footer-bar").
 		Width(width).
 		Render(" " + parts + repeatStr(" ", pad))
 

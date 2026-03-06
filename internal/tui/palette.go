@@ -118,6 +118,7 @@ func categoryOrder(cat string) int {
 
 // ── Palette model ───────────────────────────────────────────────────────────
 
+// paletteMaxResults is the default max visible results.
 const paletteMaxResults = 10
 
 // PaletteModel is a command palette overlay with fuzzy search.
@@ -284,26 +285,16 @@ func (m PaletteModel) View() string {
 		return ""
 	}
 
-	paletteWidth := 72
-	if m.width > 100 {
-		paletteWidth = m.width / 2
-		if paletteWidth > 90 {
-			paletteWidth = 90
-		}
-	}
-	if m.width > 0 && paletteWidth > m.width-4 {
-		paletteWidth = m.width - 4
-	}
+	ly := NewLayout(m.width, m.height)
+	paletteWidth := ly.PaletteWidth
 	innerWidth := paletteWidth - 4 // padding
 
 	// ── Input field ──
-	inputStyle := lipgloss.NewStyle().
-		Foreground(Cyan).
-		Bold(true)
+	inputStyle := Class("palette-input")
 
 	cursor := lipgloss.NewStyle().Foreground(Cyan).Render("\u2588")
 	inputLine := inputStyle.Render("> ") +
-		lipgloss.NewStyle().Foreground(White).Render(m.input) +
+		Class("input").Render(m.input) +
 		cursor
 
 	// Pad input to full width
@@ -342,11 +333,8 @@ func (m PaletteModel) View() string {
 		if action.Category != lastCategory {
 			lastCategory = action.Category
 			catLabel := categoryLabel(action.Category)
-			catRow := lipgloss.NewStyle().
-				Foreground(Dim).
-				Background(Surface0).
+			catRow := Class("palette-category").
 				Width(innerWidth).
-				Italic(true).
 				Render("  " + catLabel)
 			resultRows = append(resultRows, catRow)
 		}

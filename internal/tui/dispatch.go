@@ -136,6 +136,8 @@ func (m DispatchModel) View() string {
 		return ""
 	}
 
+	ly := NewLayout(m.width, m.height)
+
 	modelStr := "default"
 	if m.modelIndex > 0 && m.modelIndex < len(availableModels) {
 		modelStr = availableModels[m.modelIndex]
@@ -144,46 +146,46 @@ func (m DispatchModel) View() string {
 	var content strings.Builder
 
 	// Title bar
-	content.WriteString(DialogTitleBar.Render("  Dispatch Task") + "\n\n")
+	content.WriteString(Class("dialog-title").Render("  Dispatch Task") + "\n\n")
 
 	// Project field
 	content.WriteString(fmt.Sprintf("%s %s\n",
-		DialogLabel.Render("Project"),
-		DialogValue.Render(m.projectName),
+		Class("dialog-label").Render("Project"),
+		Class("dialog-value").Render(m.projectName),
 	))
 
 	// Model field with cycling indicator
 	modelPill := Pill(" "+modelStr+" ", Amber, BadgeAmberBg)
 	content.WriteString(fmt.Sprintf("%s %s  %s\n",
-		DialogLabel.Render("Model"),
+		Class("dialog-label").Render("Model"),
 		modelPill,
-		DialogHint.Render("Tab to cycle"),
+		Class("dialog-hint").Render("Tab to cycle"),
 	))
 
 	// Separator
-	content.WriteString("\n" + HLine(60, Muted) + "\n\n")
+	content.WriteString("\n" + HLine(ly.DispatchWidth-8, Muted) + "\n\n")
 
-	// Task input (required — emphasized label)
-	content.WriteString(lipgloss.NewStyle().Foreground(White).Bold(true).Render("Task") +
+	// Task input (required -- emphasized label)
+	content.WriteString(Class("h1").Render("Task") +
 		lipgloss.NewStyle().Foreground(Rose).Render(" *") + "\n")
 	content.WriteString(m.taskInput.View() + "\n")
 
 	// Status messages
 	if m.submitting {
-		content.WriteString("\n" + DimStyle.Render("  Dispatching..."))
+		content.WriteString("\n" + Class("dim").Render("  Dispatching..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + DialogError.Render(" Error: "+m.err.Error()+" "))
+		content.WriteString("\n" + Class("dialog-error").Render(" Error: "+m.err.Error()+" "))
 	}
 	if m.result != "" {
-		content.WriteString("\n" + DialogSuccess.Render("  Dispatched: "+truncate(m.result, 24)+" "))
+		content.WriteString("\n" + Class("dialog-success").Render("  Dispatched: "+truncate(m.result, 24)+" "))
 	}
 
 	// Action hints
-	content.WriteString("\n\n" + DialogHint.Render("Enter submit  |  Esc cancel  |  Tab cycle model"))
+	content.WriteString("\n\n" + Class("dialog-hint").Render("Enter submit  |  Esc cancel  |  Tab cycle model"))
 
 	// Render the dialog overlay
-	overlay := DialogStyle.Width(68).Render(content.String())
+	overlay := Class("dialog").Width(ly.DispatchWidth).Render(content.String())
 
 	// Center the overlay
 	if m.width > 0 && m.height > 0 {

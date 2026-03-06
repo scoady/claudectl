@@ -21,15 +21,16 @@ type ProjectModel struct {
 // RenderProject renders the project detail screen.
 func RenderProject(p *ProjectModel, width, height int) string {
 	if p.Project == nil {
-		return DimStyle.Render("  Loading project...")
+		return Class("dim").Render("  Loading project...")
 	}
 
+	ly := NewLayout(width, height)
 	var b strings.Builder
 
 	// ── Project info card ──
-	contentWidth := minInt(width-4, 100)
+	contentWidth := ly.CardMaxWidth
 	infoContent := renderProjectInfo(p, contentWidth)
-	infoBox := CardStyle.Width(contentWidth).Render(infoContent)
+	infoBox := Class("card").Width(contentWidth).Render(infoContent)
 	b.WriteString(infoBox + "\n\n")
 
 	// ── Tab bar ──
@@ -46,12 +47,12 @@ func RenderProject(p *ProjectModel, width, height int) string {
 	for i, t := range tabs {
 		label := fmt.Sprintf("%s (%d)", t.label, t.count)
 		if i == p.Panel {
-			tabLine += TabActiveStyle.Render(label)
+			tabLine += Class("tab-active").Render(label)
 		} else {
-			tabLine += TabInactiveStyle.Render(label)
+			tabLine += Class("tab-inactive").Render(label)
 		}
 		if i < len(tabs)-1 {
-			tabLine += TabBarSeparator.Render(" ")
+			tabLine += Class("tab-separator").Render(" ")
 		}
 	}
 	b.WriteString(tabLine + "\n")
@@ -74,9 +75,9 @@ func RenderProject(p *ProjectModel, width, height int) string {
 }
 
 func renderProjectInfo(p *ProjectModel, maxWidth int) string {
-	nameStyle := lipgloss.NewStyle().Foreground(White).Bold(true)
-	kvKeyStyle := lipgloss.NewStyle().Foreground(Dim)
-	kvValStyle := lipgloss.NewStyle().Foreground(SubText)
+	nameStyle := Class("h1")
+	kvKeyStyle := Class("dim")
+	kvValStyle := Class("body")
 
 	model := p.Project.Config.Model
 	if model == "" {
@@ -110,31 +111,36 @@ func renderProjectInfo(p *ProjectModel, maxWidth int) string {
 
 func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 	if len(p.Agents) == 0 {
-		return "\n" + DimStyle.Render("  No agents running.") + "\n" +
-			FaintStyle.Render("  Press Ctrl+D to dispatch a task.") + "\n"
+		return "\n" + Class("dim").Render("  No agents running.") + "\n" +
+			Class("faint").Render("  Press Ctrl+D to dispatch a task.") + "\n"
 	}
 
+	ly := NewLayout(width, 0)
 	var b strings.Builder
 
 	colStatus := 3
-	colSID := 16
-	colTask := 28
-	colPhase := 12
-	colModel := 12
-	colTurns := 8
-	colElapsed := 10
-	colCost := 10
+	colSID := ly.ProjAgentColSID
+	colTask := ly.ProjAgentColTask
+	colPhase := ly.ProjAgentColPhase
+	colModel := ly.ProjAgentColModel
+	colTurns := ly.ProjAgentColTurns
+	colElapsed := ly.ProjAgentColElapsed
+	colCost := ly.ProjAgentColCost
+
+	th := Class("th")
+	td := Class("td")
+	tdSel := Class("td-selected")
 
 	// Header
 	pad := "   "
 	header := pad +
-		TableHeaderStyle.Width(colSID).Render("SESSION") +
-		TableHeaderStyle.Width(colTask).Render("TASK") +
-		TableHeaderStyle.Width(colPhase).Render("PHASE") +
-		TableHeaderStyle.Width(colModel).Render("MODEL") +
-		TableHeaderStyle.Width(colTurns).Render("TURNS") +
-		TableHeaderStyle.Width(colElapsed).Render("ELAPSED") +
-		TableHeaderStyle.Width(colCost).Render("COST")
+		th.Width(colSID).Render("SESSION") +
+		th.Width(colTask).Render("TASK") +
+		th.Width(colPhase).Render("PHASE") +
+		th.Width(colModel).Render("MODEL") +
+		th.Width(colTurns).Render("TURNS") +
+		th.Width(colElapsed).Render("ELAPSED") +
+		th.Width(colCost).Render("COST")
 	b.WriteString(header + "\n")
 
 	for i, a := range p.Agents {
@@ -184,10 +190,10 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 				lipgloss.NewStyle().Foreground(Cyan).Bold(true).Render("> ")
 		}
 
-		cellStyle := TableCellStyle
-		sidStyle := lipgloss.NewStyle().Foreground(Faint).Padding(0, 1)
+		cellStyle := td
+		sidStyle := Class("td-muted")
 		if p.Panel == 0 && i == p.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = tdSel
 			sidStyle = lipgloss.NewStyle().Foreground(Dim).Background(Surface1).Padding(0, 1)
 		}
 
@@ -203,7 +209,7 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 		if p.Panel == 0 && i == p.Selected {
 			row = lipgloss.NewStyle().
 				Background(Surface1).
-				Width(minInt(width, 120)).
+				Width(ly.SelectedRowWidth).
 				Render(row)
 		}
 
@@ -215,7 +221,7 @@ func renderAgentPanel(p *ProjectModel, width, maxRows int) string {
 
 func renderTaskPanel(p *ProjectModel, width, maxRows int) string {
 	if len(p.Tasks) == 0 {
-		return "\n" + DimStyle.Render("  No tasks defined.") + "\n"
+		return "\n" + Class("dim").Render("  No tasks defined.") + "\n"
 	}
 
 	var b strings.Builder
@@ -225,11 +231,15 @@ func renderTaskPanel(p *ProjectModel, width, maxRows int) string {
 		maxText = 20
 	}
 
+	th := Class("th")
+	td := Class("td")
+	tdSel := Class("td-selected")
+
 	// Header
 	header := "   " +
-		TableHeaderStyle.Width(6).Render("#") +
-		TableHeaderStyle.Width(14).Render("STATUS") +
-		TableHeaderStyle.Width(maxText).Render("TASK")
+		th.Width(6).Render("#") +
+		th.Width(14).Render("STATUS") +
+		th.Width(maxText).Render("TASK")
 	b.WriteString(header + "\n")
 
 	for i, t := range p.Tasks {
@@ -241,11 +251,11 @@ func renderTaskPanel(p *ProjectModel, width, maxRows int) string {
 		var statusIcon string
 		switch strings.ToLower(t.Status) {
 		case "done", "complete", "completed":
-			statusIcon = StatusDoneStyle.Render("✓")
+			statusIcon = Class("status-done").Render("✓")
 		case "in_progress", "in-progress", "running":
-			statusIcon = StatusWorkingStyle.Render("▶")
+			statusIcon = Class("status-active").Render("▶")
 		default:
-			statusIcon = DimStyle.Render("○")
+			statusIcon = Class("dim").Render("○")
 		}
 
 		// Detect subtask indent
@@ -266,12 +276,12 @@ func renderTaskPanel(p *ProjectModel, width, maxRows int) string {
 		// Selection indicator
 		indicator := "   "
 		if p.Panel == 1 && i == p.Selected {
-			indicator = SelectionIndicator.Render(" > ")
+			indicator = Class("selection-indicator").Render(" > ")
 		}
 
-		cellStyle := TableCellStyle
+		cellStyle := td
 		if p.Panel == 1 && i == p.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = tdSel
 		}
 
 		row := indicator +
@@ -287,18 +297,22 @@ func renderTaskPanel(p *ProjectModel, width, maxRows int) string {
 
 func renderWidgetPanel(p *ProjectModel, width, maxRows int) string {
 	if len(p.Widgets) == 0 {
-		return "\n" + DimStyle.Render("  No widgets configured.") + "\n"
+		return "\n" + Class("dim").Render("  No widgets configured.") + "\n"
 	}
 
 	var b strings.Builder
 
+	th := Class("th")
+	td := Class("td")
+	tdSel := Class("td-selected")
+
 	// Header
 	header := "   " +
-		TableHeaderStyle.Width(22).Render("ID") +
-		TableHeaderStyle.Width(20).Render("TITLE") +
-		TableHeaderStyle.Width(16).Render("TEMPLATE") +
-		TableHeaderStyle.Width(10).Render("SIZE") +
-		TableHeaderStyle.Width(12).Render("TAB")
+		th.Width(22).Render("ID") +
+		th.Width(20).Render("TITLE") +
+		th.Width(16).Render("TEMPLATE") +
+		th.Width(10).Render("SIZE") +
+		th.Width(12).Render("TAB")
 	b.WriteString(header + "\n")
 
 	for i, w := range p.Widgets {
@@ -309,12 +323,12 @@ func renderWidgetPanel(p *ProjectModel, width, maxRows int) string {
 		// Selection indicator
 		indicator := "   "
 		if p.Panel == 2 && i == p.Selected {
-			indicator = SelectionIndicator.Render(" > ")
+			indicator = Class("selection-indicator").Render(" > ")
 		}
 
-		cellStyle := TableCellStyle
+		cellStyle := td
 		if p.Panel == 2 && i == p.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = tdSel
 		}
 
 		wid := w.ID

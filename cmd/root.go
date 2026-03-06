@@ -50,6 +50,7 @@ func main() {
 		cronCmd(),
 		filesCmd(),
 		milestonesCmd(),
+		metricsCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

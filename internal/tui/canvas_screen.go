@@ -126,9 +126,10 @@ func RenderCanvas(m *CanvasModel, width, height int) string {
 	var b strings.Builder
 
 	// ── Title card ──
-	contentWidth := minInt(width-4, 120)
-	titleContent := lipgloss.NewStyle().Bold(true).Foreground(White).Render(m.ProjectName) +
-		lipgloss.NewStyle().Foreground(Dim).Render(" / Canvas")
+	ly := NewLayout(width, height)
+	contentWidth := ly.CanvasMaxWidth
+	titleContent := Class("h1").Render(m.ProjectName) +
+		Class("dim").Render(" / Canvas")
 	widgetCount := fmt.Sprintf("%d widgets", len(m.Widgets))
 	tmplCount := fmt.Sprintf("%d templates", len(m.Templates))
 	catCount := fmt.Sprintf("%d catalog", len(m.Catalog))
@@ -137,7 +138,7 @@ func RenderCanvas(m *CanvasModel, width, height int) string {
 		Pill(" "+tmplCount+" ", Purple, BadgePurpleBg) + "  " +
 		Pill(" "+catCount+" ", Amber, BadgeAmberBg)
 
-	infoBox := CardStyle.Width(contentWidth).Render(titleContent)
+	infoBox := Class("card").Width(contentWidth).Render(titleContent)
 	b.WriteString(infoBox + "\n\n")
 
 	// ── Tab bar ──
@@ -154,12 +155,12 @@ func RenderCanvas(m *CanvasModel, width, height int) string {
 	for i, t := range tabLabels {
 		label := fmt.Sprintf("%s (%d)", t.label, t.count)
 		if i == m.Panel {
-			tabLine += TabActiveStyle.Render(label)
+			tabLine += Class("tab-active").Render(label)
 		} else {
-			tabLine += TabInactiveStyle.Render(label)
+			tabLine += Class("tab-inactive").Render(label)
 		}
 		if i < len(tabLabels)-1 {
-			tabLine += TabBarSeparator.Render(" ")
+			tabLine += Class("tab-separator").Render(" ")
 		}
 	}
 	b.WriteString(tabLine + "\n")
@@ -185,19 +186,20 @@ func RenderCanvas(m *CanvasModel, width, height int) string {
 
 func renderCanvasWidgets(m *CanvasModel, width, maxRows int) string {
 	if len(m.Widgets) == 0 {
-		return "\n" + DimStyle.Render("  No widgets on canvas.") + "\n" +
-			FaintStyle.Render("  Use the Catalog or Templates panel to deploy widgets.") + "\n"
+		return "\n" + Class("dim").Render("  No widgets on canvas.") + "\n" +
+			Class("faint").Render("  Use the Catalog or Templates panel to deploy widgets.") + "\n"
 	}
 
 	var b strings.Builder
 
+	th := Class("th")
 	header := "   " +
-		TableHeaderStyle.Width(22).Render("ID") +
-		TableHeaderStyle.Width(20).Render("TITLE") +
-		TableHeaderStyle.Width(16).Render("TEMPLATE") +
-		TableHeaderStyle.Width(10).Render("SIZE") +
-		TableHeaderStyle.Width(10).Render("POS") +
-		TableHeaderStyle.Width(12).Render("TAB")
+		th.Width(22).Render("ID") +
+		th.Width(20).Render("TITLE") +
+		th.Width(16).Render("TEMPLATE") +
+		th.Width(10).Render("SIZE") +
+		th.Width(10).Render("POS") +
+		th.Width(12).Render("TAB")
 	b.WriteString(header + "\n")
 
 	for i, w := range m.Widgets {
@@ -207,12 +209,12 @@ func renderCanvasWidgets(m *CanvasModel, width, maxRows int) string {
 
 		indicator := "   "
 		if m.Panel == 0 && i == m.Selected {
-			indicator = SelectionIndicator.Render(" > ")
+			indicator = Class("selection-indicator").Render(" > ")
 		}
 
-		cellStyle := TableCellStyle
+		cellStyle := Class("td")
 		if m.Panel == 0 && i == m.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = Class("td-selected")
 		}
 
 		wid := w.ID
@@ -259,18 +261,19 @@ func renderCanvasWidgets(m *CanvasModel, width, maxRows int) string {
 
 func renderCanvasTemplates(m *CanvasModel, width, maxRows int) string {
 	if len(m.Templates) == 0 {
-		return "\n" + DimStyle.Render("  No saved templates.") + "\n" +
-			FaintStyle.Render("  Right-click a widget in the web UI to save as template.") + "\n"
+		return "\n" + Class("dim").Render("  No saved templates.") + "\n" +
+			Class("faint").Render("  Right-click a widget in the web UI to save as template.") + "\n"
 	}
 
 	var b strings.Builder
 
+	th := Class("th")
 	header := "   " +
-		TableHeaderStyle.Width(30).Render("FILENAME") +
-		TableHeaderStyle.Width(30).Render("TITLE") +
-		TableHeaderStyle.Width(12).Render("HAS JS") +
-		TableHeaderStyle.Width(12).Render("HAS CSS") +
-		TableHeaderStyle.Width(12).Render("HAS HTML")
+		th.Width(30).Render("FILENAME") +
+		th.Width(30).Render("TITLE") +
+		th.Width(12).Render("HAS JS") +
+		th.Width(12).Render("HAS CSS") +
+		th.Width(12).Render("HAS HTML")
 	b.WriteString(header + "\n")
 
 	for i, t := range m.Templates {
@@ -280,23 +283,23 @@ func renderCanvasTemplates(m *CanvasModel, width, maxRows int) string {
 
 		indicator := "   "
 		if m.Panel == 1 && i == m.Selected {
-			indicator = SelectionIndicator.Render(" > ")
+			indicator = Class("selection-indicator").Render(" > ")
 		}
 
-		cellStyle := TableCellStyle
+		cellStyle := Class("td")
 		if m.Panel == 1 && i == m.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = Class("td-selected")
 		}
 
-		hasJS := DimStyle.Render("--")
+		hasJS := Class("dim").Render("--")
 		if t.JS != "" {
 			hasJS = lipgloss.NewStyle().Foreground(Green).Render("yes")
 		}
-		hasCSS := DimStyle.Render("--")
+		hasCSS := Class("dim").Render("--")
 		if t.CSS != "" {
 			hasCSS = lipgloss.NewStyle().Foreground(Green).Render("yes")
 		}
-		hasHTML := DimStyle.Render("--")
+		hasHTML := Class("dim").Render("--")
 		if t.HTML != "" {
 			hasHTML = lipgloss.NewStyle().Foreground(Green).Render("yes")
 		}
@@ -321,16 +324,17 @@ func renderCanvasTemplates(m *CanvasModel, width, maxRows int) string {
 
 func renderCanvasCatalog(m *CanvasModel, width, maxRows int) string {
 	if len(m.Catalog) == 0 {
-		return "\n" + DimStyle.Render("  No catalog templates available.") + "\n"
+		return "\n" + Class("dim").Render("  No catalog templates available.") + "\n"
 	}
 
 	var b strings.Builder
 
+	th := Class("th")
 	header := "   " +
-		TableHeaderStyle.Width(24).Render("TEMPLATE ID") +
-		TableHeaderStyle.Width(24).Render("TITLE") +
-		TableHeaderStyle.Width(36).Render("DESCRIPTION") +
-		TableHeaderStyle.Width(10).Render("PARAMS")
+		th.Width(24).Render("TEMPLATE ID") +
+		th.Width(24).Render("TITLE") +
+		th.Width(36).Render("DESCRIPTION") +
+		th.Width(10).Render("PARAMS")
 	b.WriteString(header + "\n")
 
 	for i, ct := range m.Catalog {
@@ -340,12 +344,12 @@ func renderCanvasCatalog(m *CanvasModel, width, maxRows int) string {
 
 		indicator := "   "
 		if m.Panel == 2 && i == m.Selected {
-			indicator = SelectionIndicator.Render(" > ")
+			indicator = Class("selection-indicator").Render(" > ")
 		}
 
-		cellStyle := TableCellStyle
+		cellStyle := Class("td")
 		if m.Panel == 2 && i == m.Selected {
-			cellStyle = TableSelectedStyle
+			cellStyle = Class("td-selected")
 		}
 
 		desc := ct.Description
@@ -370,7 +374,7 @@ func renderCanvasCatalog(m *CanvasModel, width, maxRows int) string {
 // renderCanvasLayout renders an ASCII grid showing widget positions.
 func renderCanvasLayout(m *CanvasModel, width, maxRows int) string {
 	if len(m.Widgets) == 0 {
-		return "\n" + DimStyle.Render("  No widgets to display layout for.") + "\n"
+		return "\n" + Class("dim").Render("  No widgets to display layout for.") + "\n"
 	}
 
 	return "\n" + RenderGridLayout(m.Widgets, width, maxRows)
@@ -382,10 +386,8 @@ func renderCanvasLayout(m *CanvasModel, width, maxRows int) string {
 func RenderGridLayout(widgets []api.Widget, termWidth, maxLines int) string {
 	// Constants for the grid
 	const gridCols = 12
-	colWidth := (termWidth - 6) / gridCols // terminal chars per grid column
-	if colWidth < 4 {
-		colWidth = 4
-	}
+	ly := NewLayout(termWidth, 0)
+	colWidth := ly.CanvasColWidth
 	const rowHeight = 2 // terminal lines per grid row
 
 	// Find the max Y extent

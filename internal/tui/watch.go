@@ -11,51 +11,6 @@ import (
 	"github.com/scoady/claudectl/internal/api"
 )
 
-// ── Watch view styles ───────────────────────────────────────────────────────
-
-var (
-	watchHeaderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(BorderColor).
-				Padding(0, 1).
-				Background(Surface0)
-
-	watchHeaderKey = lipgloss.NewStyle().
-			Foreground(Dim).
-			Width(10)
-
-	watchHeaderVal = lipgloss.NewStyle().
-			Foreground(White).
-			Bold(true)
-
-	watchBadgeBar = lipgloss.NewStyle().
-			MarginTop(0)
-
-	watchDoneBox = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(Green).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(Green).
-			Background(BadgeGreenBg).
-			Padding(0, 3).
-			Align(lipgloss.Center)
-
-	watchScrollIndicator = lipgloss.NewStyle().
-				Foreground(Dim)
-
-	watchFollowBadge = lipgloss.NewStyle().
-				Foreground(Surface0).
-				Background(Green).
-				Bold(true).
-				Padding(0, 1)
-
-	watchPausedBadge = lipgloss.NewStyle().
-				Foreground(Surface0).
-				Background(Amber).
-				Bold(true).
-				Padding(0, 1)
-)
-
 // ── Watch model ─────────────────────────────────────────────────────────────
 
 // WatchModel displays live-streamed agent output with auto-scroll.
@@ -314,10 +269,13 @@ func (m WatchModel) renderHeader() string {
 	// Follow indicator as a pill
 	var followStr string
 	if m.follow {
-		followStr = watchFollowBadge.Render(" FOLLOW ")
+		followStr = Class("watch-follow").Render(" FOLLOW ")
 	} else {
-		followStr = watchPausedBadge.Render(" PAUSED ")
+		followStr = Class("watch-paused").Render(" PAUSED ")
 	}
+
+	hk := Class("watch-header-key")
+	hv := Class("watch-header-val")
 
 	w := m.width
 	if w > 4 {
@@ -326,34 +284,34 @@ func (m WatchModel) renderHeader() string {
 
 	header := lipgloss.JoinVertical(lipgloss.Left,
 		fmt.Sprintf("%s %s  %s  %s  %s  %s %s",
-			watchHeaderKey.Render("Session:"),
-			watchHeaderVal.Render(sid),
+			hk.Render("Session:"),
+			hv.Render(sid),
 			statusStr,
 			phaseStr,
-			DimStyle.Render(elapsed),
+			Class("dim").Render(elapsed),
 			connIcon,
 			followStr,
 		),
 		fmt.Sprintf("%s %s  %s %s",
-			watchHeaderKey.Render("Project:"),
-			watchHeaderVal.Render(project),
-			watchHeaderKey.Render("Model:"),
-			watchHeaderVal.Render(coalesce(m.agent.Model, "default")),
+			hk.Render("Project:"),
+			hv.Render(project),
+			hk.Render("Model:"),
+			hv.Render(coalesce(m.agent.Model, "default")),
 		),
 		fmt.Sprintf("%s %s",
-			watchHeaderKey.Render("Task:"),
-			SubStyle.Render(task),
+			hk.Render("Task:"),
+			Class("body").Render(task),
 		),
 	)
 
-	return watchHeaderStyle.Width(w).Render(header)
+	return Class("watch-header").Width(w).Render(header)
 }
 
 func (m WatchModel) renderFooter() string {
 	// Separator
 	sep := HLine(m.width, Muted)
 
-	// Badge bar — newest on right, scrolling horizontally
+	// Badge bar -- newest on right, scrolling horizontally
 	badgeStr := ""
 	if len(m.badges) > 0 {
 		// Calculate how many badges fit
@@ -370,11 +328,11 @@ func (m WatchModel) renderFooter() string {
 		}
 		badgeStr = strings.Join(shown, "  ")
 	}
-	badgeLine := watchBadgeBar.Render(" " + badgeStr)
+	badgeLine := lipgloss.NewStyle().MarginTop(0).Render(" " + badgeStr)
 
 	// Scroll position
 	scrollPct := fmt.Sprintf("%3.0f%%", m.viewport.ScrollPercent()*100)
-	scrollStr := watchScrollIndicator.Render(scrollPct)
+	scrollStr := Class("watch-scroll").Render(scrollPct)
 
 	// Key hints as pills
 	keys := []KeyHint{
@@ -396,7 +354,7 @@ func renderKeyHints(hints []KeyHint) string {
 		if i > 0 {
 			parts += "  "
 		}
-		parts += FooterKeyStyle.Render(h.Key) + FooterDescStyle.Render(" "+h.Desc)
+		parts += Class("footer-key").Render(h.Key) + Class("footer-desc").Render(" "+h.Desc)
 	}
 	return parts
 }
@@ -407,7 +365,7 @@ func (m *WatchModel) refreshContent() {
 
 	// Add completion card if done
 	if m.done {
-		doneCard := "\n" + watchDoneBox.Render("  Agent completed  ") + "\n"
+		doneCard := "\n" + Class("watch-done").Render("  Agent completed  ") + "\n"
 		rendered += doneCard
 	}
 

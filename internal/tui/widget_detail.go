@@ -18,18 +18,19 @@ type WidgetDetailModel struct {
 // RenderWidgetDetail renders a detailed view of a single widget.
 func RenderWidgetDetail(m *WidgetDetailModel, width, height int) string {
 	if m.Widget == nil {
-		return DimStyle.Render("  No widget selected.")
+		return Class("dim").Render("  No widget selected.")
 	}
 
 	w := m.Widget
-	contentWidth := minInt(width-4, 100)
+	ly := NewLayout(width, height)
+	contentWidth := ly.DetailContentWidth
 
 	var b strings.Builder
 
 	// ── Widget metadata card ──
-	nameStyle := lipgloss.NewStyle().Foreground(White).Bold(true)
+	nameStyle := Class("h1")
 	kvKeyStyle := lipgloss.NewStyle().Foreground(Dim).Width(14)
-	kvValStyle := lipgloss.NewStyle().Foreground(SubText)
+	kvValStyle := Class("body")
 
 	var info strings.Builder
 	info.WriteString(nameStyle.Render(w.Title) + "\n\n")
@@ -73,18 +74,18 @@ func RenderWidgetDetail(m *WidgetDetailModel, width, height int) string {
 		info.WriteString(kvKeyStyle.Render("Updated") + kvValStyle.Render(w.UpdatedAt) + "\n")
 	}
 
-	infoBox := CardStyle.Width(contentWidth).Render(info.String())
+	infoBox := Class("card").Width(contentWidth).Render(info.String())
 	b.WriteString(infoBox + "\n\n")
 
 	// ── Grid position visualization ──
-	b.WriteString(SectionStyle.Render("  Grid Position") + "\n")
+	b.WriteString(Class("section-title").Render("  Grid Position") + "\n")
 	b.WriteString(renderMiniGrid(w, contentWidth) + "\n")
 
 	// ── Data contract info ──
 	if m.Contract != nil {
 		for _, cw := range m.Contract.Widgets {
 			if cw.ID == w.ID {
-				b.WriteString(SectionStyle.Render("  Data Contract") + "\n")
+				b.WriteString(Class("section-title").Render("  Data Contract") + "\n")
 
 				var contractInfo strings.Builder
 				contractInfo.WriteString(kvKeyStyle.Render("Schema ID") + kvValStyle.Render(cw.ID) + "\n")
@@ -94,11 +95,11 @@ func RenderWidgetDetail(m *WidgetDetailModel, width, height int) string {
 					contractInfo.WriteString(kvKeyStyle.Render("Fields") + "\n")
 					for key, val := range cw.Schema {
 						contractInfo.WriteString("  " + lipgloss.NewStyle().Foreground(Cyan).Render(key) +
-							" " + DimStyle.Render(fmt.Sprintf("%v", val)) + "\n")
+							" " + Class("dim").Render(fmt.Sprintf("%v", val)) + "\n")
 					}
 				}
 
-				contractBox := CardStyle.Width(contentWidth).Render(contractInfo.String())
+				contractBox := Class("card").Width(contentWidth).Render(contractInfo.String())
 				b.WriteString(contractBox + "\n")
 				break
 			}

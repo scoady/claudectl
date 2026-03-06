@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	ntsparkline "github.com/NimbleMarkets/ntcharts/sparkline"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -69,14 +71,21 @@ func (s *SparklineTracker) Values() []int {
 }
 
 // sparkChars are the Unicode block elements for sparkline rendering, 8 levels.
-var sparkChars = []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+// Kept for backward compatibility with the simple Sparkline() function in styles.go.
+var sparkChars = []rune{'\u2581', '\u2582', '\u2583', '\u2584', '\u2585', '\u2586', '\u2587', '\u2588'}
 
-// RenderSparkline renders a sparkline string from a slice of integer values.
+// RenderSparkline renders a sparkline string from a slice of integer values
+// using ntcharts braille rendering for smooth curves.
 // The width parameter limits how many data points are shown (rightmost wins).
 // If width <= 0 it shows all values.
 func RenderSparkline(values []int, width int) string {
+	return RenderSparklineStyled(values, width, Green)
+}
+
+// RenderSparklineStyled renders a braille sparkline with explicit foreground color.
+func RenderSparklineStyled(values []int, width int, fg lipgloss.Color) string {
 	if len(values) == 0 {
-		return FaintStyle.Render("▁")
+		return FaintStyle.Render("\u2581")
 	}
 
 	// Trim to width
@@ -84,7 +93,7 @@ func RenderSparkline(values []int, width int) string {
 		values = values[len(values)-width:]
 	}
 
-	// Find max for normalization
+	// Check for all-zero data
 	maxVal := 0
 	for _, v := range values {
 		if v > maxVal {
@@ -92,60 +101,55 @@ func RenderSparkline(values []int, width int) string {
 		}
 	}
 	if maxVal == 0 {
-		// All zeros — render flat baseline
-		s := ""
-		for range values {
-			s += string(sparkChars[0])
-		}
-		return FaintStyle.Render(s)
+		// All zeros - render a flat baseline using ntcharts
+		sl := ntsparkline.New(len(values), 1,
+			ntsparkline.WithStyle(lipgloss.NewStyle().Foreground(Faint)),
+		)
+		data := make([]float64, len(values))
+		sl.PushAll(data)
+		sl.Draw()
+		return sl.View()
 	}
 
-	// Build sparkline
-	out := make([]rune, len(values))
+	// Convert int values to float64 for ntcharts
+	data := make([]float64, len(values))
 	for i, v := range values {
-		// Map value to 0..7 range
-		idx := v * 7 / maxVal
-		if idx > 7 {
-			idx = 7
-		}
-		out[i] = sparkChars[idx]
+		data[i] = float64(v)
 	}
 
-	return SparkStyle.Render(string(out))
+	// Use braille rendering for smooth curves (height=2 gives nice resolution)
+	height := 2
+	if len(values) < 4 {
+		height = 1
+	}
+	sl := ntsparkline.New(len(values), height,
+		ntsparkline.WithStyle(lipgloss.NewStyle().Foreground(fg)),
+	)
+	sl.PushAll(data)
+	sl.DrawBraille()
+	return sl.View()
 }
 
-// RenderSparklineStyled renders with explicit foreground color.
-func RenderSparklineStyled(values []int, width int, fg lipgloss.Color) string {
+// RenderSparklineBraille renders a larger braille sparkline at a given width and height.
+// Ideal for chart panels and dashboard widgets.
+func RenderSparklineBraille(values []int, width, height int, fg lipgloss.Color) string {
 	if len(values) == 0 {
-		return FaintStyle.Render("▁")
+		return FaintStyle.Render("\u2581")
 	}
 
+	// Convert and trim
 	if width > 0 && len(values) > width {
 		values = values[len(values)-width:]
 	}
-
-	maxVal := 0
-	for _, v := range values {
-		if v > maxVal {
-			maxVal = v
-		}
-	}
-	if maxVal == 0 {
-		s := ""
-		for range values {
-			s += string(sparkChars[0])
-		}
-		return FaintStyle.Render(s)
-	}
-
-	out := make([]rune, len(values))
+	data := make([]float64, len(values))
 	for i, v := range values {
-		idx := v * 7 / maxVal
-		if idx > 7 {
-			idx = 7
-		}
-		out[i] = sparkChars[idx]
+		data[i] = float64(v)
 	}
 
-	return lipgloss.NewStyle().Foreground(fg).Render(string(out))
+	sl := ntsparkline.New(width, height,
+		ntsparkline.WithStyle(lipgloss.NewStyle().Foreground(fg)),
+	)
+	sl.PushAll(data)
+	sl.DrawBraille()
+	return sl.View()
 }

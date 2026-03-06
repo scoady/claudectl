@@ -186,21 +186,14 @@ func (a *App) handleTimelineKey(key string) (tea.Model, tea.Cmd) {
 	case "left":
 		// Move cursor left
 		if a.timeline.CursorCol < 0 {
-			barWidth := a.width - 22 - 4
-			if barWidth < 20 {
-				barWidth = 20
-			}
-			a.timeline.CursorCol = barWidth - 1
+			a.timeline.CursorCol = a.layout.TimelineBarWidth - 1
 		} else if a.timeline.CursorCol > 0 {
 			a.timeline.CursorCol--
 		}
 		return a, nil
 	case "right":
 		// Move cursor right
-		barWidth := a.width - 22 - 4
-		if barWidth < 20 {
-			barWidth = 20
-		}
+		barWidth := a.layout.TimelineBarWidth
 		if a.timeline.CursorCol < 0 {
 			a.timeline.CursorCol = 0
 		} else if a.timeline.CursorCol < barWidth-1 {
@@ -265,12 +258,10 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 		tm.Selected = 0
 	}
 
-	// Timeline bar width: leave room for project name column and padding
-	nameCol := 22
-	barWidth := width - nameCol - 4
-	if barWidth < 20 {
-		barWidth = 20
-	}
+	// Timeline bar width from responsive layout
+	ly := NewLayout(width, height)
+	nameCol := ly.TimelineNameCol
+	barWidth := ly.TimelineBarWidth
 
 	// Clamp cursor
 	if tm.CursorCol >= barWidth {
@@ -280,7 +271,7 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 	var b strings.Builder
 
 	// ── Title bar ──
-	titleLeft := SectionStyle.Render("  Project Timeline")
+	titleLeft := Class("section-title").Render("  Project Timeline")
 	zoomPill := Pill(fmt.Sprintf(" %s ", zoomLabel(window)), Cyan, BadgeCyanBg)
 	nowIndicator := lipgloss.NewStyle().Foreground(Amber).Bold(true).Render("Now")
 	titleRight := zoomPill + "  " + nowIndicator + " " +
@@ -376,14 +367,60 @@ func RenderTimeline(tm *TimelineModel, history *AgentHistory, width, height int)
 		b.WriteString(DimStyle.Render(fmt.Sprintf("  %s  (no activity)", cursorTime.Format("15:04:05"))))
 	}
 
-	// ── Session stats summary ──
+	// ── Aggregate activity sparkline (ntcharts braille) ──
 	remaining := height - (len(projectOrder)*2 + 10)
-	if remaining > 3 && len(spans) > 0 {
-		b.WriteString("\n\n")
+	if remaining > 2 && barWidth > 10 {
+		activityData := buildActivityBuckets(spans, windowStart, now, barWidth)
+		activityChart := RenderSparklineBraille(activityData, barWidth, 2, Cyan)
+		b.WriteString(repeatStr(" ", nameCol+2) + activityChart + "\n")
+		b.WriteString(repeatStr(" ", nameCol+2) +
+			FaintStyle.Render("agent activity") + "\n")
+	}
+
+	// ── Session stats summary ──
+	if remaining > 5 && len(spans) > 0 {
+		b.WriteString("\n")
 		b.WriteString(renderSessionStats(spans, now))
 	}
 
 	return b.String()
+}
+
+// buildActivityBuckets computes per-column agent counts for the activity sparkline.
+// Each column represents a time slice; the value is how many agents were active.
+func buildActivityBuckets(spans []AgentSpan, windowStart, now time.Time, bucketCount int) []int {
+	window := now.Sub(windowStart)
+	if window <= 0 || bucketCount <= 0 {
+		return nil
+	}
+	buckets := make([]int, bucketCount)
+	sliceDur := window / time.Duration(bucketCount)
+
+	for _, s := range spans {
+		start := s.StartedAt
+		if start.Before(windowStart) {
+			start = windowStart
+		}
+		end := s.EndedAt
+		if end.IsZero() {
+			end = now
+		}
+		if end.After(now) {
+			end = now
+		}
+		startCol := int(start.Sub(windowStart) / sliceDur)
+		endCol := int(end.Sub(windowStart) / sliceDur)
+		if startCol < 0 {
+			startCol = 0
+		}
+		if endCol >= bucketCount {
+			endCol = bucketCount - 1
+		}
+		for c := startCol; c <= endCol; c++ {
+			buckets[c]++
+		}
+	}
+	return buckets
 }
 
 // renderTimelineBar builds the bar string for a project.

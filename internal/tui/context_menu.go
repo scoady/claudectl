@@ -9,9 +9,9 @@ import (
 
 // MenuItem represents a single action in a context menu.
 type MenuItem struct {
-	Label    string  // Display text
-	Key      string  // Shortcut key hint (e.g., "l", "K")
-	Icon     string  // Left icon
+	Label    string // Display text
+	Key      string // Shortcut key hint (e.g., "l", "K")
+	Icon     string // Left icon
 	Style    lipgloss.Style
 	Disabled bool
 	Action   func() tea.Msg // What happens when selected
@@ -152,16 +152,9 @@ func (m ContextMenuModel) View() string {
 		Padding(0, 2).
 		MarginBottom(0)
 
-	itemStyle := lipgloss.NewStyle().
-		Foreground(SubText).
-		Background(Surface0).
-		Padding(0, 2)
+	itemStyle := Class("palette-result")
 
-	selectedItemStyle := lipgloss.NewStyle().
-		Foreground(Cyan).
-		Background(Surface1).
-		Bold(true).
-		Padding(0, 2)
+	selectedItemStyle := Class("palette-selected")
 
 	disabledStyle := lipgloss.NewStyle().
 		Foreground(Muted).
@@ -238,7 +231,7 @@ func (m ContextMenuModel) View() string {
 
 	menu := menuBorder.Render(b.String())
 
-	// Position the menu — center it on screen
+	// Position the menu -- center it on screen
 	if m.width > 0 && m.height > 0 {
 		menu = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, menu)
 	}

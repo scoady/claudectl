@@ -26,6 +26,7 @@ func RenderHelp(width, height int) string {
 		{"Ctrl+D", "Dispatch new task"},
 		{"t", "Agent Timeline"},
 		{"m", "Mission Control (multi-agent)"},
+		{"T", "Targets (health status)"},
 		{"d", "Detail view"},
 		{"s", "Settings / Themes"},
 		{"l", "Logs / Stream view"},
@@ -43,6 +44,7 @@ func RenderHelp(width, height int) string {
 		{":projects", "Show project list"},
 		{":timeline", "Agent Timeline"},
 		{":mission", "Mission Control"},
+		{":targets", "Targets health screen"},
 		{":settings", "Theme settings"},
 		{":q / :quit", "Quit"},
 		{"/text", "Filter by text"},
@@ -51,40 +53,34 @@ func RenderHelp(width, height int) string {
 	var content string
 
 	// Title
-	content += lipgloss.NewStyle().
-		Foreground(Cyan).
-		Bold(true).
-		Render("  c9s") +
-		lipgloss.NewStyle().
-			Foreground(Purple).
-			Bold(true).
-			Render(" Help") + "\n\n"
+	content += Class("logo").Render("  c9s") +
+		lipgloss.NewStyle().Foreground(Purple).Bold(true).Render(" Help") + "\n\n"
 
 	// Navigation
-	content += HelpSectionStyle.Render("Navigation") + "\n"
+	content += Class("help-section").Render("Navigation") + "\n"
 	content += HLine(40, Muted) + "\n"
 	for _, b := range navBindings {
-		content += HelpKeyStyle.Render(b.key) + HelpDescStyle.Render(b.desc) + "\n"
+		content += Class("help-key").Render(b.key) + Class("help-desc").Render(b.desc) + "\n"
 	}
 
 	// Actions
-	content += "\n" + HelpSectionStyle.Render("Actions") + "\n"
+	content += "\n" + Class("help-section").Render("Actions") + "\n"
 	content += HLine(40, Muted) + "\n"
 	for _, b := range actionBindings {
-		content += HelpKeyStyle.Render(b.key) + HelpDescStyle.Render(b.desc) + "\n"
+		content += Class("help-key").Render(b.key) + Class("help-desc").Render(b.desc) + "\n"
 	}
 
 	// Commands
-	content += "\n" + HelpSectionStyle.Render("Commands") + "\n"
+	content += "\n" + Class("help-section").Render("Commands") + "\n"
 	content += HLine(40, Muted) + "\n"
 	for _, c := range commands {
-		content += HelpKeyStyle.Render(c.cmd) + HelpDescStyle.Render(c.desc) + "\n"
+		content += Class("help-key").Render(c.cmd) + Class("help-desc").Render(c.desc) + "\n"
 	}
 
 	// Version info
-	content += "\n" + DimStyle.Render("c9s claudectl  |  ? to dismiss")
+	content += "\n" + Class("dim").Render("c9s claudectl  |  ? to dismiss")
 
-	box := HelpOverlayStyle.Render(content)
+	box := Class("help-overlay").Render(content)
 
 	// Center the overlay using lipgloss.Place
 	if width > 0 && height > 0 {

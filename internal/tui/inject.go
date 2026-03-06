@@ -102,6 +102,8 @@ func (m InjectModel) View() string {
 		return ""
 	}
 
+	ly := NewLayout(m.width, m.height)
+
 	sid := m.sessionID
 	if len(sid) > 20 {
 		sid = sid[:20] + "..."
@@ -110,37 +112,37 @@ func (m InjectModel) View() string {
 	var content strings.Builder
 
 	// Title bar
-	content.WriteString(DialogTitleBar.Render("  Inject Message") + "\n\n")
+	content.WriteString(Class("dialog-title").Render("  Inject Message") + "\n\n")
 
 	// Agent field
 	content.WriteString(fmt.Sprintf("%s %s\n",
-		DialogLabel.Render("Agent"),
+		Class("dialog-label").Render("Agent"),
 		lipgloss.NewStyle().Foreground(Faint).Render(sid),
 	))
 
 	// Separator
-	content.WriteString("\n" + HLine(54, Muted) + "\n\n")
+	content.WriteString("\n" + HLine(ly.InjectWidth-8, Muted) + "\n\n")
 
 	// Message input
-	content.WriteString(lipgloss.NewStyle().Foreground(White).Bold(true).Render("Message") + "\n")
+	content.WriteString(Class("h1").Render("Message") + "\n")
 	content.WriteString(m.input.View() + "\n")
 
 	// Status messages
 	if m.sending {
-		content.WriteString("\n" + DimStyle.Render("  Sending..."))
+		content.WriteString("\n" + Class("dim").Render("  Sending..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + DialogError.Render(" Error: "+m.err.Error()+" "))
+		content.WriteString("\n" + Class("dialog-error").Render(" Error: "+m.err.Error()+" "))
 	}
 	if m.result != "" {
-		content.WriteString("\n" + DialogSuccess.Render("  "+m.result+" "))
+		content.WriteString("\n" + Class("dialog-success").Render("  "+m.result+" "))
 	}
 
 	// Action hints
-	content.WriteString("\n\n" + DialogHint.Render("Enter send  |  Esc cancel"))
+	content.WriteString("\n\n" + Class("dialog-hint").Render("Enter send  |  Esc cancel"))
 
 	// Render dialog overlay
-	overlay := DialogStyle.Width(62).Render(content.String())
+	overlay := Class("dialog").Width(ly.InjectWidth).Render(content.String())
 
 	if m.width > 0 && m.height > 0 {
 		overlay = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)

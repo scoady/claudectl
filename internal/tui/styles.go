@@ -448,4 +448,7 @@ func ApplyTheme(t Theme) {
 
 	// Spark
 	SparkStyle = lipgloss.NewStyle().Foreground(Green)
+
+	// Rebuild the named-class registry so Class() picks up the new colors.
+	rebuildClasses()
 }
