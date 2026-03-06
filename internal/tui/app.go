@@ -41,6 +41,12 @@ type KillResultMsg struct {
 	Err       error
 }
 
+// DeleteProjectResultMsg is the result of deleting a project.
+type DeleteProjectResultMsg struct {
+	ProjectName string
+	Err         error
+}
+
 // ── App Model ────────────────────────────────────────────────────────────────
 
 // App is the main bubbletea model.
@@ -67,8 +73,10 @@ type App struct {
 	watch     WatchModel
 
 	// Overlays
-	dispatch DispatchModel
-	inject   InjectModel
+	dispatch      DispatchModel
+	inject        InjectModel
+	createProject CreateProjectModel
+	confirm       ConfirmModel
 
 	// WebSocket
 	wsClient *WSClient
@@ -150,6 +158,13 @@ func (a *App) killAgent(sessionID string) tea.Cmd {
 	}
 }
 
+func (a *App) deleteProject(name string) tea.Cmd {
+	return func() tea.Msg {
+		err := a.client.DeleteProject(name)
+		return DeleteProjectResultMsg{ProjectName: name, Err: err}
+	}
+}
+
 // Update handles messages.
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -211,6 +226,15 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.statusTime = time.Now()
 		return a, a.fetchData()
 
+	case DeleteProjectResultMsg:
+		if msg.Err != nil {
+			a.statusMsg = "Delete failed: " + msg.Err.Error()
+		} else {
+			a.statusMsg = "Deleted project " + msg.ProjectName
+		}
+		a.statusTime = time.Now()
+		return a, a.fetchData()
+
 	case wsStartMsg:
 		if a.wsClient != nil && a.program != nil {
 			return a, a.wsClient.Connect(a.program, msg.sessionID)
@@ -228,6 +252,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.inject = NewInjectModel(msg.SessionID, a.client)
 		return a, a.inject.Init()
 
+	case ShowCreateProjectMsg:
+		a.createProject = NewCreateProjectModel(a.client)
+		return a, a.createProject.Init()
+
+	case ShowConfirmMsg:
+		a.confirm = NewConfirmModel(msg)
+		return a, a.confirm.Init()
+
 	case DispatchCompleteMsg:
 		if a.dispatch.Active() {
 			a.dispatch, _ = a.dispatch.Update(msg)
@@ -238,6 +270,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.inject.Active() {
 			a.inject, _ = a.inject.Update(msg)
 			return a, nil
+		}
+
+	case CreateProjectCompleteMsg:
+		if a.createProject.Active() {
+			var cmd tea.Cmd
+			a.createProject, cmd = a.createProject.Update(msg)
+			return a, cmd
 		}
 
 	// WS events — forward to watch model when in watch screen
@@ -251,7 +290,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyMsg:
-		// Overlays get priority
+		// Overlays get priority (in order)
+		if a.confirm.Active() {
+			var cmd tea.Cmd
+			a.confirm, cmd = a.confirm.Update(msg)
+			return a, cmd
+		}
+		if a.createProject.Active() {
+			var cmd tea.Cmd
+			a.createProject, cmd = a.createProject.Update(msg)
+			return a, cmd
+		}
 		if a.dispatch.Active() {
 			var cmd tea.Cmd
 			a.dispatch, cmd = a.dispatch.Update(msg)
@@ -348,6 +397,16 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "d":
 		return a.handleDetail()
 
+	case "c":
+		// Create project (dashboard only)
+		if a.screen == ScreenDashboard {
+			return a, func() tea.Msg { return ShowCreateProjectMsg{} }
+		}
+
+	case "x", "delete":
+		// Delete with confirmation
+		return a.handleDelete()
+
 	case "ctrl+d":
 		// Open dispatch dialog for current project
 		projectName := ""
@@ -406,7 +465,7 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return a, nil
 	}
 
-	// 'k' for kill
+	// 'K' for kill
 	if key == "K" { // capital K to avoid conflict with up movement
 		return a.handleKill()
 	}
@@ -499,6 +558,8 @@ func (a *App) executeCommand(cmd string) (tea.Model, tea.Cmd) {
 	case "projects", "dashboard", "home":
 		a.screen = ScreenDashboard
 		return a, nil
+	case "create":
+		return a, func() tea.Msg { return ShowCreateProjectMsg{} }
 	default:
 		// Try as project name
 		for _, p := range a.dashboard.Projects {
@@ -584,6 +645,44 @@ func (a *App) handleKill() (tea.Model, tea.Cmd) {
 			if a.project.Selected >= 0 && a.project.Selected < len(a.project.Agents) {
 				ag := a.project.Agents[a.project.Selected]
 				return a, a.killAgent(ag.SessionID)
+			}
+		}
+	}
+	return a, nil
+}
+
+func (a *App) handleDelete() (tea.Model, tea.Cmd) {
+	switch a.screen {
+	case ScreenDashboard:
+		p := a.dashboard.SelectedProject()
+		if p != nil {
+			projectName := p.Name
+			return a, func() tea.Msg {
+				return ShowConfirmMsg{
+					Title:       "Delete Project",
+					Description: "Are you sure you want to delete \"" + projectName + "\"?\nThis cannot be undone.",
+					Destructive: true,
+					OnConfirm: func() tea.Msg {
+						err := a.client.DeleteProject(projectName)
+						return DeleteProjectResultMsg{ProjectName: projectName, Err: err}
+					},
+				}
+			}
+		}
+	case ScreenAgents:
+		ag := a.agents.SelectedAgent()
+		if ag != nil {
+			sid := ag.SessionID
+			return a, func() tea.Msg {
+				return ShowConfirmMsg{
+					Title:       "Kill Agent",
+					Description: "Kill agent " + truncate(sid, 20) + "?",
+					Destructive: true,
+					OnConfirm: func() tea.Msg {
+						err := a.client.KillAgent(sid)
+						return KillResultMsg{SessionID: sid, Err: err}
+					},
+				}
 			}
 		}
 	}
@@ -685,6 +784,12 @@ func (a *App) View() string {
 	var b strings.Builder
 
 	// Overlays render on top of everything
+	if a.confirm.Active() {
+		return a.confirm.View()
+	}
+	if a.createProject.Active() {
+		return a.createProject.View()
+	}
 	if a.dispatch.Active() {
 		return a.dispatch.View()
 	}
@@ -711,7 +816,7 @@ func (a *App) View() string {
 	b.WriteString("\n")
 
 	// Content area
-	contentHeight := a.height - 4 // header + footer + cmd/filter bar + status
+	contentHeight := a.height - 5 // header(2) + footer(2) + cmd/filter bar + status
 	if contentHeight < 5 {
 		contentHeight = 5
 	}
@@ -772,8 +877,10 @@ func (a *App) View() string {
 	switch a.screen {
 	case ScreenDashboard:
 		hints = []KeyHint{
-			{"Enter", "Select"},
-			{"d", "Detail"},
+			{"Enter", "Open"},
+			{"Ctrl+D", "Dispatch"},
+			{"c", "Create"},
+			{"x", "Delete"},
 			{"/", "Filter"},
 			{":", "Cmd"},
 			{"?", "Help"},
@@ -784,13 +891,15 @@ func (a *App) View() string {
 			{"Tab", "Panel"},
 			{"l", "Logs"},
 			{"K", "Kill"},
+			{"Ctrl+D", "Dispatch"},
 			{"Esc", "Back"},
 			{"?", "Help"},
 		}
 	case ScreenAgents:
 		hints = []KeyHint{
-			{"Enter", "Project"},
+			{"Enter", "Watch"},
 			{"K", "Kill"},
+			{"x", "Delete"},
 			{"/", "Filter"},
 			{"l", "Logs"},
 			{"Esc", "Back"},

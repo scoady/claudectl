@@ -8,18 +8,33 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ── Color palette ────────────────────────────────────────────────────────────
+// ── Color palette (matches TUI constellation theme) ─────────────────────────
 
 var (
-	ColorCyan    = lipgloss.Color("#00d4ff")
-	ColorGreen   = lipgloss.Color("#00ff88")
-	ColorAmber   = lipgloss.Color("#ffaa00")
-	ColorRed     = lipgloss.Color("#ff4466")
-	ColorPurple  = lipgloss.Color("#aa88ff")
-	ColorDim     = lipgloss.Color("#666666")
-	ColorWhite   = lipgloss.Color("#eeeeee")
-	ColorBorder  = lipgloss.Color("#444466")
-	ColorMagenta = lipgloss.Color("#ff66ff")
+	ColorCyan    = lipgloss.Color("#67e8f9")
+	ColorGreen   = lipgloss.Color("#34d399")
+	ColorAmber   = lipgloss.Color("#fbbf24")
+	ColorRed     = lipgloss.Color("#f43f5e")
+	ColorPurple  = lipgloss.Color("#a78bfa")
+	ColorBlue    = lipgloss.Color("#60a5fa")
+	ColorDim     = lipgloss.Color("#64748b")
+	ColorFaint   = lipgloss.Color("#475569")
+	ColorWhite   = lipgloss.Color("#e2e8f0")
+	ColorSubText = lipgloss.Color("#94a3b8")
+	ColorBorder  = lipgloss.Color("#1e3a5f")
+	ColorMagenta = lipgloss.Color("#f0abfc")
+
+	// Surface colors for depth
+	ColorSurface0 = lipgloss.Color("#0f172a")
+	ColorSurface1 = lipgloss.Color("#1e293b")
+	ColorSurface2 = lipgloss.Color("#334155")
+
+	// Badge backgrounds
+	ColorBadgeCyan   = lipgloss.Color("#164e63")
+	ColorBadgeAmber  = lipgloss.Color("#713f12")
+	ColorBadgePurple = lipgloss.Color("#3b1f7e")
+	ColorBadgeGreen  = lipgloss.Color("#064e3b")
+	ColorBadgeRose   = lipgloss.Color("#4c0519")
 )
 
 // ── Reusable styles ─────────────────────────────────────────────────────────
@@ -42,6 +57,9 @@ var (
 	// Dim is subtle text.
 	Dim = lipgloss.NewStyle().Foreground(ColorDim)
 
+	// Sub is secondary text.
+	Sub = lipgloss.NewStyle().Foreground(ColorSubText)
+
 	// StatusWorking renders "working" status.
 	StatusWorking = lipgloss.NewStyle().
 			Foreground(ColorAmber).
@@ -60,9 +78,9 @@ var (
 			Foreground(ColorRed).
 			Bold(true)
 
-	// Badge renders a tool-call badge like [Read].
+	// Badge renders a tool-call badge.
 	Badge = lipgloss.NewStyle().
-		Background(lipgloss.Color("#333355")).
+		Background(ColorBadgeCyan).
 		Foreground(ColorCyan).
 		Padding(0, 1).
 		Bold(true)
@@ -71,7 +89,8 @@ var (
 	Box = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(ColorBorder).
-		Padding(0, 1)
+		Padding(0, 1).
+		Background(ColorSurface0)
 
 	// ErrorBox renders an error panel.
 	ErrorBox = lipgloss.NewStyle().
@@ -123,7 +142,7 @@ func StatusIcon(status string) string {
 	case "error", "disconnected", "cancelled":
 		return style.Render("✗")
 	default:
-		return style.Render("?")
+		return style.Render("·")
 	}
 }
 
@@ -137,7 +156,7 @@ func TaskStatusIcon(status string) string {
 	case "pending":
 		return Dim.Render("○")
 	default:
-		return Dim.Render("?")
+		return Dim.Render("·")
 	}
 }
 
@@ -157,8 +176,12 @@ func Banner() string {
 	logo := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ColorCyan).
-		Render("⋆ Claude Manager")
-	return logo
+		Render("  c9s")
+	accent := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(ColorPurple).
+		Render(" Claude Manager")
+	return logo + accent
 }
 
 // SectionHeader renders a styled section header.
@@ -167,7 +190,7 @@ func SectionHeader(title string) string {
 		Bold(true).
 		Foreground(ColorPurple).
 		MarginTop(1).
-		Render("━━ " + title + " ━━")
+		Render("┃ " + title)
 }
 
 // KeyValue renders a key: value pair with styling.

@@ -10,30 +10,6 @@ import (
 	"github.com/scoady/claudectl/internal/api"
 )
 
-// ── Inject dialog styles ────────────────────────────────────────────────────
-
-var (
-	injectOverlay = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(Cyan).
-			Padding(1, 2).
-			Background(lipgloss.Color("#0f172a")).
-			Width(64)
-
-	injectTitle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(Cyan).
-			MarginBottom(1)
-
-	injectSuccess = lipgloss.NewStyle().
-			Foreground(Green).
-			Bold(true)
-
-	injectError = lipgloss.NewStyle().
-			Foreground(Rose).
-			Bold(true)
-)
-
 // InjectModel is a modal dialog for injecting a message into a running agent.
 type InjectModel struct {
 	sessionID string
@@ -133,37 +109,44 @@ func (m InjectModel) View() string {
 
 	var content strings.Builder
 
-	content.WriteString(injectTitle.Render("Inject Message"))
-	content.WriteByte('\n')
-	content.WriteString(fmt.Sprintf("%s %s\n\n",
-		DimStyle.Render("Agent:"),
-		BoldStyle.Render(sid),
-	))
-	content.WriteString(DimStyle.Render("Message:"))
-	content.WriteByte('\n')
-	content.WriteString(m.input.View())
-	content.WriteByte('\n')
+	// Title bar
+	content.WriteString(DialogTitleBar.Render("  Inject Message") + "\n\n")
 
+	// Agent field
+	content.WriteString(fmt.Sprintf("%s %s\n",
+		DialogLabel.Render("Agent"),
+		lipgloss.NewStyle().Foreground(Faint).Render(sid),
+	))
+
+	// Separator
+	content.WriteString("\n" + HLine(54, Muted) + "\n\n")
+
+	// Message input
+	content.WriteString(lipgloss.NewStyle().Foreground(White).Bold(true).Render("Message") + "\n")
+	content.WriteString(m.input.View() + "\n")
+
+	// Status messages
 	if m.sending {
-		content.WriteString(DimStyle.Render("\nSending..."))
+		content.WriteString("\n" + DimStyle.Render("  Sending..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + injectError.Render("Error: "+m.err.Error()))
+		content.WriteString("\n" + DialogError.Render(" Error: "+m.err.Error()+" "))
 	}
 	if m.result != "" {
-		content.WriteString("\n" + injectSuccess.Render(m.result))
+		content.WriteString("\n" + DialogSuccess.Render("  "+m.result+" "))
 	}
 
-	content.WriteByte('\n')
-	content.WriteString(DimStyle.Render("Enter send  |  Esc cancel"))
+	// Action hints
+	content.WriteString("\n\n" + DialogHint.Render("Enter send  |  Esc cancel"))
 
-	rendered := injectOverlay.Render(content.String())
+	// Render dialog overlay
+	overlay := DialogStyle.Width(62).Render(content.String())
 
 	if m.width > 0 && m.height > 0 {
-		rendered = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, rendered)
+		overlay = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)
 	}
 
-	return rendered
+	return overlay
 }
 
 func (m InjectModel) injectCmd(message string) tea.Cmd {

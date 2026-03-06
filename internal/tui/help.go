@@ -2,74 +2,89 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
-// RenderHelp renders the help overlay modal.
+// RenderHelp renders the help overlay modal as a floating card.
 func RenderHelp(width, height int) string {
-	bindings := []struct {
+	// ── Navigation section ──
+	navBindings := []struct {
 		key  string
 		desc string
 	}{
 		{"Enter", "Drill into selected item"},
 		{"Esc / q", "Back / Quit"},
-		{":", "Command mode"},
-		{"/", "Filter / Search"},
-		{"d", "Describe / Detail view"},
-		{"l", "Logs / Stream view"},
-		{"k", "Kill / Stop agent"},
-		{"Ctrl+D", "Dispatch new task"},
-		{"Tab", "Cycle panels"},
-		{"1-9", "Quick switch to project"},
 		{"j / Down", "Move selection down"},
-		{"k / Up", "Move selection up (in non-agent views)"},
-		{"?", "Toggle this help"},
+		{"k / Up", "Move selection up"},
+		{"1-9", "Quick switch to project"},
+		{"Tab", "Cycle panels"},
 	}
 
+	// ── Actions section ──
+	actionBindings := []struct {
+		key  string
+		desc string
+	}{
+		{"Ctrl+D", "Dispatch new task"},
+		{"d", "Detail view"},
+		{"l", "Logs / Stream view"},
+		{"K", "Kill / Stop agent"},
+		{"i", "Inject message (in watch)"},
+		{"f", "Toggle follow (in watch)"},
+	}
+
+	// ── Commands section ──
 	commands := []struct {
 		cmd  string
 		desc string
 	}{
 		{":agents", "Show all agents"},
-		{":projects", "Show project list (dashboard)"},
+		{":projects", "Show project list"},
 		{":q / :quit", "Quit"},
+		{"/text", "Filter by text"},
 	}
 
-	title := HelpTitleStyle.Render("c9s Key Bindings")
+	var content string
 
-	content := title + "\n\n"
-	for _, b := range bindings {
+	// Title
+	content += lipgloss.NewStyle().
+		Foreground(Cyan).
+		Bold(true).
+		Render("  c9s") +
+		lipgloss.NewStyle().
+			Foreground(Purple).
+			Bold(true).
+			Render(" Help") + "\n\n"
+
+	// Navigation
+	content += HelpSectionStyle.Render("Navigation") + "\n"
+	content += HLine(40, Muted) + "\n"
+	for _, b := range navBindings {
 		content += HelpKeyStyle.Render(b.key) + HelpDescStyle.Render(b.desc) + "\n"
 	}
 
-	content += "\n" + HelpTitleStyle.Render("Commands") + "\n\n"
+	// Actions
+	content += "\n" + HelpSectionStyle.Render("Actions") + "\n"
+	content += HLine(40, Muted) + "\n"
+	for _, b := range actionBindings {
+		content += HelpKeyStyle.Render(b.key) + HelpDescStyle.Render(b.desc) + "\n"
+	}
+
+	// Commands
+	content += "\n" + HelpSectionStyle.Render("Commands") + "\n"
+	content += HLine(40, Muted) + "\n"
 	for _, c := range commands {
 		content += HelpKeyStyle.Render(c.cmd) + HelpDescStyle.Render(c.desc) + "\n"
 	}
 
+	// Version info
+	content += "\n" + DimStyle.Render("c9s claudectl  |  ? to dismiss")
+
 	box := HelpOverlayStyle.Render(content)
 
-	// Center the overlay
-	boxW := lipgloss.Width(box)
-	boxH := lipgloss.Height(box)
-
-	padLeft := (width - boxW) / 2
-	padTop := (height - boxH) / 2
-	if padLeft < 0 {
-		padLeft = 0
-	}
-	if padTop < 0 {
-		padTop = 0
+	// Center the overlay using lipgloss.Place
+	if width > 0 && height > 0 {
+		return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, box)
 	}
 
-	// Build centered content
-	result := ""
-	for i := 0; i < padTop; i++ {
-		result += "\n"
-	}
-	lines := splitLines(box)
-	for _, line := range lines {
-		result += repeatStr(" ", padLeft) + line + "\n"
-	}
-
-	return result
+	return box
 }
 
 func splitLines(s string) []string {

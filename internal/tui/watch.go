@@ -15,10 +15,10 @@ import (
 
 var (
 	watchHeaderStyle = lipgloss.NewStyle().
-				Border(lipgloss.NormalBorder()).
-				BorderForeground(lipgloss.Color("#334155")).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(BorderColor).
 				Padding(0, 1).
-				MarginBottom(0)
+				Background(Surface0)
 
 	watchHeaderKey = lipgloss.NewStyle().
 			Foreground(Dim).
@@ -29,27 +29,31 @@ var (
 			Bold(true)
 
 	watchBadgeBar = lipgloss.NewStyle().
-			Foreground(Dim).
 			MarginTop(0)
 
-	watchDoneStyle = lipgloss.NewStyle().
+	watchDoneBox = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(Green).
-			Border(lipgloss.DoubleBorder()).
+			Border(lipgloss.RoundedBorder()).
 			BorderForeground(Green).
-			Padding(0, 2).
+			Background(BadgeGreenBg).
+			Padding(0, 3).
 			Align(lipgloss.Center)
 
 	watchScrollIndicator = lipgloss.NewStyle().
 				Foreground(Dim)
 
 	watchFollowBadge = lipgloss.NewStyle().
-				Foreground(Green).
-				Bold(true)
+				Foreground(Surface0).
+				Background(Green).
+				Bold(true).
+				Padding(0, 1)
 
 	watchPausedBadge = lipgloss.NewStyle().
-				Foreground(Amber).
-				Bold(true)
+				Foreground(Surface0).
+				Background(Amber).
+				Bold(true).
+				Padding(0, 1)
 )
 
 // ── Watch model ─────────────────────────────────────────────────────────────
@@ -98,7 +102,7 @@ func NewWatchModel(agent api.Agent, wsClient *WSClient, apiClient *api.Client) W
 		sessionID: agent.SessionID,
 		viewport:  vp,
 		follow:    true,
-		maxBadge:  6,
+		maxBadge:  8,
 		startTime: time.Now(),
 		phase:     agent.Phase,
 		wsClient:  wsClient,
@@ -108,12 +112,12 @@ func NewWatchModel(agent api.Agent, wsClient *WSClient, apiClient *api.Client) W
 
 // headerHeight returns the number of lines the header occupies.
 func (m WatchModel) headerHeight() int {
-	return 6 // header box lines
+	return 7 // header box + separator
 }
 
 // footerHeight returns the number of lines the footer occupies.
 func (m WatchModel) footerHeight() int {
-	return 3 // badge bar + key hints + padding
+	return 4 // separator + badge bar + key hints
 }
 
 // Init implements tea.Model.
@@ -222,7 +226,8 @@ func (m WatchModel) Update(msg tea.Msg) (WatchModel, tea.Cmd) {
 		if msg.SessionID == m.sessionID {
 			m.done = true
 			m.agent.Status = "done"
-			m.rawBuf.WriteString("\n\n--- Agent completed ---\n")
+			// Styled completion message
+			m.rawBuf.WriteString("\n\n")
 			m.refreshContent()
 			if m.follow {
 				m.viewport.GotoBottom()
@@ -257,10 +262,13 @@ func (m WatchModel) View() string {
 	// ── Header ──
 	sections = append(sections, m.renderHeader())
 
+	// ── Separator ──
+	sections = append(sections, HLine(m.width, Muted))
+
 	// ── Viewport (scrollable content) ──
 	sections = append(sections, m.viewport.View())
 
-	// ── Footer: badge bar + key hints ──
+	// ── Footer: separator + badge bar + key hints ──
 	sections = append(sections, m.renderFooter())
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
@@ -287,40 +295,44 @@ func (m WatchModel) renderHeader() string {
 	if m.done {
 		status = "done"
 	}
-	statusStr := StatusIcon(status) + " " + StatusColor(status).Render(status)
+	statusStr := StatusPill(status)
 
 	phase := m.phase
 	if phase == "" {
 		phase = "-"
 	}
-	phaseStr := lipgloss.NewStyle().Foreground(Purple).Render(phase)
+	phaseStr := lipgloss.NewStyle().Foreground(Purple).Bold(true).Render(phase)
 
 	elapsed := time.Since(m.startTime).Round(time.Second).String()
 
-	connIcon := lipgloss.NewStyle().Foreground(Green).Render("●")
+	// Connection dot
+	connIcon := lipgloss.NewStyle().Foreground(Green).Bold(true).Render("●")
 	if !m.connected {
-		connIcon = lipgloss.NewStyle().Foreground(Rose).Render("○")
+		connIcon = lipgloss.NewStyle().Foreground(Rose).Bold(true).Render("○")
 	}
 
-	// Follow indicator
-	followStr := watchFollowBadge.Render("FOLLOW")
-	if !m.follow {
-		followStr = watchPausedBadge.Render("PAUSED")
+	// Follow indicator as a pill
+	var followStr string
+	if m.follow {
+		followStr = watchFollowBadge.Render(" FOLLOW ")
+	} else {
+		followStr = watchPausedBadge.Render(" PAUSED ")
 	}
 
 	w := m.width
-	if w > 2 {
-		w -= 2
+	if w > 4 {
+		w -= 4
 	}
 
 	header := lipgloss.JoinVertical(lipgloss.Left,
-		fmt.Sprintf("%s %s  %s  %s %s  %s",
+		fmt.Sprintf("%s %s  %s  %s  %s  %s %s",
 			watchHeaderKey.Render("Session:"),
 			watchHeaderVal.Render(sid),
 			statusStr,
 			phaseStr,
 			DimStyle.Render(elapsed),
-			connIcon+" "+followStr,
+			connIcon,
+			followStr,
 		),
 		fmt.Sprintf("%s %s  %s %s",
 			watchHeaderKey.Render("Project:"),
@@ -330,7 +342,7 @@ func (m WatchModel) renderHeader() string {
 		),
 		fmt.Sprintf("%s %s",
 			watchHeaderKey.Render("Task:"),
-			DimStyle.Render(task),
+			SubStyle.Render(task),
 		),
 	)
 
@@ -338,19 +350,34 @@ func (m WatchModel) renderHeader() string {
 }
 
 func (m WatchModel) renderFooter() string {
-	// Badge bar
+	// Separator
+	sep := HLine(m.width, Muted)
+
+	// Badge bar — newest on right, scrolling horizontally
 	badgeStr := ""
 	if len(m.badges) > 0 {
-		badgeStr = strings.Join(m.badges, "  ")
+		// Calculate how many badges fit
+		available := m.width - 4
+		shown := []string{}
+		totalW := 0
+		for i := len(m.badges) - 1; i >= 0; i-- {
+			bw := lipgloss.Width(m.badges[i])
+			if totalW+bw+2 > available {
+				break
+			}
+			shown = append([]string{m.badges[i]}, shown...)
+			totalW += bw + 2
+		}
+		badgeStr = strings.Join(shown, "  ")
 	}
-	badgeLine := watchBadgeBar.Render(badgeStr)
+	badgeLine := watchBadgeBar.Render(" " + badgeStr)
 
 	// Scroll position
 	scrollPct := fmt.Sprintf("%3.0f%%", m.viewport.ScrollPercent()*100)
 	scrollStr := watchScrollIndicator.Render(scrollPct)
 
-	// Key hints
-	keys := []struct{ key, desc string }{
+	// Key hints as pills
+	keys := []KeyHint{
 		{"Esc", "back"},
 		{"f", "follow"},
 		{"G", "bottom"},
@@ -358,22 +385,32 @@ func (m WatchModel) renderFooter() string {
 		{"i", "inject"},
 		{"k", "kill"},
 	}
-	var hints []string
-	for _, k := range keys {
-		hints = append(hints,
-			FooterKeyStyle.Render(k.key)+" "+FooterDescStyle.Render(k.desc),
-		)
-	}
-	hintLine := strings.Join(hints, "  ") + "  " + scrollStr
+	hintLine := " " + renderKeyHints(keys) + "  " + scrollStr
 
-	return lipgloss.JoinVertical(lipgloss.Left, badgeLine, hintLine)
+	return lipgloss.JoinVertical(lipgloss.Left, sep, badgeLine, hintLine)
+}
+
+func renderKeyHints(hints []KeyHint) string {
+	parts := ""
+	for i, h := range hints {
+		if i > 0 {
+			parts += "  "
+		}
+		parts += FooterKeyStyle.Render(h.Key) + FooterDescStyle.Render(" "+h.Desc)
+	}
+	return parts
 }
 
 func (m *WatchModel) refreshContent() {
 	raw := m.rawBuf.String()
 	rendered := RenderMarkdown(raw)
 
-	// Wrap to viewport width
+	// Add completion card if done
+	if m.done {
+		doneCard := "\n" + watchDoneBox.Render("  Agent completed  ") + "\n"
+		rendered += doneCard
+	}
+
 	m.viewport.SetContent(rendered)
 }
 

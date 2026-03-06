@@ -10,42 +10,6 @@ import (
 	"github.com/scoady/claudectl/internal/api"
 )
 
-// ── Dispatch dialog styles ──────────────────────────────────────────────────
-
-var (
-	dispatchOverlay = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(Purple).
-			Padding(1, 2).
-			Background(lipgloss.Color("#0f172a")).
-			Width(70)
-
-	dispatchTitle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(Cyan).
-			MarginBottom(1)
-
-	dispatchLabel = lipgloss.NewStyle().
-			Foreground(Dim).
-			Width(10)
-
-	dispatchProjectLabel = lipgloss.NewStyle().
-				Foreground(White).
-				Bold(true)
-
-	dispatchSuccess = lipgloss.NewStyle().
-			Foreground(Green).
-			Bold(true)
-
-	dispatchError = lipgloss.NewStyle().
-			Foreground(Rose).
-			Bold(true)
-
-	dispatchModelCycle = lipgloss.NewStyle().
-				Foreground(Amber).
-				Bold(true)
-)
-
 // Available models for cycling
 var availableModels = []string{
 	"",
@@ -74,7 +38,7 @@ func NewDispatchModel(projectName string, apiClient *api.Client) DispatchModel {
 	ti.Placeholder = "Describe the task to dispatch..."
 	ti.Focus()
 	ti.CharLimit = 2000
-	ti.Width = 58
+	ti.Width = 56
 
 	return DispatchModel{
 		projectName: projectName,
@@ -179,42 +143,52 @@ func (m DispatchModel) View() string {
 
 	var content strings.Builder
 
-	content.WriteString(dispatchTitle.Render("Dispatch Task"))
-	content.WriteByte('\n')
-	content.WriteString(fmt.Sprintf("%s %s\n",
-		dispatchLabel.Render("Project:"),
-		dispatchProjectLabel.Render(m.projectName),
-	))
-	content.WriteString(fmt.Sprintf("%s %s  %s\n",
-		dispatchLabel.Render("Model:"),
-		dispatchModelCycle.Render(modelStr),
-		DimStyle.Render("(Tab to cycle)"),
-	))
-	content.WriteByte('\n')
-	content.WriteString(dispatchLabel.Render("Task:"))
-	content.WriteByte('\n')
-	content.WriteString(m.taskInput.View())
-	content.WriteByte('\n')
+	// Title bar
+	content.WriteString(DialogTitleBar.Render("  Dispatch Task") + "\n\n")
 
+	// Project field
+	content.WriteString(fmt.Sprintf("%s %s\n",
+		DialogLabel.Render("Project"),
+		DialogValue.Render(m.projectName),
+	))
+
+	// Model field with cycling indicator
+	modelPill := Pill(" "+modelStr+" ", Amber, BadgeAmberBg)
+	content.WriteString(fmt.Sprintf("%s %s  %s\n",
+		DialogLabel.Render("Model"),
+		modelPill,
+		DialogHint.Render("Tab to cycle"),
+	))
+
+	// Separator
+	content.WriteString("\n" + HLine(60, Muted) + "\n\n")
+
+	// Task input (required — emphasized label)
+	content.WriteString(lipgloss.NewStyle().Foreground(White).Bold(true).Render("Task") +
+		lipgloss.NewStyle().Foreground(Rose).Render(" *") + "\n")
+	content.WriteString(m.taskInput.View() + "\n")
+
+	// Status messages
 	if m.submitting {
-		content.WriteString(DimStyle.Render("\nDispatching..."))
+		content.WriteString("\n" + DimStyle.Render("  Dispatching..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + dispatchError.Render("Error: "+m.err.Error()))
+		content.WriteString("\n" + DialogError.Render(" Error: "+m.err.Error()+" "))
 	}
 	if m.result != "" {
-		content.WriteString("\n" + dispatchSuccess.Render("Dispatched: "+m.result))
+		content.WriteString("\n" + DialogSuccess.Render("  Dispatched: "+truncate(m.result, 24)+" "))
 	}
 
-	content.WriteByte('\n')
-	content.WriteString(DimStyle.Render("Enter submit  |  Esc cancel  |  Tab cycle model"))
+	// Action hints
+	content.WriteString("\n\n" + DialogHint.Render("Enter submit  |  Esc cancel  |  Tab cycle model"))
 
-	rendered := dispatchOverlay.Render(content.String())
+	// Render the dialog overlay
+	overlay := DialogStyle.Width(68).Render(content.String())
 
 	// Center the overlay
 	if m.width > 0 && m.height > 0 {
-		rendered = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, rendered)
+		overlay = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)
 	}
 
-	return rendered
+	return overlay
 }

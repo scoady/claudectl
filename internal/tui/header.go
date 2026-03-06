@@ -9,31 +9,50 @@ import (
 
 // RenderHeader renders the top bar with logo, status, and stats.
 func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsResponse, screen string) string {
-	logo := LogoStyle.Render("⋆ c9s")
+	// ── Logo ──
+	logo := LogoStyle.Render("  c9s") + LogoAccent.Render(" ") + DimStyle.Render("claudectl")
 
-	// Backend status
-	status := HeaderStatusErr.Render("● disconnected")
+	// ── Connection status dot ──
+	var statusDot string
 	if health != nil && health.Status == "ok" {
-		status = HeaderStatusOK.Render("● connected")
+		statusDot = lipgloss.NewStyle().Foreground(Green).Bold(true).Render("●") +
+			lipgloss.NewStyle().Foreground(Green).Render(" connected")
+	} else {
+		statusDot = lipgloss.NewStyle().Foreground(Rose).Bold(true).Render("○") +
+			lipgloss.NewStyle().Foreground(Rose).Render(" disconnected")
 	}
 
-	// Agent count
-	agentCount := ""
-	if stats != nil {
-		agentCount = HeaderDim.Render(fmt.Sprintf("  agents:%d", stats.TotalAgents))
+	// ── Agent count badge ──
+	agentBadge := ""
+	if stats != nil && stats.TotalAgents > 0 {
+		working := stats.WorkingAgents
+		total := stats.TotalAgents
+		label := fmt.Sprintf(" %d agents ", total)
+		if working > 0 {
+			label = fmt.Sprintf(" %d/%d active ", working, total)
+		}
+		agentBadge = Pill(label, Cyan, BadgeCyanBg)
 	}
 
-	// Uptime
+	// ── Uptime ──
 	uptime := ""
-	if health != nil {
-		uptime = HeaderDim.Render(fmt.Sprintf("  up:%s", formatUptime(health.Uptime)))
+	if health != nil && health.Uptime > 0 {
+		uptime = DimStyle.Render("up " + formatUptime(health.Uptime))
 	}
 
-	// Screen indicator
-	screenLabel := HeaderDim.Render("  [" + screen + "]")
+	// ── Screen breadcrumb pill ──
+	screenBadge := HeaderScreenBadge.Render(" " + screen + " ")
 
-	left := logo + "  " + status + agentCount + uptime
-	right := screenLabel
+	// Compose left side
+	left := logo + "  " + statusDot
+	if agentBadge != "" {
+		left += "  " + agentBadge
+	}
+	if uptime != "" {
+		left += "  " + uptime
+	}
+
+	right := screenBadge
 
 	// Fill middle with spaces
 	leftWidth := lipgloss.Width(left)
@@ -42,14 +61,16 @@ func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsRespons
 	if gap < 1 {
 		gap = 1
 	}
-	filler := HeaderDim.Render(repeatStr(" ", gap))
+	filler := repeatStr(" ", gap)
 
-	bar := lipgloss.NewStyle().
-		Background(lipgloss.Color("#0f172a")).
+	bar := HeaderBarStyle.
 		Width(width).
 		Render(left + filler + right)
 
-	return bar
+	// Separator line
+	sep := HLine(width, Muted)
+
+	return bar + "\n" + sep
 }
 
 func formatUptime(seconds float64) string {

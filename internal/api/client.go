@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 func (c *Client) get(path string, out interface{}) error {
 	resp, err := c.HTTPClient.Get(c.BaseURL + path)
@@ -69,6 +68,35 @@ func (c *Client) post(path string, body interface{}, out interface{}) error {
 	return nil
 }
 
+func (c *Client) put(path string, body interface{}, out interface{}) error {
+	var r io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		r = bytes.NewReader(b)
+	}
+	req, err := http.NewRequest(http.MethodPut, c.BaseURL+path, r)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(b))
+	}
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
 func (c *Client) delete(path string) error {
 	req, err := http.NewRequest(http.MethodDelete, c.BaseURL+path, nil)
 	if err != nil {
@@ -86,99 +114,14 @@ func (c *Client) delete(path string) error {
 	return nil
 }
 
-// ── Projects ─────────────────────────────────────────────────────────────────
-
-// GetProjects lists all managed projects.
-func (c *Client) GetProjects() ([]Project, error) {
-	var out []Project
-	err := c.get("/api/projects", &out)
-	return out, err
-}
-
-// GetProject fetches a single project by name.
-func (c *Client) GetProject(name string) (*Project, error) {
-	var out Project
-	err := c.get("/api/projects/"+url.PathEscape(name), &out)
-	return &out, err
-}
-
-// ── Agents ───────────────────────────────────────────────────────────────────
-
-// GetAgents lists all active agents.
-func (c *Client) GetAgents() ([]Agent, error) {
-	var out []Agent
-	err := c.get("/api/agents", &out)
-	return out, err
-}
-
-// KillAgent stops an agent by session ID.
-func (c *Client) KillAgent(sessionID string) error {
-	return c.delete("/api/agents/" + url.PathEscape(sessionID))
-}
-
-// InjectMessage sends a follow-up message to a running agent.
-func (c *Client) InjectMessage(sessionID, message string) error {
-	body := map[string]string{"message": message}
-	return c.post("/api/agents/"+url.PathEscape(sessionID)+"/inject", body, nil)
-}
-
-// ── Dispatch ─────────────────────────────────────────────────────────────────
-
-// Dispatch sends a task to a project.
-func (c *Client) Dispatch(project, task, model string) (*DispatchResponse, error) {
-	body := DispatchRequest{Task: task, Model: model}
-	var out DispatchResponse
-	err := c.post("/api/projects/"+url.PathEscape(project)+"/dispatch", body, &out)
-	return &out, err
-}
-
-// ── Tasks ────────────────────────────────────────────────────────────────────
-
-// GetTasks lists tasks for a project.
-func (c *Client) GetTasks(project string) ([]Task, error) {
-	var out []Task
-	err := c.get("/api/projects/"+url.PathEscape(project)+"/tasks", &out)
-	return out, err
-}
-
-// ── Health & Stats ───────────────────────────────────────────────────────────
-
-// Health checks the backend health endpoint.
-func (c *Client) Health() (*HealthResponse, error) {
-	var out HealthResponse
-	err := c.get("/api/health", &out)
-	return &out, err
-}
-
-// Stats fetches global stats.
-func (c *Client) Stats() (*StatsResponse, error) {
-	var out StatsResponse
-	err := c.get("/api/stats", &out)
-	return &out, err
-}
-
-// ── Canvas ───────────────────────────────────────────────────────────────────
-
-// GetWidgets lists canvas widgets for a project.
-func (c *Client) GetWidgets(project string) ([]Widget, error) {
-	var out []Widget
-	err := c.get("/api/canvas/"+url.PathEscape(project), &out)
-	return out, err
-}
-
-// DeleteWidget removes a widget.
-func (c *Client) DeleteWidget(project, widgetID string) error {
-	return c.delete("/api/canvas/" + url.PathEscape(project) + "/widgets/" + url.PathEscape(widgetID))
-}
-
-// CreateWidget creates a new widget.
-func (c *Client) CreateWidget(project string, w map[string]interface{}) (*Widget, error) {
-	var out Widget
-	err := c.post("/api/canvas/"+url.PathEscape(project)+"/widgets", w, &out)
-	return &out, err
-}
-
 // ── WebSocket ────────────────────────────────────────────────────────────────
+
+// WSEvent is a WebSocket message from the backend.
+type WSEvent struct {
+	Type      string      `json:"type"`
+	Data      interface{} `json:"data"`
+	Timestamp string      `json:"timestamp,omitempty"`
+}
 
 // StreamWebSocket connects to the WS endpoint and calls handler for each event.
 // It blocks until the connection is closed or handler returns an error.

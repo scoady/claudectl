@@ -58,16 +58,18 @@ func (d *DashboardModel) ClampSelection() {
 func RenderDashboard(d *DashboardModel, width, height int) string {
 	var b strings.Builder
 
-	// Quick stats bar
+	// ── Stats bar ──
 	if d.Stats != nil {
-		statsLine := fmt.Sprintf(
-			" %s projects   %s agents (%s working, %s idle)",
-			BoldStyle.Render(fmt.Sprintf("%d", d.Stats.TotalProjects)),
-			BoldStyle.Render(fmt.Sprintf("%d", d.Stats.TotalAgents)),
-			StatusWorkingStyle.Render(fmt.Sprintf("%d", d.Stats.WorkingAgents)),
-			StatusIdleStyle.Render(fmt.Sprintf("%d", d.Stats.IdleAgents)),
-		)
-		b.WriteString(DimStyle.Render(statsLine) + "\n\n")
+		projCount := Pill(fmt.Sprintf(" %d projects ", d.Stats.TotalProjects), Purple, BadgePurpleBg)
+		agentCount := Pill(fmt.Sprintf(" %d agents ", d.Stats.TotalAgents), Cyan, BadgeCyanBg)
+		workingCount := Pill(fmt.Sprintf(" %d working ", d.Stats.WorkingAgents), Amber, BadgeAmberBg)
+		idleCount := Pill(fmt.Sprintf(" %d idle ", d.Stats.IdleAgents), Green, BadgeGreenBg)
+
+		statsBar := " " + projCount + "  " + agentCount + "  " + workingCount + "  " + idleCount
+		b.WriteString(statsBar + "\n")
+		b.WriteString(HLine(minInt(width, 120), Muted) + "\n")
+	} else {
+		b.WriteString("\n")
 	}
 
 	// Build agent count map
@@ -80,35 +82,40 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 	filtered := d.FilteredProjects()
 
 	if len(filtered) == 0 {
+		b.WriteString("\n")
 		if d.Filter != "" {
-			b.WriteString(DimStyle.Render("  No projects matching filter.") + "\n")
+			b.WriteString(renderEmptyState(width, "No projects matching \""+d.Filter+"\""))
 		} else {
-			b.WriteString(DimStyle.Render("  No projects found.") + "\n")
+			b.WriteString(renderEmptyState(width, "No projects found"))
 		}
 		return b.String()
 	}
 
 	// Column widths
+	colIndicator := 3
 	colNum := 4
-	colName := 24
-	colAgents := 10
-	colStatus := 16
-	colDesc := width - colNum - colName - colAgents - colStatus - 12
+	colName := 22
+	colActivity := 4
+	colAgents := 8
+	colStatus := 18
+	colDesc := width - colIndicator - colNum - colName - colActivity - colAgents - colStatus - 12
 	if colDesc < 20 {
 		colDesc = 20
 	}
 
-	// Header
-	header := TableHeaderStyle.Width(colNum).Render("#") +
+	// Header row
+	headerPad := repeatStr(" ", colIndicator)
+	header := headerPad +
+		TableHeaderStyle.Width(colNum).Render("#") +
 		TableHeaderStyle.Width(colName).Render("PROJECT") +
+		TableHeaderStyle.Width(colActivity).Render("") +
 		TableHeaderStyle.Width(colAgents).Render("AGENTS") +
 		TableHeaderStyle.Width(colStatus).Render("STATUS") +
 		TableHeaderStyle.Width(colDesc).Render("DESCRIPTION")
 	b.WriteString(header + "\n")
-	b.WriteString(DimStyle.Render(strings.Repeat("─", minInt(width, 120))) + "\n")
 
 	// Calculate visible range for scrolling
-	maxVisible := height - 10 // Reserve for header, stats, footer
+	maxVisible := height - 10
 	if maxVisible < 5 {
 		maxVisible = 5
 	}
@@ -134,14 +141,18 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 			}
 		}
 
-		// Status string
-		statusStr := StatusIdleStyle.Render("idle")
+		// Status pill
+		var statusStr string
 		if working > 0 {
-			statusStr = StatusWorkingStyle.Render(fmt.Sprintf("%d working", working))
+			statusStr = StatusWorkingStyle.Render(fmt.Sprintf("● %d working", working))
+		} else if len(pa) > 0 {
+			statusStr = StatusIdleStyle.Render("◌ idle")
+		} else {
+			statusStr = DimStyle.Render("· no agents")
 		}
-		if len(pa) == 0 {
-			statusStr = DimStyle.Render("no agents")
-		}
+
+		// Activity sparkline
+		activity := Sparkline(len(pa))
 
 		// Description
 		desc := p.Description
@@ -153,24 +164,41 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 			desc = desc[:colDesc-5] + "..."
 		}
 
+		// Selection indicator
+		indicator := "   "
+		if i == d.Selected {
+			indicator = SelectionIndicator.Render(" ▌ ")
+		}
+
 		// Row style
 		cellStyle := TableCellStyle
+		numStyle := DimStyle
 		if i == d.Selected {
 			cellStyle = TableSelectedStyle
+			numStyle = lipgloss.NewStyle().Foreground(Cyan).Bold(true)
+		}
+
+		// Project name gets emphasis
+		nameStyle := cellStyle
+		if i == d.Selected {
+			nameStyle = lipgloss.NewStyle().Foreground(White).Bold(true).Background(Surface1).Padding(0, 1)
+		} else {
+			nameStyle = lipgloss.NewStyle().Foreground(White).Padding(0, 1)
 		}
 
 		numStr := fmt.Sprintf("%d", i+1)
-		row := cellStyle.Width(colNum).Render(numStr) +
-			cellStyle.Width(colName).Render(truncate(p.Name, colName-2)) +
+		row := indicator +
+			numStyle.Width(colNum).Render(numStr) +
+			nameStyle.Width(colName).Render(truncate(p.Name, colName-2)) +
+			cellStyle.Width(colActivity).Render(activity) +
 			cellStyle.Width(colAgents).Render(fmt.Sprintf("%d", len(pa))) +
 			cellStyle.Width(colStatus).Render(statusStr) +
 			cellStyle.Width(colDesc).Render(desc)
 
 		if i == d.Selected {
-			// Highlight the entire row
 			row = lipgloss.NewStyle().
-				Background(lipgloss.Color("#1e293b")).
-				Width(minInt(width, 120)).
+				Background(Surface1).
+				Width(minInt(width, 140)).
 				Render(row)
 		}
 
@@ -180,10 +208,50 @@ func RenderDashboard(d *DashboardModel, width, height int) string {
 	// Scroll indicator
 	if len(filtered) > maxVisible {
 		scrollPct := float64(d.Selected) / float64(len(filtered)-1) * 100
-		b.WriteString(DimStyle.Render(fmt.Sprintf("\n  ↕ %d/%d (%.0f%%)", d.Selected+1, len(filtered), scrollPct)) + "\n")
+		scrollInfo := DimStyle.Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", d.Selected+1, len(filtered), scrollPct))
+
+		// Mini scrollbar
+		barLen := 10
+		pos := int(float64(d.Selected) / float64(len(filtered)-1) * float64(barLen-1))
+		scrollBar := ""
+		for j := 0; j < barLen; j++ {
+			if j == pos {
+				scrollBar += lipgloss.NewStyle().Foreground(Cyan).Render("█")
+			} else {
+				scrollBar += lipgloss.NewStyle().Foreground(Muted).Render("░")
+			}
+		}
+
+		b.WriteString("\n" + scrollInfo + "  " + scrollBar + "\n")
 	}
 
 	return b.String()
+}
+
+func renderEmptyState(width int, message string) string {
+	art := lipgloss.NewStyle().Foreground(Muted).Render("       ·  ") +
+		lipgloss.NewStyle().Foreground(Faint).Render("     .  · ") + "\n" +
+		lipgloss.NewStyle().Foreground(Faint).Render("    .    ") +
+		lipgloss.NewStyle().Foreground(Dim).Render("  ·   ") +
+		lipgloss.NewStyle().Foreground(Muted).Render(" .") + "\n" +
+		lipgloss.NewStyle().Foreground(Dim).Render("  ·    ") +
+		lipgloss.NewStyle().Foreground(Faint).Render(".    ") +
+		lipgloss.NewStyle().Foreground(Muted).Render("·   .") + "\n"
+
+	msg := DimStyle.Render("  " + message)
+	hint := FaintStyle.Render("  Press Ctrl+D to dispatch or : to enter a command")
+
+	content := art + "\n" + msg + "\n" + hint
+
+	boxWidth := 50
+	if boxWidth > width-4 {
+		boxWidth = width - 4
+	}
+
+	return lipgloss.NewStyle().
+		Padding(1, 2).
+		Width(boxWidth).
+		Render(content)
 }
 
 func minInt(a, b int) int {

@@ -10,22 +10,31 @@ type KeyHint struct {
 
 // RenderFooter renders the key hints footer bar.
 func RenderFooter(width int, hints []KeyHint) string {
+	// Separator line above footer
+	sep := HLine(width, Muted)
+
+	// Build key hint pills
 	parts := ""
 	for i, h := range hints {
 		if i > 0 {
-			parts += DimStyle.Render("  ")
+			parts += "  "
 		}
-		parts += FooterKeyStyle.Render(h.Key) + FooterDescStyle.Render(":"+h.Desc)
+		// Key as a pill badge
+		keyPill := FooterKeyStyle.Render(h.Key)
+		desc := FooterDescStyle.Render(" " + h.Desc)
+		parts += keyPill + desc
 	}
 
+	// Pad to full width with background
 	barWidth := lipgloss.Width(parts)
-	pad := width - barWidth
+	pad := width - barWidth - 1
 	if pad < 0 {
 		pad = 0
 	}
 
-	return lipgloss.NewStyle().
-		Background(lipgloss.Color("#1e293b")).
+	bar := FooterBarStyle.
 		Width(width).
-		Render(parts + repeatStr(" ", pad))
+		Render(" " + parts + repeatStr(" ", pad))
+
+	return sep + "\n" + bar
 }

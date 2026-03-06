@@ -13,16 +13,21 @@ var (
 			Bold(true).
 			Foreground(Amber)
 
+	mdHeaderAccent = lipgloss.NewStyle().
+			Foreground(Amber).
+			Bold(true)
+
 	mdBold = lipgloss.NewStyle().
 		Bold(true).
 		Foreground(White)
 
 	mdCode = lipgloss.NewStyle().
-		Foreground(Cyan)
+		Foreground(Cyan).
+		Background(Surface1)
 
 	mdCodeBlock = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#94a3b8")).
-			Background(lipgloss.Color("#1e293b"))
+			Background(Surface1)
 
 	mdText = lipgloss.NewStyle().
 		Foreground(White)
@@ -32,11 +37,26 @@ var (
 
 	mdCodeFence = lipgloss.NewStyle().
 			Foreground(Dim).
-			Background(lipgloss.Color("#1e293b"))
+			Background(Surface1)
+
+	mdBullet = lipgloss.NewStyle().
+			Foreground(Purple).
+			Bold(true)
+
+	mdCheckDone = lipgloss.NewStyle().
+			Foreground(Green).
+			Bold(true)
+
+	mdCheckPending = lipgloss.NewStyle().
+			Foreground(Dim)
+
+	mdHRule = lipgloss.NewStyle().
+		Foreground(Muted)
 )
 
 // RenderMarkdown applies simple markdown-ish styling to a block of text.
-// Handles: headers (#), bold (**), inline code (`), code fences (```).
+// Handles: headers (#), bold (**), inline code (`), code fences (```),
+// bullet points, task lists, horizontal rules.
 func RenderMarkdown(text string) string {
 	lines := strings.Split(text, "\n")
 	var out strings.Builder
@@ -59,13 +79,41 @@ func RenderMarkdown(text string) string {
 			continue
 		}
 
-		// Headers: lines starting with #
 		trimmed := strings.TrimSpace(line)
+
+		// Horizontal rules: --- or ***  or ___
+		if len(trimmed) >= 3 && (isAllChar(trimmed, '-') || isAllChar(trimmed, '*') || isAllChar(trimmed, '_')) {
+			out.WriteString(mdHRule.Render(strings.Repeat("─", 40)))
+			continue
+		}
+
+		// Headers: lines starting with #
 		if len(trimmed) > 0 && trimmed[0] == '#' {
-			// Strip leading #s and space
 			content := strings.TrimLeft(trimmed, "#")
 			content = strings.TrimSpace(content)
-			out.WriteString(mdHeader.Render(content))
+			out.WriteString(mdHeaderAccent.Render("┃ ") + mdHeader.Render(content))
+			continue
+		}
+
+		// Task lists: - [x] or - [ ]
+		if strings.HasPrefix(trimmed, "- [x]") || strings.HasPrefix(trimmed, "- [X]") {
+			indent := leadingSpaces(line)
+			content := strings.TrimSpace(trimmed[5:])
+			out.WriteString(strings.Repeat(" ", indent) + mdCheckDone.Render("  ") + " " + renderInline(content))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- [ ]") {
+			indent := leadingSpaces(line)
+			content := strings.TrimSpace(trimmed[5:])
+			out.WriteString(strings.Repeat(" ", indent) + mdCheckPending.Render("  ") + " " + renderInline(content))
+			continue
+		}
+
+		// Bullet points: - or * at start
+		if (strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ")) && len(trimmed) > 2 {
+			indent := leadingSpaces(line)
+			content := trimmed[2:]
+			out.WriteString(strings.Repeat(" ", indent) + mdBullet.Render(" ") + " " + renderInline(content))
 			continue
 		}
 
@@ -98,7 +146,7 @@ func renderInline(line string) string {
 			end := strings.Index(line[i+1:], "`")
 			if end >= 0 {
 				content := line[i+1 : i+1+end]
-				out.WriteString(mdCode.Render(content))
+				out.WriteString(mdCode.Render(" " + content + " "))
 				i = i + 1 + end + 1
 				continue
 			}
@@ -118,31 +166,31 @@ func RenderToolBadge(toolName, input string) string {
 	switch strings.ToLower(toolName) {
 	case "read", "glob", "grep":
 		badgeStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#164e63")).
+			Background(BadgeCyanBg).
 			Foreground(Cyan).
 			Bold(true).
 			Padding(0, 1)
 	case "bash":
 		badgeStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#713f12")).
+			Background(BadgeAmberBg).
 			Foreground(Amber).
 			Bold(true).
 			Padding(0, 1)
 	case "edit", "write":
 		badgeStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#3b1f7e")).
+			Background(BadgePurpleBg).
 			Foreground(Purple).
 			Bold(true).
 			Padding(0, 1)
 	case "agent", "toolsearch":
 		badgeStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#064e3b")).
+			Background(BadgeGreenBg).
 			Foreground(Green).
 			Bold(true).
 			Padding(0, 1)
 	default:
 		badgeStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#334155")).
+			Background(Surface2).
 			Foreground(White).
 			Bold(true).
 			Padding(0, 1)
@@ -153,4 +201,32 @@ func RenderToolBadge(toolName, input string) string {
 		badge += " " + mdDim.Render(input)
 	}
 	return badge
+}
+
+// isAllChar returns true if s consists entirely of character c (and optional spaces).
+func isAllChar(s string, c byte) bool {
+	count := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			count++
+		} else if s[i] != ' ' {
+			return false
+		}
+	}
+	return count >= 3
+}
+
+// leadingSpaces counts leading space characters.
+func leadingSpaces(s string) int {
+	n := 0
+	for _, ch := range s {
+		if ch == ' ' {
+			n++
+		} else if ch == '\t' {
+			n += 4
+		} else {
+			break
+		}
+	}
+	return n
 }
