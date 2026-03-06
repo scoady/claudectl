@@ -284,7 +284,13 @@ func (m PaletteModel) View() string {
 		return ""
 	}
 
-	paletteWidth := 52
+	paletteWidth := 72
+	if m.width > 100 {
+		paletteWidth = m.width / 2
+		if paletteWidth > 90 {
+			paletteWidth = 90
+		}
+	}
 	if m.width > 0 && paletteWidth > m.width-4 {
 		paletteWidth = m.width - 4
 	}
