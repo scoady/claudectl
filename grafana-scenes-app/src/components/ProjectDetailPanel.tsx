@@ -1010,4 +1010,5 @@ const styles = {
   `,
 };
 
+export { ProjectDetailPanel };
 export default ProjectDetailPanel;
