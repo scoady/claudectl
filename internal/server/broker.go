@@ -15,6 +15,9 @@ type Broker struct {
 	sessions map[string]*Session
 	hub      *Hub
 	model    string
+
+	// OnSessionDone is called when a session completes — wired by Operator.
+	OnSessionDone func(sessionID, reason string)
 }
 
 // NewBroker creates a new Broker wired to the given Hub.
@@ -357,6 +360,11 @@ func (b *Broker) onSessionDone(sessionID string, reason string) {
 	})
 
 	log.Printf("[broker] session %s done (reason=%s, project=%s)", sessionID[:8], reason, projectName)
+
+	// Notify operator
+	if b.OnSessionDone != nil {
+		b.OnSessionDone(sessionID, reason)
+	}
 }
 
 // newUUID generates a random UUID v4 string without external dependencies.

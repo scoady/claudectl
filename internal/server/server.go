@@ -18,14 +18,15 @@ type Config struct {
 	ProjectsDir string
 }
 
-// Server is the claudectl HTTP server.
+// Server is the c9-operator HTTP server.
 type Server struct {
-	Hub        *Hub
-	Broker     *Broker
-	StartedAt  time.Time
+	Hub         *Hub
+	Broker      *Broker
+	Operator    *Operator
+	StartedAt   time.Time
 	ProjectsDir string
-	StaticFS   fs.FS // set externally for the web dashboard; nil = no static serving
-	mux        *http.ServeMux
+	StaticFS    fs.FS // set externally for the web dashboard; nil = no static serving
+	mux         *http.ServeMux
 }
 
 // New creates a new Server with all routes registered.
@@ -37,14 +38,34 @@ func New(cfg Config) *Server {
 	}
 
 	hub := NewHub()
+	broker := NewBroker(hub, "")
+	operator := NewOperator(broker, hub, projectsDir)
+
 	s := &Server{
 		Hub:         hub,
-		Broker:      NewBroker(hub, ""),
+		Broker:      broker,
+		Operator:    operator,
 		StartedAt:   time.Now(),
 		ProjectsDir: projectsDir,
 		mux:         http.NewServeMux(),
 	}
 	s.registerRoutes()
+
+	// Wire broker callbacks to emit operator events
+	broker.OnSessionDone = func(sessionID, reason string) {
+		switch reason {
+		case "idle":
+			operator.Emit(Event{Type: EventAgentIdle, SessionID: sessionID})
+		case "error":
+			operator.Emit(Event{Type: EventAgentError, SessionID: sessionID})
+		default:
+			operator.Emit(Event{Type: EventAgentDone, SessionID: sessionID})
+		}
+	}
+
+	// Start the operator reconciliation loop
+	operator.Start()
+
 	return s
 }
 
@@ -86,15 +107,21 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("DELETE /api/projects/{name}/tasks/{index}", s.stub)
 	s.mux.HandleFunc("POST /api/projects/{name}/tasks/{index}/start", s.stub)
 	s.mux.HandleFunc("POST /api/projects/{name}/tasks/{index}/complete", s.stub)
-	s.mux.HandleFunc("GET /api/projects/{name}/files", s.stub)
-	s.mux.HandleFunc("GET /api/projects/{name}/files/content", s.stub)
-	s.mux.HandleFunc("GET /api/projects/{name}/files/status", s.stub)
+	s.mux.HandleFunc("GET /api/projects/{name}/files", s.handleListFiles)
+	s.mux.HandleFunc("GET /api/projects/{name}/files/content", s.handleReadFile)
+	s.mux.HandleFunc("PUT /api/projects/{name}/files/content", s.handleWriteFile)
+	s.mux.HandleFunc("GET /api/projects/{name}/files/status", s.handleGitStatus)
+	s.mux.HandleFunc("GET /api/projects/{name}/files/branch", s.handleGitBranch)
 
 	// Agents (implemented)
 	s.mux.HandleFunc("GET /api/agents", s.handleListAgents)
 	s.mux.HandleFunc("DELETE /api/agents/{id}", s.handleCancelAgent)
 	s.mux.HandleFunc("POST /api/agents/{id}/inject", s.handleInjectMessage)
 	s.mux.HandleFunc("GET /api/agents/{id}/messages", s.handleGetMessages)
+
+	// Operator (implemented)
+	s.mux.HandleFunc("POST /api/operator/spawn", s.handleOperatorSpawn)
+	s.mux.HandleFunc("GET /api/operator/state", s.handleOperatorState)
 
 	// Metrics (stubs)
 	s.mux.HandleFunc("GET /api/metrics/agents", s.stub)

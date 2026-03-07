@@ -159,23 +159,59 @@ func (s *Server) handleDispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.Broker == nil {
-		httpError(w, http.StatusServiceUnavailable, "broker not initialized")
+	if s.Operator == nil {
+		httpError(w, http.StatusServiceUnavailable, "operator not initialized")
 		return
 	}
 
-	task := narratePrefix + req.Task
-	model := req.Model
+	// Emit dispatch event — operator handles spawning
+	s.Operator.Emit(Event{
+		Type:        EventTaskDispatched,
+		ProjectName: name,
+		Task:        req.Task,
+		Model:       req.Model,
+	})
 
-	sid, err := s.Broker.CreateSession(name, projPath, task, model)
-	if err != nil {
-		httpError(w, http.StatusInternalServerError, "dispatch failed: "+err.Error())
+	writeJSON(w, http.StatusAccepted, DispatchResponse{
+		Status: "accepted",
+	})
+}
+
+// handleSpawnAgent lets agents request spawning other agents via the operator.
+// POST /api/operator/spawn
+func (s *Server) handleOperatorSpawn(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ProjectName string `json:"project_name"`
+		Task        string `json:"task"`
+		Model       string `json:"model,omitempty"`
+		SpawnedBy   string `json:"spawned_by,omitempty"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		httpError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	if req.ProjectName == "" || req.Task == "" {
+		httpError(w, http.StatusBadRequest, "project_name and task are required")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, DispatchResponse{
-		SessionID: sid,
-		Status:    "dispatched",
+	s.Operator.Emit(Event{
+		Type:        EventSpawnRequest,
+		ProjectName: req.ProjectName,
+		Task:        req.Task,
+		Model:       req.Model,
+		SessionID:   req.SpawnedBy,
+	})
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
+}
+
+// handleOperatorState returns the current operator state.
+func (s *Server) handleOperatorState(w http.ResponseWriter, r *http.Request) {
+	tasks := s.Operator.GetPendingTasks()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"tasks": tasks,
+		"total": len(tasks),
 	})
 }
 

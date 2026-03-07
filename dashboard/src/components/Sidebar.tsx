@@ -7,6 +7,7 @@ import {
   FolderKanban,
   Crosshair,
   Server,
+  Network,
 } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/projects', label: 'Projects', icon: FolderKanban },
   { to: '/targets', label: 'Targets', icon: Crosshair },
   { to: '/system', label: 'System', icon: Server },
+  { to: '/architecture', label: 'Architecture', icon: Network },
 ];
 
 export default function Sidebar() {
