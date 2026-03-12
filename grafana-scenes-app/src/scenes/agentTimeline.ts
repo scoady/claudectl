@@ -23,6 +23,7 @@ import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
 } from './shared';
 
@@ -38,6 +39,7 @@ import {
 function getTimelineVariables() {
   return new SceneVariableSet({
     variables: [
+      getInfinityDsVariable(),
       new CustomVariable({
         name: 'project',
         label: 'Project',

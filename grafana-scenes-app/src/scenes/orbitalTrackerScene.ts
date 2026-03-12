@@ -5,11 +5,13 @@ import {
   SceneReactObject,
   SceneQueryRunner,
   VizPanel,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
 } from './shared';
 import { OrbitalTrackerPanel } from '../components/OrbitalTrackerPanel';
@@ -60,6 +62,7 @@ export function getOrbitalTrackerScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

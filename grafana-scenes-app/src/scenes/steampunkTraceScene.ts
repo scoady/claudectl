@@ -5,11 +5,13 @@ import {
   SceneReactObject,
   SceneQueryRunner,
   VizPanel,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
 } from './shared';
 import { SteampunkTracePanel } from '../components/SteampunkTracePanel';
@@ -61,6 +63,7 @@ export function getSteampunkTraceScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

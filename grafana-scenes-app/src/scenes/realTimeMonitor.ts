@@ -18,6 +18,7 @@ import { ThresholdsMode, FieldColorModeId } from '@grafana/data';
 import { PLUGIN_BASE_URL } from '../constants';
 import {
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
   infinityTimeSeriesQuery,
 } from './shared';
@@ -34,6 +35,7 @@ import {
 function getMonitorVariables() {
   return new SceneVariableSet({
     variables: [
+      getInfinityDsVariable(),
       new CustomVariable({
         name: 'severity',
         label: 'Min Severity',

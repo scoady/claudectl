@@ -5,11 +5,13 @@ import {
   SceneQueryRunner,
   VizPanel,
   SceneReactObject,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
   infinityTimeSeriesQuery,
 } from './shared';
@@ -98,6 +100,7 @@ export function getConstellationScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

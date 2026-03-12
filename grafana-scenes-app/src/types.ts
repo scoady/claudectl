@@ -32,9 +32,10 @@ export interface Stats {
 }
 
 export interface Task {
-  id: string;
-  title: string;
+  index: number;
+  text: string;
   status: string;
+  indent: number;
   agent?: string;
 }
 

@@ -48,11 +48,44 @@ datasources:
       - name: Claude Manager
         type: yesoreyeram-infinity-datasource
         access: proxy
-        url: http://host.docker.internal:4040
+        url: http://backend.claude-manager.svc.cluster.local:4040
         isDefault: true
         editable: true
         jsonData:
           auth_method: ""
+
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo.observability.svc.cluster.local:3200
+        editable: true
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            filterByTraceID: true
+          nodeGraph:
+            enabled: true
+
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki.observability.svc.cluster.local:3100
+        editable: true
+        jsonData:
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: '"trace_id":"(\w+)"'
+              name: TraceID
+              url: '$${__value.raw}'
+
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        access: proxy
+        url: http://prometheus-server.observability.svc.cluster.local:9090
+        editable: true
 
 dashboardProviders:
   dashboardproviders.yaml:

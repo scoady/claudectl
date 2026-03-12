@@ -5,11 +5,13 @@ import {
   SceneReactObject,
   SceneQueryRunner,
   VizPanel,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
 } from './shared';
 import { TaskProgressPanel } from '../components/TaskProgressPanel';
@@ -58,6 +60,7 @@ export function getTaskProgressScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

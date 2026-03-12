@@ -4,11 +4,13 @@ import {
   SceneFlexItem,
   SceneQueryRunner,
   VizPanel,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
   infinityTimeSeriesQuery,
 } from './shared';
@@ -91,6 +93,7 @@ export function getCostExplorerScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

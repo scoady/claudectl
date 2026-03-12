@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/scoady/claudectl/internal/metrics"
+	"github.com/scoady/claudectl/internal/telemetry"
 )
 
 // Config holds server configuration options.
@@ -20,13 +23,15 @@ type Config struct {
 
 // Server is the c9-operator HTTP server.
 type Server struct {
-	Hub         *Hub
-	Broker      *Broker
-	Operator    *Operator
-	StartedAt   time.Time
-	ProjectsDir string
-	StaticFS    fs.FS // set externally for the web dashboard; nil = no static serving
-	mux         *http.ServeMux
+	Hub             *Hub
+	Broker          *Broker
+	Operator        *Operator
+	Metrics         *metrics.Store
+	OTelInstruments *telemetry.Instruments
+	StartedAt       time.Time
+	ProjectsDir     string
+	StaticFS        fs.FS // set externally for the web dashboard; nil = no static serving
+	mux             *http.ServeMux
 }
 
 // New creates a new Server with all routes registered.
@@ -40,11 +45,13 @@ func New(cfg Config) *Server {
 	hub := NewHub()
 	broker := NewBroker(hub, "")
 	operator := NewOperator(broker, hub, projectsDir)
+	ms := metrics.NewStore()
 
 	s := &Server{
 		Hub:         hub,
 		Broker:      broker,
 		Operator:    operator,
+		Metrics:     ms,
 		StartedAt:   time.Now(),
 		ProjectsDir: projectsDir,
 		mux:         http.NewServeMux(),
@@ -63,23 +70,32 @@ func New(cfg Config) *Server {
 		}
 	}
 
+	// Wire metrics callbacks (wraps the OnSessionDone above)
+	s.wireMetricsCallbacks()
+
 	// Start the operator reconciliation loop
 	operator.Start()
 
 	return s
 }
 
+// Handler returns the fully-wrapped HTTP handler (CORS + OTel middleware).
+func (s *Server) Handler() http.Handler {
+	h := s.corsMiddleware(s.mux)
+	return telemetry.HTTPMiddleware(h)
+}
+
 // ListenAndServe starts the HTTP server on the given address.
 func (s *Server) ListenAndServe() error {
 	addr := ":4040"
 	log.Printf("[server] listening on %s", addr)
-	return http.ListenAndServe(addr, s.corsMiddleware(s.mux))
+	return http.ListenAndServe(addr, s.Handler())
 }
 
 // ListenAndServeAddr starts the HTTP server on a specific address.
 func (s *Server) ListenAndServeAddr(addr string) error {
 	log.Printf("[server] listening on %s", addr)
-	return http.ListenAndServe(addr, s.corsMiddleware(s.mux))
+	return http.ListenAndServe(addr, s.Handler())
 }
 
 // ── Route Registration ───────────────────────────────────────────────────────
@@ -123,14 +139,14 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("POST /api/operator/spawn", s.handleOperatorSpawn)
 	s.mux.HandleFunc("GET /api/operator/state", s.handleOperatorState)
 
-	// Metrics (stubs)
-	s.mux.HandleFunc("GET /api/metrics/agents", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/costs", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/tasks", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/models", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/projects", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/health", s.stub)
-	s.mux.HandleFunc("GET /api/metrics/summary", s.stub)
+	// Metrics (implemented)
+	s.mux.HandleFunc("GET /api/metrics/agents", s.handleMetricsAgents)
+	s.mux.HandleFunc("GET /api/metrics/costs", s.handleMetricsCosts)
+	s.mux.HandleFunc("GET /api/metrics/tasks", s.handleMetricsTasks)
+	s.mux.HandleFunc("GET /api/metrics/models", s.handleMetricsModels)
+	s.mux.HandleFunc("GET /api/metrics/projects", s.handleMetricsProjects)
+	s.mux.HandleFunc("GET /api/metrics/health", s.handleMetricsHealth)
+	s.mux.HandleFunc("GET /api/metrics/summary", s.handleMetricsSummary)
 
 	// Canvas (stubs)
 	s.mux.HandleFunc("GET /api/canvas/{project}", s.stub)

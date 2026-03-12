@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Session represents a single agent session backed by a claude CLI subprocess.
@@ -49,6 +54,10 @@ type Session struct {
 
 	// Pending injection
 	pendingInjection *string
+
+	// Tracing
+	traceCtx  context.Context
+	traceSpan trace.Span
 
 	// Partial message streaming state
 	currentToolName string
@@ -156,6 +165,21 @@ func (s *Session) ToDict() map[string]any {
 // ── Subprocess management ────────────────────────────────────────────────────
 
 func (s *Session) spawnAndStream(message string, resume bool) {
+	tracer := otel.Tracer("claudectl")
+	ctx, span := tracer.Start(context.Background(), "agent.session",
+		trace.WithAttributes(
+			attribute.String("session.id", s.SessionID),
+			attribute.String("project.name", s.ProjectName),
+			attribute.String("model", s.Model),
+			attribute.Bool("resume", resume),
+		),
+	)
+	s.mu.Lock()
+	s.traceCtx = ctx
+	s.traceSpan = span
+	s.mu.Unlock()
+	defer span.End()
+
 	claudeBin := os.Getenv("CLAUDE_BIN")
 	if claudeBin == "" {
 		claudeBin = "claude"
@@ -455,6 +479,21 @@ func (s *Session) handleContentBlockStop(event map[string]any) {
 	}
 
 	s.setPhase(PhaseToolExec)
+
+	// Record trace span for the tool call
+	s.mu.RLock()
+	tCtx := s.traceCtx
+	s.mu.RUnlock()
+	if tCtx != nil {
+		tracer := otel.Tracer("claudectl")
+		_, toolSpan := tracer.Start(tCtx, "tool.call",
+			trace.WithAttributes(
+				attribute.String("tool.name", toolName),
+				attribute.String("tool.id", toolID),
+			),
+		)
+		toolSpan.End()
+	}
 
 	milestone := formatMilestone(toolName, toolInput)
 

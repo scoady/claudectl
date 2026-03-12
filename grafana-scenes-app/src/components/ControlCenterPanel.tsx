@@ -1426,7 +1426,7 @@ export function ControlCenterPanel() {
                   const tc = taskColors(task.status);
                   return (
                     <div
-                      key={task.id || i}
+                      key={task.index ?? i}
                       className={s.taskItem}
                       style={{ animation: `${staggerIn} 0.25s ease both`, animationDelay: `${i * 25}ms` }}
                     >
@@ -1436,7 +1436,7 @@ export function ControlCenterPanel() {
                       >
                         {task.status}
                       </span>
-                      <span className={s.taskTitle}>{task.title}</span>
+                      <span className={s.taskTitle}>{task.text}</span>
                       {task.agent && <span className={s.taskAgent}>{task.agent}</span>}
                     </div>
                   );

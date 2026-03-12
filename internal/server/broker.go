@@ -18,6 +18,15 @@ type Broker struct {
 
 	// OnSessionDone is called when a session completes — wired by Operator.
 	OnSessionDone func(sessionID, reason string)
+
+	// OnSessionSpawn is called when a new session is spawned — wired by Server for metrics.
+	OnSessionSpawn func(sessionID string)
+
+	// OnToolCall is called when a tool invocation completes — wired by Server for metrics.
+	OnToolCall func(sessionID, toolName string)
+
+	// OnTurnComplete is called when a turn finishes — wired by Server for metrics.
+	OnTurnComplete func(sessionID string, turnCount int)
 }
 
 // NewBroker creates a new Broker wired to the given Hub.
@@ -80,6 +89,11 @@ func (b *Broker) SpawnSession(
 	})
 
 	log.Printf("[broker] created session %s for project %s (controller=%v)", sessionID[:8], projectName, isController)
+
+	// Notify metrics
+	if b.OnSessionSpawn != nil {
+		b.OnSessionSpawn(sessionID)
+	}
 
 	session.Start(task)
 	return session
@@ -315,6 +329,14 @@ func (b *Broker) onToolDone(sessionID string, toolEvent map[string]any) {
 		"milestones": milestones,
 	})
 
+	// Notify metrics about tool call
+	if b.OnToolCall != nil {
+		toolName, _ := toolEvent["tool_name"].(string)
+		if toolName != "" {
+			b.OnToolCall(sessionID, toolName)
+		}
+	}
+
 	// Backward-compatible milestone event for existing frontend
 	if session != nil {
 		toolName, _ := toolEvent["tool_name"].(string)
@@ -333,6 +355,11 @@ func (b *Broker) onTurnDone(sessionID string, turnCount int) {
 		"session_id": sessionID,
 		"turn_count": turnCount,
 	})
+
+	// Notify metrics about turn completion
+	if b.OnTurnComplete != nil {
+		b.OnTurnComplete(sessionID, turnCount)
+	}
 }
 
 func (b *Broker) onSessionDone(sessionID string, reason string) {

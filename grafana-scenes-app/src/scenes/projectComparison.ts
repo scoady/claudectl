@@ -16,6 +16,7 @@ import { PLUGIN_BASE_URL } from '../constants';
 import {
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
   infinityTimeSeriesQuery,
 } from './shared';
@@ -32,6 +33,7 @@ import {
 function getComparisonVariables() {
   return new SceneVariableSet({
     variables: [
+      getInfinityDsVariable(),
       new CustomVariable({
         name: 'projectA',
         label: 'Project A',

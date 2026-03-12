@@ -289,7 +289,7 @@ const ProjectDetailPanel: React.FC<ProjectDetailPanelProps> = ({ projectName, on
                 <div className={styles.colItems}>
                   {taskColumns[col].map((task, i) => (
                     <div
-                      key={task.id}
+                      key={task.index}
                       className={styles.taskItem}
                       style={{ animationDelay: `${i * 30}ms` }}
                     >
@@ -298,7 +298,7 @@ const ProjectDetailPanel: React.FC<ProjectDetailPanelProps> = ({ projectName, on
                         background: ${taskColor(col)};
                         flex-shrink: 0;
                       `} />
-                      <span className={styles.taskTitle}>{task.title}</span>
+                      <span className={styles.taskTitle}>{task.text}</span>
                     </div>
                   ))}
                   {taskColumns[col].length === 0 && (

@@ -6,11 +6,13 @@ import {
   VizPanel,
   PanelBuilders,
   SceneDataTransformer,
+  SceneVariableSet,
 } from '@grafana/scenes';
 import {
   getDefaultTimeRange,
   getTimeControls,
   getInfinityDatasource,
+  getInfinityDsVariable,
   infinityJsonQuery,
   infinityTimeSeriesQuery,
 } from './shared';
@@ -101,6 +103,7 @@ export function getAgentOverviewScene(): EmbeddedScene {
 
   return new EmbeddedScene({
     $timeRange: getDefaultTimeRange(),
+    $variables: new SceneVariableSet({ variables: [getInfinityDsVariable()] }),
     controls: getTimeControls(),
     body: new SceneFlexLayout({
       direction: 'column',

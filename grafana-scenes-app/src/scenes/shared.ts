@@ -4,14 +4,21 @@ import {
   SceneTimePicker,
   SceneVariableSet,
   CustomVariable,
+  DataSourceVariable,
 } from '@grafana/scenes';
 
-export const INFINITY_DS_UID = 'P54F6429051492C34';
+export function getInfinityDsVariable() {
+  return new DataSourceVariable({
+    name: 'infinityDs',
+    label: 'Infinity Datasource',
+    pluginId: 'yesoreyeram-infinity-datasource',
+  });
+}
 
 export function getInfinityDatasource() {
   return {
     type: 'yesoreyeram-infinity-datasource',
-    uid: INFINITY_DS_UID,
+    uid: '${infinityDs}',
   };
 }
 
@@ -69,5 +76,54 @@ export function infinityTimeSeriesQuery(opts: {
   return {
     ...infinityJsonQuery(opts),
     format: 'timeseries',
+  };
+}
+
+// ── Observability Datasources ───────────────────────────────────────────────
+
+export function getTempoDatasource() {
+  return { type: 'tempo', uid: 'tempo' };
+}
+
+export function getLokiDatasource() {
+  return { type: 'loki', uid: 'loki' };
+}
+
+export function getPrometheusDatasource() {
+  return { type: 'prometheus', uid: 'prometheus' };
+}
+
+/** Build a TraceQL query for the Tempo datasource. */
+export function tempoTraceQLQuery(opts: { refId: string; query: string }) {
+  return {
+    refId: opts.refId,
+    datasource: getTempoDatasource(),
+    queryType: 'traceql',
+    query: opts.query,
+    limit: 20,
+  };
+}
+
+/** Build a LogQL query for the Loki datasource. */
+export function lokiLogQuery(opts: { refId: string; expr: string }) {
+  return {
+    refId: opts.refId,
+    datasource: getLokiDatasource(),
+    expr: opts.expr,
+    queryType: 'range',
+  };
+}
+
+/** Build a PromQL query for the Prometheus datasource. */
+export function prometheusQuery(opts: {
+  refId: string;
+  expr: string;
+  legendFormat?: string;
+}) {
+  return {
+    refId: opts.refId,
+    datasource: getPrometheusDatasource(),
+    expr: opts.expr,
+    legendFormat: opts.legendFormat || '',
   };
 }
