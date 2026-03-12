@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { css, keyframes } from '@emotion/css';
 import type { WidgetCatalogEntry, Project } from '../types';
+import { API_BASE } from '../services/api';
 
 // ── Constants ───────────────────────────────────────────────────────────
-
-const API_BASE = 'http://localhost:4040';
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; glow: string }> = {
   chart:    { bg: 'rgba(0, 255, 204, 0.12)',   text: '#00ffcc', glow: 'rgba(0, 255, 204, 0.4)' },

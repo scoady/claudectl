@@ -166,19 +166,58 @@ func (s *Session) ToDict() map[string]any {
 
 func (s *Session) spawnAndStream(message string, resume bool) {
 	tracer := otel.Tracer("claudectl")
-	ctx, span := tracer.Start(context.Background(), "agent.session",
+
+	// Use dispatch/previous context as parent if available, otherwise root
+	parentCtx := context.Background()
+	s.mu.RLock()
+	if s.traceCtx != nil {
+		parentCtx = s.traceCtx
+	}
+	s.mu.RUnlock()
+
+	spanName := "agent.session"
+	if resume {
+		spanName = "agent.resume"
+	}
+
+	// Truncate task for attribute (max 256 chars)
+	taskSnippet := message
+	if len(taskSnippet) > 256 {
+		taskSnippet = taskSnippet[:256] + "..."
+	}
+
+	ctx, span := tracer.Start(parentCtx, spanName,
 		trace.WithAttributes(
 			attribute.String("session.id", s.SessionID),
 			attribute.String("project.name", s.ProjectName),
+			attribute.String("project.path", s.ProjectPath),
 			attribute.String("model", s.Model),
+			attribute.String("task", taskSnippet),
 			attribute.Bool("resume", resume),
+			attribute.Bool("is_controller", s.IsController),
 		),
 	)
 	s.mu.Lock()
 	s.traceCtx = ctx
 	s.traceSpan = span
 	s.mu.Unlock()
-	defer span.End()
+
+	span.AddEvent("agent.spawn", trace.WithAttributes(
+		attribute.String("session.id", s.SessionID),
+		attribute.String("project.name", s.ProjectName),
+	))
+
+	defer func() {
+		s.mu.RLock()
+		turns := s.TurnCount
+		milestoneCount := len(s.Milestones)
+		s.mu.RUnlock()
+		span.SetAttributes(
+			attribute.Int("turn_count", turns),
+			attribute.Int("milestone_count", milestoneCount),
+		)
+		span.End()
+	}()
 
 	claudeBin := os.Getenv("CLAUDE_BIN")
 	if claudeBin == "" {
@@ -237,6 +276,8 @@ func (s *Session) spawnAndStream(message string, resume bool) {
 	stdout, err := proc.StdoutPipe()
 	if err != nil {
 		log.Printf("[session:%s] stdout pipe error: %v", s.SessionID[:8], err)
+		span.SetAttributes(attribute.String("error.type", "stdout_pipe"))
+		span.RecordError(err)
 		s.setPhase(PhaseError)
 		if s.OnSessionDone != nil {
 			s.OnSessionDone(s.SessionID, "error")
@@ -247,6 +288,8 @@ func (s *Session) spawnAndStream(message string, resume bool) {
 	stderr, err := proc.StderrPipe()
 	if err != nil {
 		log.Printf("[session:%s] stderr pipe error: %v", s.SessionID[:8], err)
+		span.SetAttributes(attribute.String("error.type", "stderr_pipe"))
+		span.RecordError(err)
 		s.setPhase(PhaseError)
 		if s.OnSessionDone != nil {
 			s.OnSessionDone(s.SessionID, "error")
@@ -256,12 +299,18 @@ func (s *Session) spawnAndStream(message string, resume bool) {
 
 	if err := proc.Start(); err != nil {
 		log.Printf("[session:%s] spawn error: %v", s.SessionID[:8], err)
+		span.SetAttributes(attribute.String("error.type", "spawn_failed"))
+		span.RecordError(err)
 		s.setPhase(PhaseError)
 		if s.OnSessionDone != nil {
 			s.OnSessionDone(s.SessionID, "error")
 		}
 		return
 	}
+
+	span.AddEvent("process.started", trace.WithAttributes(
+		attribute.Int("pid", proc.Process.Pid),
+	))
 
 	s.mu.Lock()
 	s.proc = proc
@@ -302,6 +351,8 @@ func (s *Session) spawnAndStream(message string, resume bool) {
 	s.mu.RUnlock()
 
 	if wasCancelled {
+		span.AddEvent("agent.cancelled")
+		span.SetAttributes(attribute.String("outcome", "cancelled"))
 		s.setPhase(PhaseCancelled)
 		if s.OnSessionDone != nil {
 			s.OnSessionDone(s.SessionID, "cancelled")
@@ -332,8 +383,11 @@ func (s *Session) spawnAndStream(message string, resume bool) {
 	s.mu.Unlock()
 
 	if pending != nil && cliSID != "" {
+		span.AddEvent("agent.injection_pending")
 		s.spawnAndStream(*pending, true)
 	} else {
+		span.AddEvent("agent.idle")
+		span.SetAttributes(attribute.String("outcome", "idle"))
 		s.setPhase(PhaseIdle)
 		if s.OnSessionDone != nil {
 			s.OnSessionDone(s.SessionID, "idle")
@@ -397,6 +451,12 @@ func (s *Session) handleSystem(event map[string]any) {
 		if sid := getStr(event, "session_id"); sid != "" {
 			s.mu.Lock()
 			s.CLISessionID = sid
+			if s.traceSpan != nil {
+				s.traceSpan.SetAttributes(attribute.String("cli.session_id", sid))
+				s.traceSpan.AddEvent("cli.init", trace.WithAttributes(
+					attribute.String("cli.session_id", sid),
+				))
+			}
 			s.mu.Unlock()
 		}
 	}
@@ -486,10 +546,29 @@ func (s *Session) handleContentBlockStop(event map[string]any) {
 	s.mu.RUnlock()
 	if tCtx != nil {
 		tracer := otel.Tracer("claudectl")
-		_, toolSpan := tracer.Start(tCtx, "tool.call",
+		// Extract a short description from tool input for searchability
+		toolDesc := ""
+		if desc, ok := toolInput["description"].(string); ok {
+			toolDesc = desc
+		} else if cmd, ok := toolInput["command"].(string); ok {
+			if len(cmd) > 100 {
+				cmd = cmd[:100]
+			}
+			toolDesc = cmd
+		} else if path, ok := toolInput["file_path"].(string); ok {
+			toolDesc = path
+		} else if pattern, ok := toolInput["pattern"].(string); ok {
+			toolDesc = pattern
+		}
+
+		spanName := "tool." + toolName
+		_, toolSpan := tracer.Start(tCtx, spanName,
 			trace.WithAttributes(
 				attribute.String("tool.name", toolName),
 				attribute.String("tool.id", toolID),
+				attribute.String("tool.description", toolDesc),
+				attribute.String("session.id", s.SessionID),
+				attribute.String("project.name", s.ProjectName),
 			),
 		)
 		toolSpan.End()

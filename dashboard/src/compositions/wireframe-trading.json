@@ -1,0 +1,454 @@
+{
+  "id": "wireframe-trading",
+  "title": "Bloomberg Trading Terminal",
+  "description": "Professional trading terminal inspired by Bloomberg/Reuters and films like The Big Short and Margin Call, mapping c9-operator agent metrics to financial instruments, risk analytics, and market microstructure",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+  "colorGrading": {
+    "background": "#0D0D0D",
+    "panelBg": "#111111",
+    "panelBorder": "#222222",
+    "bloombergOrange": "#FF8800",
+    "bidGreen": "#00CC66",
+    "askRed": "#FF3344",
+    "candleUp": "#00CC66",
+    "candleDown": "#FF3344",
+    "volumeBlue": "#3366CC",
+    "bollingerPurple": "#9966FF",
+    "maYellow": "#FFCC00",
+    "textPrimary": "#DDDDDD",
+    "textSecondary": "#888888",
+    "textMuted": "#444444",
+    "gridLine": "#1A1A1A",
+    "heatmapHigh": "#FF2200",
+    "heatmapMid": "#FFAA00",
+    "heatmapLow": "#004422",
+    "heatmapNeutral": "#222222",
+    "alertCritical": "#FF1133",
+    "alertWarning": "#FF8800",
+    "alertInfo": "#3388FF",
+    "pnlPositive": "#00CC66",
+    "pnlNegative": "#FF3344",
+    "correlationPositive": "#0066FF",
+    "correlationNegative": "#FF3300",
+    "sectorTech": "#00AAFF",
+    "sectorFinance": "#FFD700",
+    "sectorHealth": "#00CC88",
+    "sectorEnergy": "#FF6622",
+    "sectorConsumer": "#CC66FF"
+  },
+  "typography": {
+    "primary": { "fontFamily": "Bloomberg Terminal, Consolas, monospace", "weight": 700 },
+    "secondary": { "fontFamily": "Inter, Helvetica, sans-serif", "weight": 400 },
+    "mono": { "fontFamily": "Consolas, SF Mono, monospace", "weight": 400 },
+    "sizes": {
+      "tickerPrice": 32,
+      "tickerChange": 18,
+      "panelTitle": 11,
+      "dataValue": 16,
+      "dataLabel": 9,
+      "tableCell": 11,
+      "newsText": 12,
+      "alertText": 12,
+      "chartAxis": 9,
+      "orderBookPrice": 11,
+      "heatmapCell": 10
+    }
+  },
+  "layout": {
+    "candlestickChart": { "x": 320, "y": 0, "w": 920, "h": 540, "description": "Main candlestick chart with Bollinger bands and volume" },
+    "orderBook": { "x": 0, "y": 0, "w": 312, "h": 540, "description": "Bid/ask order book depth ladder" },
+    "heatMap": { "x": 1248, "y": 0, "w": 672, "h": 380, "description": "Market sector heat map grid" },
+    "riskDashboard": { "x": 1248, "y": 388, "w": 672, "h": 152, "description": "Greeks and risk metrics" },
+    "pnlTicker": { "x": 0, "y": 548, "w": 1240, "h": 48, "description": "Scrolling P&L ticker" },
+    "newsFeed": { "x": 0, "y": 604, "w": 640, "h": 240, "description": "Scrolling news feed" },
+    "alertStack": { "x": 648, "y": 604, "w": 592, "h": 120, "description": "Stacked alert notifications" },
+    "positionTable": { "x": 648, "y": 732, "w": 592, "h": 112, "description": "Position summary table" },
+    "sectorPie": { "x": 1248, "y": 548, "w": 336, "h": 300, "description": "Sector allocation pie chart" },
+    "correlationMatrix": { "x": 1592, "y": 548, "w": 328, "h": 300, "description": "Correlation matrix heatmap" },
+    "topBanner": { "x": 0, "y": 852, "w": 1920, "h": 48, "description": "Bottom market ticker tape" }
+  },
+  "elements": [
+    {
+      "id": "main_candlestick",
+      "type": "candlestickChart",
+      "region": "candlestickChart",
+      "position": { "x": 320, "y": 0, "w": 920, "h": 540 },
+      "description": "OHLCV candlestick chart with Bollinger bands, 20-SMA, 50-EMA, and volume bars at bottom",
+      "ticker": "C9X:US",
+      "tickerName": "C9-OPERATOR INDEX",
+      "timeframe": "5m",
+      "candles": 120,
+      "currentPrice": { "value": 4847.32, "change": +1.24, "changePct": 0.026, "currency": "USD" },
+      "priceAxis": { "min": 4780, "max": 4870, "gridEvery": 10 },
+      "timeAxis": { "start": "09:30", "end": "15:30", "gridEvery": "30m", "timezone": "EST" },
+      "overlays": [
+        { "type": "bollinger_bands", "period": 20, "stddev": 2, "upperColor": "#9966FF44", "lowerColor": "#9966FF44", "fillColor": "#9966FF0A", "midColor": "#9966FF" },
+        { "type": "sma", "period": 20, "color": "#FFCC00", "width": 1, "label": "SMA(20)" },
+        { "type": "ema", "period": 50, "color": "#FF8800", "width": 1, "label": "EMA(50)" }
+      ],
+      "volume": { "position": "bottom", "height": 80, "upColor": "#00CC6644", "downColor": "#FF334444", "avgLine": { "period": 20, "color": "#3366CC" } },
+      "crosshair": { "enabled": true, "color": "#444444", "style": "dotted" },
+      "annotations": [
+        { "type": "horizontalLine", "price": 4820, "label": "SUPPORT", "color": "#00CC66", "dash": [4, 4] },
+        { "type": "horizontalLine", "price": 4860, "label": "RESISTANCE", "color": "#FF3344", "dash": [4, 4] }
+      ],
+      "dataMapping": "system.throughput_over_time"
+    },
+    {
+      "id": "order_book_depth",
+      "type": "orderBookLadder",
+      "region": "orderBook",
+      "position": { "x": 0, "y": 0, "w": 312, "h": 540 },
+      "description": "Level 2 order book with bid/ask depth bars, cumulative volume, and spread indicator",
+      "columns": ["ORDERS", "BID SIZE", "PRICE", "ASK SIZE", "ORDERS"],
+      "midPrice": 4847.32,
+      "spread": { "value": 0.08, "pct": 0.002, "color": "#888888" },
+      "levels": 20,
+      "bidLevels": [
+        { "price": 4847.28, "size": 142, "orders": 8, "cumulative": 142 },
+        { "price": 4847.24, "size": 285, "orders": 12, "cumulative": 427 },
+        { "price": 4847.20, "size": 520, "orders": 18, "cumulative": 947 },
+        { "price": 4847.16, "size": 1240, "orders": 34, "cumulative": 2187 },
+        { "price": 4847.12, "size": 890, "orders": 22, "cumulative": 3077 }
+      ],
+      "askLevels": [
+        { "price": 4847.36, "size": 98, "orders": 5, "cumulative": 98 },
+        { "price": 4847.40, "size": 310, "orders": 14, "cumulative": 408 },
+        { "price": 4847.44, "size": 445, "orders": 16, "cumulative": 853 },
+        { "price": 4847.48, "size": 1100, "orders": 28, "cumulative": 1953 },
+        { "price": 4847.52, "size": 760, "orders": 20, "cumulative": 2713 }
+      ],
+      "bidBarColor": "#00CC6633",
+      "askBarColor": "#FF334433",
+      "bidTextColor": "#00CC66",
+      "askTextColor": "#FF3344",
+      "font": "mono",
+      "imbalance": { "ratio": 1.14, "direction": "BUY", "color": "#00CC66" },
+      "dataMapping": "broker.queue_depth"
+    },
+    {
+      "id": "market_heatmap",
+      "type": "treemapHeatmap",
+      "region": "heatMap",
+      "position": { "x": 1248, "y": 0, "w": 672, "h": 380 },
+      "description": "S&P 500 sector heat map — cell size = market cap, color = daily % change. Each sector maps to an agent workload.",
+      "sectors": [
+        { "name": "TECHNOLOGY", "agent": "alpha", "change": +1.8, "weight": 28, "color": "#00CC66", "tickers": [
+          { "symbol": "AAPL", "change": +2.1, "mcap": "3.2T" },
+          { "symbol": "MSFT", "change": +1.4, "mcap": "3.0T" },
+          { "symbol": "NVDA", "change": +3.8, "mcap": "2.8T" },
+          { "symbol": "GOOGL", "change": +0.9, "mcap": "2.1T" }
+        ]},
+        { "name": "FINANCIALS", "agent": "beta", "change": -0.4, "weight": 14, "color": "#FF3344", "tickers": [
+          { "symbol": "JPM", "change": -0.8, "mcap": "580B" },
+          { "symbol": "BAC", "change": -0.3, "mcap": "310B" },
+          { "symbol": "GS", "change": +0.2, "mcap": "150B" }
+        ]},
+        { "name": "HEALTHCARE", "agent": "gamma", "change": +0.6, "weight": 13, "color": "#00CC66", "tickers": [
+          { "symbol": "UNH", "change": +1.1, "mcap": "480B" },
+          { "symbol": "JNJ", "change": +0.3, "mcap": "380B" }
+        ]},
+        { "name": "ENERGY", "agent": "delta", "change": -1.2, "weight": 5, "color": "#FF3344", "tickers": [
+          { "symbol": "XOM", "change": -1.5, "mcap": "450B" },
+          { "symbol": "CVX", "change": -0.9, "mcap": "280B" }
+        ]},
+        { "name": "CONSUMER DISC", "change": +0.3, "weight": 10, "color": "#00CC66" },
+        { "name": "INDUSTRIALS", "change": -0.1, "weight": 9, "color": "#FF3344" },
+        { "name": "COMM SERVICES", "change": +1.5, "weight": 8, "color": "#00CC66" },
+        { "name": "CONSUMER STAPLES", "change": +0.1, "weight": 7, "color": "#00CC66" },
+        { "name": "UTILITIES", "change": -0.3, "weight": 3, "color": "#FF3344" },
+        { "name": "REAL ESTATE", "change": -0.6, "weight": 2, "color": "#FF3344" },
+        { "name": "MATERIALS", "change": +0.4, "weight": 1, "color": "#00CC66" }
+      ],
+      "colorScale": { "min": -3.0, "max": 3.0, "negative": "#FF2200", "zero": "#222222", "positive": "#00CC44" },
+      "font": "mono",
+      "cellPadding": 2
+    },
+    {
+      "id": "risk_dashboard",
+      "type": "greeksPanel",
+      "region": "riskDashboard",
+      "position": { "x": 1248, "y": 388, "w": 672, "h": 152 },
+      "description": "Portfolio risk metrics — VaR, Greeks, Sharpe, max drawdown",
+      "metrics": [
+        { "label": "VaR (95%)", "value": "-$2.4M", "unit": "1-day", "status": "warning", "color": "#FF8800", "limit": "$3.0M" },
+        { "label": "VaR (99%)", "value": "-$4.1M", "unit": "1-day", "status": "nominal", "color": "#00CC66", "limit": "$5.0M" },
+        { "label": "Delta", "value": "+847,230", "unit": "USD", "color": "#00CC66" },
+        { "label": "Gamma", "value": "+12,450", "unit": "USD/pt", "color": "#00CC66" },
+        { "label": "Theta", "value": "-$34,200", "unit": "daily", "color": "#FF3344" },
+        { "label": "Vega", "value": "+$128,400", "unit": "per 1% vol", "color": "#00CC66" },
+        { "label": "Sharpe", "value": "1.84", "unit": "annualized", "color": "#00CC66" },
+        { "label": "Max DD", "value": "-8.4%", "unit": "YTD", "color": "#FF3344" },
+        { "label": "Beta", "value": "1.12", "unit": "vs SPX", "color": "#FFCC00" },
+        { "label": "Margin Used", "value": "62%", "unit": "of available", "status": "nominal", "color": "#FFCC00", "limit": "85%" }
+      ],
+      "layout": "5x2_grid",
+      "font": "mono",
+      "dataMapping": "system.risk_metrics"
+    },
+    {
+      "id": "pnl_ticker",
+      "type": "scrollingTicker",
+      "region": "pnlTicker",
+      "position": { "x": 0, "y": 548, "w": 1240, "h": 48 },
+      "description": "Horizontally scrolling P&L ticker mapped to agent task completion values",
+      "items": [
+        { "label": "PORTFOLIO", "value": "+$1,847,320", "change": "+0.38%", "color": "#00CC66" },
+        { "label": "AGENT-ALPHA", "value": "+$642,100", "change": "+1.24%", "color": "#00CC66" },
+        { "label": "AGENT-BETA", "value": "-$128,400", "change": "-0.41%", "color": "#FF3344" },
+        { "label": "AGENT-GAMMA", "value": "+$892,000", "change": "+0.67%", "color": "#00CC66" },
+        { "label": "AGENT-DELTA", "value": "+$441,620", "change": "+0.92%", "color": "#00CC66" },
+        { "label": "UNREALIZED", "value": "+$1,204,800", "change": "", "color": "#00CC66" },
+        { "label": "REALIZED", "value": "+$642,520", "change": "YTD", "color": "#00CC66" },
+        { "label": "FEES", "value": "-$12,440", "change": "MTD", "color": "#FF3344" }
+      ],
+      "scrollSpeed": 2,
+      "font": "mono",
+      "separator": "|",
+      "dataMapping": "agents.*.pnl"
+    },
+    {
+      "id": "news_feed",
+      "type": "scrollingNewsFeed",
+      "region": "newsFeed",
+      "position": { "x": 0, "y": 604, "w": 640, "h": 240 },
+      "description": "Bloomberg-style scrolling news feed mapped to agent milestones and system events",
+      "maxVisible": 10,
+      "items": [
+        { "time": "14:32:04", "source": "C9-WIRE", "priority": "HIGH", "headline": "Agent Alpha completes primary task batch — throughput up 24% vs baseline", "color": "#FF8800" },
+        { "time": "14:31:22", "source": "BROKER", "priority": "NORMAL", "headline": "Session lifecycle: 3 agents active, 1 queued. Avg latency 142ms", "color": "#DDDDDD" },
+        { "time": "14:30:45", "source": "HUB", "priority": "NORMAL", "headline": "WebSocket broadcast: 847 events/min across 12 connected clients", "color": "#DDDDDD" },
+        { "time": "14:29:58", "source": "GATEWAY", "priority": "LOW", "headline": "API rate limit at 62% capacity — 1,240 req/min sustained", "color": "#888888" },
+        { "time": "14:28:12", "source": "C9-WIRE", "priority": "URGENT", "headline": "ALERT: Agent Gamma encountered merge conflict — resolution in progress", "color": "#FF3344" },
+        { "time": "14:27:33", "source": "MARKET", "priority": "HIGH", "headline": "Project velocity trending +18% week-over-week", "color": "#FF8800" },
+        { "time": "14:26:01", "source": "BROKER", "priority": "NORMAL", "headline": "Memory utilization: Alpha 78%, Beta 45%, Gamma 82%, Delta 61%", "color": "#DDDDDD" }
+      ],
+      "font": "mono",
+      "scrollSpeed": 0.8,
+      "dataMapping": "hub.events"
+    },
+    {
+      "id": "alert_stack",
+      "type": "notificationStack",
+      "region": "alertStack",
+      "position": { "x": 648, "y": 604, "w": 592, "h": 120 },
+      "description": "Stacked alert cards with severity and auto-dismiss",
+      "maxVisible": 4,
+      "alerts": [
+        { "severity": "critical", "time": "14:31:58", "title": "MARGIN CALL WARNING", "message": "Agent-Gamma portfolio approaching margin limit (82%)", "color": "#FF1133", "ttl": 300 },
+        { "severity": "warning", "time": "14:30:22", "title": "VOLATILITY SPIKE", "message": "VIX equivalent jumped 3.2pts — hedging recommended", "color": "#FF8800", "ttl": 600 },
+        { "severity": "info", "time": "14:28:45", "title": "ORDER FILLED", "message": "Limit order C9X 4847.20 x 500 FILLED @ 4847.18", "color": "#3388FF", "ttl": 120 },
+        { "severity": "info", "time": "14:27:10", "title": "REBALANCE COMPLETE", "message": "Portfolio auto-rebalanced per target allocation", "color": "#3388FF", "ttl": 120 }
+      ],
+      "dismissAnimation": "slideRight",
+      "font": "secondary"
+    },
+    {
+      "id": "position_table",
+      "type": "dataTable",
+      "region": "positionTable",
+      "position": { "x": 648, "y": 732, "w": 592, "h": 112 },
+      "description": "Position summary table — each row is an agent's portfolio holdings",
+      "columns": ["AGENT", "INSTRUMENT", "QTY", "AVG PRICE", "LAST", "P&L", "P&L %", "WEIGHT"],
+      "rows": [
+        { "agent": "Alpha", "instrument": "C9X-COMPUTE", "qty": 12400, "avgPrice": 48.20, "last": 48.72, "pnl": "+$6,448", "pnlPct": "+1.08%", "weight": "32%", "color": "#00CC66" },
+        { "agent": "Beta", "instrument": "C9X-STORAGE", "qty": 8200, "avgPrice": 31.10, "last": 30.84, "pnl": "-$2,132", "pnlPct": "-0.84%", "weight": "18%", "color": "#FF3344" },
+        { "agent": "Gamma", "instrument": "C9X-NETWORK", "qty": 15600, "avgPrice": 22.40, "last": 23.12, "pnl": "+$11,232", "pnlPct": "+3.21%", "weight": "28%", "color": "#00CC66" },
+        { "agent": "Delta", "instrument": "C9X-DEPLOY", "qty": 9800, "avgPrice": 41.60, "last": 42.14, "pnl": "+$5,292", "pnlPct": "+1.30%", "weight": "22%", "color": "#00CC66" }
+      ],
+      "font": "mono",
+      "rowHeight": 22,
+      "headerBg": "#1A1A1A",
+      "altRowBg": "#141414",
+      "dataMapping": "agents.*.positions"
+    },
+    {
+      "id": "sector_pie",
+      "type": "pieChart",
+      "region": "sectorPie",
+      "position": { "x": 1248, "y": 548, "w": 336, "h": 300 },
+      "description": "Portfolio sector allocation donut chart",
+      "title": "SECTOR ALLOCATION",
+      "innerRadius": 0.55,
+      "segments": [
+        { "label": "COMPUTE", "value": 32, "color": "#00AAFF", "agent": "alpha" },
+        { "label": "NETWORK", "value": 28, "color": "#00CC88", "agent": "gamma" },
+        { "label": "DEPLOY", "value": 22, "color": "#FF6622", "agent": "delta" },
+        { "label": "STORAGE", "value": 18, "color": "#FFD700", "agent": "beta" }
+      ],
+      "centerText": { "line1": "$48.2M", "line2": "AUM", "font": "primary" },
+      "legend": { "position": "bottom", "font": "secondary", "size": 10 },
+      "dataMapping": "system.resource_allocation"
+    },
+    {
+      "id": "correlation_matrix",
+      "type": "heatmapMatrix",
+      "region": "correlationMatrix",
+      "position": { "x": 1592, "y": 548, "w": 328, "h": 300 },
+      "description": "Agent correlation matrix — how co-related agent performances are",
+      "title": "CORRELATION MATRIX",
+      "labels": ["ALPHA", "BETA", "GAMMA", "DELTA"],
+      "matrix": [
+        [1.00, 0.42, 0.78, 0.31],
+        [0.42, 1.00, 0.15, 0.67],
+        [0.78, 0.15, 1.00, 0.55],
+        [0.31, 0.67, 0.55, 1.00]
+      ],
+      "colorScale": { "min": -1, "max": 1, "negative": "#FF3300", "zero": "#222222", "positive": "#0066FF" },
+      "cellSize": 56,
+      "font": "mono",
+      "precision": 2,
+      "dataMapping": "agents.correlation"
+    },
+    {
+      "id": "market_ticker_tape",
+      "type": "tickerTape",
+      "region": "topBanner",
+      "position": { "x": 0, "y": 852, "w": 1920, "h": 48 },
+      "description": "Bottom scrolling ticker tape with major indices and agent metrics",
+      "tickers": [
+        { "symbol": "C9X", "price": 4847.32, "change": +62.18, "pct": "+1.30%", "color": "#00CC66" },
+        { "symbol": "SPX", "price": 5842.10, "change": +28.40, "pct": "+0.49%", "color": "#00CC66" },
+        { "symbol": "NDX", "price": 20441.80, "change": +184.20, "pct": "+0.91%", "color": "#00CC66" },
+        { "symbol": "VIX", "price": 14.82, "change": -0.43, "pct": "-2.82%", "color": "#FF3344" },
+        { "symbol": "DXY", "price": 103.42, "change": -0.18, "pct": "-0.17%", "color": "#FF3344" },
+        { "symbol": "US10Y", "price": 4.28, "change": +0.03, "pct": "+0.71%", "color": "#00CC66" },
+        { "symbol": "BTC", "price": 98420, "change": +2840, "pct": "+2.97%", "color": "#00CC66" },
+        { "symbol": "GOLD", "price": 2847.20, "change": +12.40, "pct": "+0.44%", "color": "#00CC66" }
+      ],
+      "scrollSpeed": 3,
+      "bgColor": "#0A0A0A",
+      "borderTop": { "color": "#FF8800", "width": 2 },
+      "font": "mono"
+    },
+    {
+      "id": "vwap_line",
+      "type": "chartOverlay",
+      "position": { "x": 320, "y": 0, "w": 920, "h": 460 },
+      "description": "VWAP line overlaid on main chart",
+      "overlayType": "vwap",
+      "color": "#3388FF",
+      "width": 1.5,
+      "label": "VWAP 4841.18",
+      "dataMapping": "system.avg_throughput"
+    },
+    {
+      "id": "depth_chart_mini",
+      "type": "depthChart",
+      "position": { "x": 0, "y": 460, "w": 312, "h": 80 },
+      "description": "Mini depth chart showing bid/ask volume profile",
+      "bidArea": { "color": "#00CC6622", "borderColor": "#00CC66" },
+      "askArea": { "color": "#FF334422", "borderColor": "#FF3344" },
+      "midpoint": 4847.32,
+      "range": 5.0,
+      "font": "mono"
+    },
+    {
+      "id": "trade_blotter",
+      "type": "tradeList",
+      "position": { "x": 0, "y": 848, "w": 640, "h": 56 },
+      "description": "Recent trade executions — time and sales",
+      "columns": ["TIME", "SIDE", "QTY", "PRICE", "VENUE"],
+      "trades": [
+        { "time": "14:32:06.442", "side": "BUY", "qty": 200, "price": 4847.32, "venue": "XNYS", "color": "#00CC66" },
+        { "time": "14:32:06.318", "side": "SELL", "qty": 500, "price": 4847.28, "venue": "BATS", "color": "#FF3344" },
+        { "time": "14:32:06.102", "side": "BUY", "qty": 150, "price": 4847.32, "venue": "ARCA", "color": "#00CC66" },
+        { "time": "14:32:05.994", "side": "BUY", "qty": 800, "price": 4847.28, "venue": "XNYS", "color": "#00CC66" }
+      ],
+      "font": "mono",
+      "maxVisible": 4
+    },
+    {
+      "id": "bloomberg_header",
+      "type": "terminalHeader",
+      "position": { "x": 0, "y": 904, "w": 1920, "h": 28 },
+      "segments": [
+        { "text": "BLOOMBERG PROFESSIONAL", "color": "#FF8800", "font": "primary" },
+        { "text": "C9-OPERATOR ANALYTICS", "color": "#DDDDDD" },
+        { "text": "14:32:07 EST", "color": "#888888" },
+        { "text": "USR: SCOADY", "color": "#888888" },
+        { "text": "PAGE 1/1", "color": "#444444" }
+      ],
+      "bgColor": "#0A0A0A",
+      "borderBottom": "#222222"
+    },
+    {
+      "id": "volume_profile",
+      "type": "volumeProfile",
+      "position": { "x": 1160, "y": 40, "w": 80, "h": 420 },
+      "description": "Vertical volume-at-price profile on right edge of chart",
+      "orientation": "horizontal_bars",
+      "color": "#3366CC44",
+      "pocColor": "#FFCC00",
+      "pocPrice": 4838.50,
+      "pocLabel": "POC",
+      "valueArea": { "high": 4852, "low": 4830, "fillColor": "#3366CC11" }
+    },
+    {
+      "id": "rsi_oscillator",
+      "type": "oscillator",
+      "position": { "x": 320, "y": 460, "w": 920, "h": 80 },
+      "description": "RSI(14) oscillator below main chart",
+      "indicator": "RSI",
+      "period": 14,
+      "value": 62.4,
+      "overbought": 70,
+      "oversold": 30,
+      "lineColor": "#9966FF",
+      "overboughtColor": "#FF334433",
+      "oversoldColor": "#00CC6633",
+      "gridColor": "#1A1A1A",
+      "font": "mono"
+    }
+  ],
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "opacity": 0.03, "spacing": 2, "speed": 0 },
+    "vignette": { "enabled": true, "intensity": 0.2, "radius": 0.92 },
+    "filmGrain": { "enabled": true, "intensity": 0.01, "fps": 24 },
+    "bloom": { "enabled": false },
+    "backgroundTexture": "bloomberg-terminal-matte",
+    "panelBevel": { "enabled": true, "size": 1, "highlight": "#2A2A2A", "shadow": "#080808" },
+    "crtPhosphor": { "enabled": true, "color": "#FF880008", "pattern": "rgb-stripe" },
+    "priceFlash": { "enabled": true, "uptickColor": "#00CC66", "downtickColor": "#FF3344", "duration": 8 }
+  },
+  "animations": [
+    { "id": "intro_terminal_boot", "target": "all", "frames": [0, 40], "type": "terminalBoot", "easing": "step", "lineDelay": 1, "bootText": "BLOOMBERG TERMINAL v4.2.1 // CONNECTING..." },
+    { "id": "candle_grow", "target": "main_candlestick", "frames": [40, 300], "type": "candleAppend", "easing": "linear", "newCandleEvery": 50 },
+    { "id": "orderbook_flash", "target": "order_book_depth", "frames": [40, 300], "type": "levelFlash", "easing": "easeOutQuad", "frequency": 8, "flashColor": "#FFFFFF20" },
+    { "id": "pnl_scroll", "target": "pnl_ticker", "frames": [40, 300], "type": "horizontalScroll", "easing": "linear", "continuous": true },
+    { "id": "news_scroll", "target": "news_feed", "frames": [40, 300], "type": "verticalScroll", "easing": "linear", "continuous": true },
+    { "id": "ticker_scroll", "target": "market_ticker_tape", "frames": [0, 300], "type": "horizontalScroll", "easing": "linear", "continuous": true, "speed": 3 },
+    { "id": "heatmap_pulse", "target": "market_heatmap", "frames": [60, 120], "type": "cellPulse", "easing": "easeInOutSine", "trigger": "price_change" },
+    { "id": "alert_stack_in", "target": "alert_stack", "frames": [80, 100], "type": "slideIn", "easing": "easeOutBack", "direction": "top" },
+    { "id": "price_update", "target": "main_candlestick.currentPrice", "frames": [40, 300], "type": "numericTick", "easing": "linear", "tickRate": 5 },
+    { "id": "correlation_fade", "target": "correlation_matrix", "frames": [50, 70], "type": "cellReveal", "easing": "easeOutQuart", "stagger": 2 },
+    { "id": "pie_spin_in", "target": "sector_pie", "frames": [45, 75], "type": "arcReveal", "easing": "easeOutCubic" },
+    { "id": "depth_animate", "target": "depth_chart_mini", "frames": [40, 300], "type": "areaOscillate", "easing": "perlinNoise", "amplitude": 5 }
+  ],
+  "dataMapping": {
+    "agents": {
+      "alpha": { "mapTo": "Desk 1 — Technology/Compute sector trader", "color": "#00AAFF", "role": "High-frequency task executor" },
+      "beta": { "mapTo": "Desk 2 — Storage/Infrastructure trader", "color": "#FFD700", "role": "Resource allocation optimizer" },
+      "gamma": { "mapTo": "Desk 3 — Network/Integration trader", "color": "#00CC88", "role": "Cross-system integration agent" },
+      "delta": { "mapTo": "Desk 4 — Deployment/Operations trader", "color": "#FF6622", "role": "Production deployment agent" }
+    },
+    "system": {
+      "c9_operator": "Chief Investment Officer — portfolio strategy",
+      "broker": "Prime Broker — session/order lifecycle",
+      "hub": "Market Data feed — real-time WebSocket price stream",
+      "api_gateway": "FIX Gateway — order routing entry point",
+      "projects": "Back office — trade settlement, storage",
+      "dashboard": "Trading floor displays — UI"
+    },
+    "metrics": {
+      "throughput": "Price / index level",
+      "tokens_per_sec": "Trades per second",
+      "task_completion": "P&L (profit/loss)",
+      "error_rate": "Risk / VaR",
+      "memory_pct": "Margin utilization",
+      "agent_correlation": "Cross-agent performance correlation"
+    }
+  }
+}

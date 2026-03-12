@@ -1,0 +1,83 @@
+{
+  "wireframeId": "atc-radar",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "primary-radar sweep line leading edge", "bloomRadius": 18, "intensity": 0.6, "note": "The sweep line should be brightest at the leading edge with aggressive bloom that fades into the 30-degree trail behind it" },
+      { "element": "primary-radar target blips", "bloomRadius": 8, "intensity": 0.45, "trigger": "post-sweep-refresh", "note": "Targets brighten momentarily as the sweep passes over them, then bloom decays with phosphor persistence" },
+      { "element": "conflict-alert border", "bloomRadius": 14, "intensity": 0.5, "trigger": "flash-peak", "note": "Red conflict alert border should bleed red light into surrounding panels on each flash peak" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0.8, "note": "Subtle radial aberration on the circular radar scope only — the curved CRT glass causes fringing at edges. No aberration on flat panels" },
+    "filmGrain": { "note": "0.02 is present. Add radar-specific noise: within the radar scope circle, overlay Perlin noise at 0.04 opacity that rotates WITH the sweep — radar ground clutter texture" },
+    "scanLines": { "note": "Spacing 4 at 0.03 is very subtle. The radar scope specifically should have CIRCULAR scan lines (concentric rings at 2px spacing, 0.04 opacity) rather than horizontal — it is a PPI display" },
+    "phosphorPersistence": { "note": "Decay 0.94 is specified. Add color shift during decay: fresh targets are bright #44ff66, decaying targets shift toward #227733 then #113322 before fading — phosphor color temperature drops as it fades" },
+    "reflectionGlare": [
+      { "type": "radar-hood-glass", "element": "primary-radar", "opacity": 0.03, "shape": "circular-rim", "note": "The PPI scope has a viewing hood. Add a faint circular rim highlight around the scope edge — glass bezel reflection" }
+    ],
+    "vignette": { "note": "Apply additional vignette SPECIFICALLY to the radar scope — a circular vignette, inner radius 0.7, outer 1.0, opacity 0.3. Radar edges are always darker than center" },
+    "particleEffects": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 0.8, "amplitudeY": 0.5, "period": 300, "note": "Minimal — ATC scopes are fixed workstations. Just enough to prevent static-image feeling" },
+    "rackFocus": [
+      { "from": "primary-radar", "to": "conflict-alert panel", "frameRange": [95, 110], "blurRadius": 3, "note": "When C9G003 conflict alert triggers, focus subtly shifts to the conflict panel — controller's eyes snap to the alarm" }
+    ],
+    "dramaticReveals": [
+      { "element": "approach-sequence entry0 slideUp", "frameRange": [240, 270], "note": "Specified but needs enhancement: as C9G003 completes approach, the entry should flash green briefly, then slide up and fade with a satisfying 'cleared to land' finality. Remaining entries compact upward with spring physics" }
+    ],
+    "breathingAnimations": [
+      { "element": "primary-radar center glow", "type": "subtle-pulse", "period": 150, "intensityRange": [0.03, 0.06], "note": "The center of the radar (antenna position) should have a faint steady glow that breathes — the transmitter is always radiating" },
+      { "element": "flight-strips active strips", "type": "border-glow-pulse", "period": 90, "note": "Active flight strips should have their green border subtly pulse — the strip is 'live'" }
+    ],
+    "microInteractions": [
+      { "element": "primary-radar target data tags", "type": "jitter", "amplitude": 0.3, "speed": 2, "note": "Data tags should have very slight positional jitter — they are auto-tracked labels and the system recalculates position each sweep" },
+      { "element": "wind-indicator arrow", "type": "flutter", "amplitude": 2, "speed": 0.5, "note": "Wind barb should flutter slightly — wind is never perfectly steady" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [235, 275], "description": "Landing sequence climax — C9G003 distance decreases to 0, flight strip flashes green, approach ladder entry slides up, conflict alert resolves and dims, controller logs 'C9G003 CLEARED TO LAND'. Brief moment of calm before next sequence begins" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "element": "primary-radar", "fix": "Add minimum radar altitude (MRA) contour lines at key terrain elevations around the airport. Add 'RADAR SERVICE TERMINATED' text at the outer range ring edge" },
+    { "element": "flight-strips", "fix": "Add SLOT TIME field (HH:MM) and SEQUENCE NUMBER. Also add a scratch-pad area per strip — a small text field for controller notes" },
+    { "region": "bottom-right (x:1376, y:906)", "fix": "The delay-info panel needs a DEPARTURE RATE vs ARRIVAL RATE ratio indicator and PREDICTED DELAY trend (arrow up/down/stable)" },
+    { "element": "sector-info", "fix": "Add NEXT SECTOR: C9-WEST, HANDOFF FREQ: 128.750 MHz, and sector entry/exit fixes" },
+    { "background": true, "fix": "Add airport diagram in very low opacity (0.04) centered on the radar scope — runway orientation visible beneath the radar returns" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Dark green scope with desaturated side panels — grade like the darkened TRACON room in Pushing Tin. Key color is phosphor green. Side panels should be cooler and more blue-gray (#0e1212) to contrast with the warm green scope",
+    "keyMoments": [
+      { "trigger": "conflict alert active", "shift": "Red bleed from the conflict alert panel washes across the right side at 0.03 opacity — the alarm contaminates the visual space" },
+      { "trigger": "C9G003 clears (frame 265+)", "shift": "Overall composition brightens 3% and conflict red fades out — tension release" }
+    ],
+    "accentUsage": "Weather overlay colors (yellow/orange/red) are well chosen. But the strip background (#1a1a22) is too blue for a green-dominant palette. Shift to #1a1c1a for consistency",
+    "backgroundAtmosphere": "The radar scope needs a subtle radial gradient — center #0e160e, edges #0a100a. The phosphor emits more light at center. Side panels should be flat dark"
+  },
+
+  "typographyNotes": {
+    "fonts": "Fira Code is excellent — ligatures give a modern professional feel to the data tags",
+    "monospaceReadout": "Fira Code at weight 600 for readouts is clean and wide. Perfect for radar tags where single-character misread could be dangerous",
+    "displayFont": "For the UTC clock (24px), consider using the font at weight 700 with slight letter-spacing (1px) for authority",
+    "sizeHierarchy": "9px labels are too small for ATC — real controllers need instant readability. Bump ALL labels to 11px minimum. Flight strip text at 10px should be 11px. Radar tags at 10px are acceptable for the reduced scope"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "primary-radar sweep", "sound": "Soft rhythmic whoosh every rotation — the sweep has a sound presence, like a washing machine on low" },
+      { "element": "background", "sound": "Constant low hum of electronics and air conditioning — the TRACON room is a sealed, climate-controlled cave" }
+    ],
+    "eventSounds": [
+      { "element": "conflict-alert flash", "sound": "SHARP two-tone alarm: D5-A5-D5 rapid repeat at 2Hz — the MSAW/conflict alert is the most terrifying sound in aviation" },
+      { "element": "comms-log new entry", "sound": "Squelch click + pilot/controller voice cadence — brief radio crackle" },
+      { "element": "approach-sequence slideUp (landing)", "sound": "Satisfied double-click — the strip is removed from the bay" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [233, 237], "description": "Brief pause before C9G003 touchdown — the controller watches the scope in silence. No new comms entries. The room is watching this one land" }
+    ]
+  }
+}

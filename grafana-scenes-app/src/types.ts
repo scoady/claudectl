@@ -84,6 +84,7 @@ export interface StreamEvent {
   agent_id?: string;
   session_id?: string;
   data?: any;
+  chunk?: string;
   text?: string;
   content?: string;
   milestone?: string;

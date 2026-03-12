@@ -1,0 +1,382 @@
+{
+  "id": "wireframe-f1",
+  "title": "Formula 1 Pit Wall Telemetry",
+  "description": "AWS-style F1 race telemetry mapping c9-operator agents to 4 competing cars with real-time performance data, strategy overlays, and broadcast graphics",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+  "colorGrading": {
+    "background": "#0A0A12",
+    "panelBg": "#12131D",
+    "panelBorder": "#1E2035",
+    "accent1_agentAlpha": "#E10600",
+    "accent2_agentBeta": "#00D2BE",
+    "accent3_agentGamma": "#FF8700",
+    "accent4_agentDelta": "#0090FF",
+    "purpleSector": "#A020F0",
+    "greenSector": "#00FF66",
+    "yellowSector": "#FFD700",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#8B8FA3",
+    "textMuted": "#4A4E6A",
+    "gridLine": "#1A1C30",
+    "warningAmber": "#FFB800",
+    "criticalRed": "#FF2D55",
+    "drsGreen": "#00FF88",
+    "tireHard": "#FFFFFF",
+    "tireMedium": "#FFD700",
+    "tireSoft": "#FF3333",
+    "trackSurface": "#1C1E2E",
+    "weatherRadarGreen": "#00CC44",
+    "weatherRadarYellow": "#FFCC00",
+    "weatherRadarRed": "#FF3300"
+  },
+  "typography": {
+    "primary": { "fontFamily": "F1 Wide, Titillium Web, sans-serif", "weight": 700 },
+    "secondary": { "fontFamily": "Titillium Web, sans-serif", "weight": 400 },
+    "mono": { "fontFamily": "JetBrains Mono, monospace", "weight": 400 },
+    "sizes": {
+      "heroTimer": 72,
+      "sectorTime": 36,
+      "panelTitle": 14,
+      "dataValue": 22,
+      "dataLabel": 11,
+      "radioText": 13,
+      "gapInterval": 18
+    }
+  },
+  "layout": {
+    "topBanner": { "x": 0, "y": 0, "w": 1920, "h": 48, "description": "F1-style broadcast banner with session info" },
+    "telemetryStrips": { "x": 0, "y": 52, "w": 960, "h": 440, "description": "4 stacked agent telemetry strips" },
+    "trackMap": { "x": 968, "y": 52, "w": 480, "h": 320, "description": "Circuit layout with position dots" },
+    "gapBoard": { "x": 1456, "y": 52, "w": 456, "h": 320, "description": "Gap timer leaderboard" },
+    "tireDegradation": { "x": 968, "y": 380, "w": 480, "h": 112, "description": "Tire degradation curves" },
+    "sectorTimes": { "x": 1456, "y": 380, "w": 456, "h": 112, "description": "Sector time comparison grid" },
+    "pitStrategy": { "x": 0, "y": 500, "w": 1240, "h": 140, "description": "Horizontal Gantt pit strategy timeline" },
+    "weatherRadar": { "x": 1248, "y": 500, "w": 200, "h": 140, "description": "Track weather radar" },
+    "fastestLap": { "x": 1456, "y": 500, "w": 456, "h": 64, "description": "Fastest lap indicator bar" },
+    "radioTranscript": { "x": 1456, "y": 572, "w": 456, "h": 68, "description": "Scrolling team radio feed" },
+    "bottomTicker": { "x": 0, "y": 648, "w": 1920, "h": 432, "description": "Reserved for lower-third overlays and additional data" }
+  },
+  "elements": [
+    {
+      "id": "session_banner",
+      "type": "banner",
+      "region": "topBanner",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 48 },
+      "content": { "left": "FIA FORMULA 1 | C9 GRAND PRIX", "center": "LAP 42 / 58", "right": "SESSION: RACE | 14:32:07 UTC" },
+      "style": { "bg": "#E10600", "text": "#FFFFFF", "font": "primary", "size": 16 }
+    },
+    {
+      "id": "telemetry_alpha",
+      "type": "telemetryStrip",
+      "region": "telemetryStrips",
+      "position": { "x": 8, "y": 56, "w": 944, "h": 105 },
+      "dataMapping": { "agent": "alpha", "label": "Agent-Alpha (ALF)", "carNumber": 1 },
+      "subElements": [
+        { "id": "speed_graph_a", "type": "lineChart", "x": 120, "y": 4, "w": 320, "h": 48, "data": "agent.alpha.tokens_per_sec", "unit": "km/h", "range": [0, 340], "color": "#E10600" },
+        { "id": "throttle_bar_a", "type": "horizontalBar", "x": 450, "y": 4, "w": 160, "h": 20, "data": "agent.alpha.cpu_pct", "label": "THR", "unit": "%", "range": [0, 100], "fillColor": "#00FF66" },
+        { "id": "brake_bar_a", "type": "horizontalBar", "x": 450, "y": 28, "w": 160, "h": 20, "data": "agent.alpha.memory_pct", "label": "BRK", "unit": "%", "range": [0, 100], "fillColor": "#FF2D55" },
+        { "id": "drs_indicator_a", "type": "statusLamp", "x": 620, "y": 4, "w": 60, "h": 44, "data": "agent.alpha.status", "states": { "active": "#00FF88", "inactive": "#333" }, "label": "DRS" },
+        { "id": "gear_display_a", "type": "numericReadout", "x": 700, "y": 4, "w": 50, "h": 44, "data": "agent.alpha.current_tool", "font": "primary", "size": 36 },
+        { "id": "rpm_bar_a", "type": "segmentedBar", "x": 760, "y": 4, "w": 170, "h": 20, "data": "agent.alpha.tokens_total", "segments": 15, "colorGradient": ["#00FF66", "#FFD700", "#FF2D55"] }
+      ]
+    },
+    {
+      "id": "telemetry_beta",
+      "type": "telemetryStrip",
+      "region": "telemetryStrips",
+      "position": { "x": 8, "y": 166, "w": 944, "h": 105 },
+      "dataMapping": { "agent": "beta", "label": "Agent-Beta (BET)", "carNumber": 2 },
+      "subElements": [
+        { "id": "speed_graph_b", "type": "lineChart", "x": 120, "y": 4, "w": 320, "h": 48, "data": "agent.beta.tokens_per_sec", "unit": "km/h", "range": [0, 340], "color": "#00D2BE" },
+        { "id": "throttle_bar_b", "type": "horizontalBar", "x": 450, "y": 4, "w": 160, "h": 20, "data": "agent.beta.cpu_pct", "label": "THR", "unit": "%", "fillColor": "#00FF66" },
+        { "id": "brake_bar_b", "type": "horizontalBar", "x": 450, "y": 28, "w": 160, "h": 20, "data": "agent.beta.memory_pct", "label": "BRK", "unit": "%", "fillColor": "#FF2D55" },
+        { "id": "drs_indicator_b", "type": "statusLamp", "x": 620, "y": 4, "w": 60, "h": 44, "data": "agent.beta.status", "states": { "active": "#00FF88", "inactive": "#333" }, "label": "DRS" },
+        { "id": "ers_deploy_b", "type": "circularGauge", "x": 700, "y": 4, "w": 44, "h": 44, "data": "agent.beta.progress_pct", "label": "ERS", "color": "#00D2BE" }
+      ]
+    },
+    {
+      "id": "telemetry_gamma",
+      "type": "telemetryStrip",
+      "region": "telemetryStrips",
+      "position": { "x": 8, "y": 276, "w": 944, "h": 105 },
+      "dataMapping": { "agent": "gamma", "label": "Agent-Gamma (GAM)", "carNumber": 3 },
+      "subElements": [
+        { "id": "speed_graph_g", "type": "lineChart", "x": 120, "y": 4, "w": 320, "h": 48, "data": "agent.gamma.tokens_per_sec", "unit": "km/h", "range": [0, 340], "color": "#FF8700" },
+        { "id": "throttle_bar_g", "type": "horizontalBar", "x": 450, "y": 4, "w": 160, "h": 20, "data": "agent.gamma.cpu_pct", "label": "THR", "unit": "%", "fillColor": "#00FF66" },
+        { "id": "brake_bar_g", "type": "horizontalBar", "x": 450, "y": 28, "w": 160, "h": 20, "data": "agent.gamma.memory_pct", "label": "BRK", "unit": "%", "fillColor": "#FF2D55" },
+        { "id": "drs_indicator_g", "type": "statusLamp", "x": 620, "y": 4, "w": 60, "h": 44, "data": "agent.gamma.status", "label": "DRS" }
+      ]
+    },
+    {
+      "id": "telemetry_delta",
+      "type": "telemetryStrip",
+      "region": "telemetryStrips",
+      "position": { "x": 8, "y": 386, "w": 944, "h": 105 },
+      "dataMapping": { "agent": "delta", "label": "Agent-Delta (DEL)", "carNumber": 4 },
+      "subElements": [
+        { "id": "speed_graph_d", "type": "lineChart", "x": 120, "y": 4, "w": 320, "h": 48, "data": "agent.delta.tokens_per_sec", "unit": "km/h", "range": [0, 340], "color": "#0090FF" },
+        { "id": "throttle_bar_d", "type": "horizontalBar", "x": 450, "y": 4, "w": 160, "h": 20, "data": "agent.delta.cpu_pct", "label": "THR", "unit": "%", "fillColor": "#00FF66" },
+        { "id": "brake_bar_d", "type": "horizontalBar", "x": 450, "y": 28, "w": 160, "h": 20, "data": "agent.delta.memory_pct", "label": "BRK", "unit": "%", "fillColor": "#FF2D55" },
+        { "id": "drs_indicator_d", "type": "statusLamp", "x": 620, "y": 4, "w": 60, "h": 44, "data": "agent.delta.status", "label": "DRS" }
+      ]
+    },
+    {
+      "id": "track_position_map",
+      "type": "trackMap",
+      "region": "trackMap",
+      "position": { "x": 968, "y": 52, "w": 480, "h": 320 },
+      "description": "SVG circuit outline (Monza-style) with 4 colored dots representing agent positions",
+      "dots": [
+        { "agent": "alpha", "color": "#E10600", "radius": 6 },
+        { "agent": "beta", "color": "#00D2BE", "radius": 6 },
+        { "agent": "gamma", "color": "#FF8700", "radius": 6 },
+        { "agent": "delta", "color": "#0090FF", "radius": 6 }
+      ],
+      "trackColor": "#2A2C40",
+      "sectorMarkers": ["S1", "S2", "S3"],
+      "drsZones": [{ "startPct": 0.65, "endPct": 0.78 }, { "startPct": 0.88, "endPct": 0.97 }],
+      "miniSectors": 25
+    },
+    {
+      "id": "gap_timer_board",
+      "type": "leaderboard",
+      "region": "gapBoard",
+      "position": { "x": 1456, "y": 52, "w": 456, "h": 320 },
+      "columns": ["POS", "AGENT", "INTERVAL", "GAP TO LEADER", "LAST LAP", "BEST LAP"],
+      "rows": [
+        { "pos": 1, "agent": "alpha", "interval": "LEADER", "gap": "--", "lastLap": "1:21.437", "bestLap": "1:20.892", "color": "#E10600" },
+        { "pos": 2, "agent": "beta", "interval": "+1.234", "gap": "+1.234", "lastLap": "1:21.671", "bestLap": "1:21.103", "color": "#00D2BE" },
+        { "pos": 3, "agent": "gamma", "interval": "+2.891", "gap": "+4.125", "lastLap": "1:22.014", "bestLap": "1:21.556", "color": "#FF8700" },
+        { "pos": 4, "agent": "delta", "interval": "+0.443", "gap": "+4.568", "lastLap": "1:21.998", "bestLap": "1:21.772", "color": "#0090FF" }
+      ],
+      "font": "mono",
+      "rowHeight": 52
+    },
+    {
+      "id": "tire_degradation",
+      "type": "multiLineChart",
+      "region": "tireDegradation",
+      "position": { "x": 968, "y": 380, "w": 480, "h": 112 },
+      "description": "Tire wear percentage over lap number, one line per agent",
+      "xAxis": { "label": "LAP", "range": [1, 58] },
+      "yAxis": { "label": "TIRE LIFE %", "range": [0, 100] },
+      "lines": [
+        { "agent": "alpha", "color": "#E10600", "compound": "SOFT", "compoundColor": "#FF3333", "currentWear": 34 },
+        { "agent": "beta", "color": "#00D2BE", "compound": "MEDIUM", "compoundColor": "#FFD700", "currentWear": 62 },
+        { "agent": "gamma", "color": "#FF8700", "compound": "HARD", "compoundColor": "#FFFFFF", "currentWear": 78 },
+        { "agent": "delta", "color": "#0090FF", "compound": "MEDIUM", "compoundColor": "#FFD700", "currentWear": 55 }
+      ],
+      "cliffZone": { "threshold": 20, "fillColor": "rgba(255,45,85,0.15)", "label": "CLIFF" }
+    },
+    {
+      "id": "sector_times_grid",
+      "type": "sectorGrid",
+      "region": "sectorTimes",
+      "position": { "x": 1456, "y": 380, "w": 456, "h": 112 },
+      "columns": ["AGENT", "S1", "S2", "S3"],
+      "colorCoding": { "purple": "#A020F0", "green": "#00FF66", "yellow": "#FFD700", "white": "#FFFFFF" },
+      "rows": [
+        { "agent": "Alpha", "s1": { "time": "28.441", "color": "purple" }, "s2": { "time": "24.102", "color": "green" }, "s3": { "time": "28.349", "color": "yellow" } },
+        { "agent": "Beta", "s1": { "time": "28.672", "color": "green" }, "s2": { "time": "24.331", "color": "yellow" }, "s3": { "time": "28.100", "color": "purple" } },
+        { "agent": "Gamma", "s1": { "time": "28.901", "color": "yellow" }, "s2": { "time": "24.055", "color": "purple" }, "s3": { "time": "28.600", "color": "yellow" } },
+        { "agent": "Delta", "s1": { "time": "28.780", "color": "yellow" }, "s2": { "time": "24.218", "color": "green" }, "s3": { "time": "28.000", "color": "green" } }
+      ]
+    },
+    {
+      "id": "pit_strategy_timeline",
+      "type": "ganttChart",
+      "region": "pitStrategy",
+      "position": { "x": 0, "y": 500, "w": 1240, "h": 140 },
+      "description": "Horizontal Gantt showing tire stints per agent across race distance",
+      "xAxis": { "label": "LAP", "range": [1, 58], "gridEvery": 5 },
+      "stints": [
+        { "agent": "alpha", "stints": [{ "start": 1, "end": 18, "compound": "SOFT", "color": "#FF3333" }, { "start": 19, "end": 42, "compound": "MEDIUM", "color": "#FFD700" }, { "start": 43, "end": 58, "compound": "HARD", "color": "#FFFFFF", "projected": true }] },
+        { "agent": "beta", "stints": [{ "start": 1, "end": 22, "compound": "MEDIUM", "color": "#FFD700" }, { "start": 23, "end": 42, "compound": "HARD", "color": "#FFFFFF" }, { "start": 43, "end": 58, "compound": "SOFT", "color": "#FF3333", "projected": true }] },
+        { "agent": "gamma", "stints": [{ "start": 1, "end": 30, "compound": "HARD", "color": "#FFFFFF" }, { "start": 31, "end": 58, "compound": "MEDIUM", "color": "#FFD700" }] },
+        { "agent": "delta", "stints": [{ "start": 1, "end": 15, "compound": "SOFT", "color": "#FF3333" }, { "start": 16, "end": 35, "compound": "MEDIUM", "color": "#FFD700" }, { "start": 36, "end": 58, "compound": "HARD", "color": "#FFFFFF" }] }
+      ],
+      "pitStopMarkers": true,
+      "currentLapLine": { "lap": 42, "color": "#FFFFFF", "dash": [4, 4] }
+    },
+    {
+      "id": "weather_radar",
+      "type": "radarMap",
+      "region": "weatherRadar",
+      "position": { "x": 1248, "y": 500, "w": 200, "h": 140 },
+      "description": "Doppler-style rain radar centered on circuit, 50km radius",
+      "rings": [10, 20, 30, 50],
+      "unit": "km",
+      "precipitation": { "current": "DRY", "forecast_10min": "10% rain", "forecast_30min": "35% rain" },
+      "colorScale": ["#00CC44", "#FFCC00", "#FF3300"],
+      "trackMarker": { "x": 100, "y": 70, "label": "CIRCUIT" },
+      "windDirection": 225,
+      "windSpeed": "12 km/h",
+      "trackTemp": "42C",
+      "airTemp": "28C",
+      "humidity": "64%"
+    },
+    {
+      "id": "fastest_lap_bar",
+      "type": "indicator",
+      "region": "fastestLap",
+      "position": { "x": 1456, "y": 500, "w": 456, "h": 64 },
+      "description": "Purple banner showing current fastest lap holder",
+      "content": { "label": "FASTEST LAP", "agent": "Alpha", "time": "1:20.892", "lap": "LAP 38", "delta": "-0.211" },
+      "style": { "bg": "#A020F0", "text": "#FFFFFF", "icon": "stopwatch" }
+    },
+    {
+      "id": "radio_transcript",
+      "type": "scrollingFeed",
+      "region": "radioTranscript",
+      "position": { "x": 1456, "y": 572, "w": 456, "h": 68 },
+      "description": "Scrolling team radio messages mapped to agent milestones",
+      "dataMapping": "agent.*.milestones",
+      "messages": [
+        { "time": "14:31:42", "from": "Alpha", "text": "Read completed on main.py, moving to tests", "icon": "radio" },
+        { "time": "14:31:58", "from": "Broker", "text": "Copy Alpha, session confirmed, good pace", "icon": "pitwall" },
+        { "time": "14:32:05", "from": "Gamma", "text": "Bash executed — build passing, push ready", "icon": "radio" }
+      ],
+      "scrollSpeed": 1.5,
+      "maxVisible": 3,
+      "font": "mono",
+      "size": 12
+    },
+    {
+      "id": "race_director_flags",
+      "type": "flagIndicator",
+      "position": { "x": 880, "y": 4, "w": 160, "h": 40 },
+      "states": { "green": "#00FF66", "yellow": "#FFD700", "red": "#FF0000", "checkered": "#FFFFFF" },
+      "current": "green",
+      "dataMapping": "system.status"
+    },
+    {
+      "id": "lap_counter",
+      "type": "numericDisplay",
+      "position": { "x": 480, "y": 4, "w": 200, "h": 40 },
+      "content": { "current": 42, "total": 58, "format": "LAP {current} / {total}" },
+      "font": "primary",
+      "size": 28
+    },
+    {
+      "id": "safety_car_indicator",
+      "type": "statusBadge",
+      "position": { "x": 1060, "y": 4, "w": 120, "h": 40 },
+      "states": { "deployed": { "bg": "#FFD700", "text": "SC DEPLOYED" }, "vsc": { "bg": "#FFD700", "text": "VSC" }, "clear": { "bg": "transparent", "text": "" } },
+      "current": "clear",
+      "dataMapping": "system.safety_car"
+    },
+    {
+      "id": "overtake_probability",
+      "type": "percentageBar",
+      "position": { "x": 968, "y": 336, "w": 480, "h": 36 },
+      "description": "Predicted overtake probability for gap between P1 and P2",
+      "label": "OVERTAKE PROB (P1-P2)",
+      "value": 34,
+      "unit": "%",
+      "gradient": ["#FF2D55", "#FFD700", "#00FF66"],
+      "dataMapping": "calculated.overtake_probability"
+    },
+    {
+      "id": "energy_recovery_alpha",
+      "type": "batteryGauge",
+      "position": { "x": 760, "y": 30, "w": 170, "h": 16 },
+      "label": "ERS DEPLOY",
+      "value": 72,
+      "maxValue": 100,
+      "unit": "%",
+      "fillColor": "#00FF88",
+      "dataMapping": "agent.alpha.energy_store"
+    },
+    {
+      "id": "delta_time_overlay",
+      "type": "deltaTimer",
+      "position": { "x": 1200, "y": 8, "w": 200, "h": 36 },
+      "description": "Real-time delta to leader, flashing green when gaining, red when losing",
+      "value": "+0.342",
+      "focusAgent": "beta",
+      "positiveColor": "#FF2D55",
+      "negativeColor": "#00FF66",
+      "font": "mono",
+      "size": 28
+    },
+    {
+      "id": "micro_sector_trace",
+      "type": "miniBarChart",
+      "position": { "x": 968, "y": 280, "w": 480, "h": 52 },
+      "description": "25 micro-sector time deltas as vertical bars, colored purple/green/yellow",
+      "sectors": 25,
+      "barWidth": 16,
+      "dataMapping": "agent.alpha.micro_sectors",
+      "colorCoding": { "fastest": "#A020F0", "personalBest": "#00FF66", "slower": "#FFD700" }
+    },
+    {
+      "id": "constructor_points",
+      "type": "scoreBoard",
+      "position": { "x": 0, "y": 648, "w": 480, "h": 48 },
+      "description": "Running points tally mapped to agent task completion scores",
+      "rows": [
+        { "team": "c9-operator", "points": 487, "color": "#E10600" },
+        { "team": "Broker-Hub", "points": 412, "color": "#00D2BE" }
+      ],
+      "font": "primary"
+    },
+    {
+      "id": "brake_temp_alpha",
+      "type": "quadGauge",
+      "position": { "x": 8, "y": 120, "w": 100, "h": 36 },
+      "label": "BRAKE TEMP",
+      "values": { "FL": "842C", "FR": "856C", "RL": "791C", "RR": "803C" },
+      "warningThreshold": 900,
+      "criticalThreshold": 1050,
+      "dataMapping": "agent.alpha.brake_temps"
+    }
+  ],
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "opacity": 0.04, "spacing": 3, "speed": 0.5 },
+    "vignette": { "enabled": true, "intensity": 0.35, "radius": 0.85 },
+    "filmGrain": { "enabled": true, "intensity": 0.02, "fps": 15 },
+    "bloom": { "enabled": true, "threshold": 0.75, "intensity": 0.2, "radius": 8 },
+    "chromaticAberration": { "enabled": true, "offset": 0.8, "edgesOnly": true },
+    "backgroundTexture": "carbon-fiber-weave",
+    "panelBevel": { "enabled": true, "size": 1, "highlight": "#2A2C50", "shadow": "#000000" }
+  },
+  "animations": [
+    { "id": "intro_wipe", "target": "all", "frames": [0, 45], "type": "horizontalWipe", "easing": "easeOutCubic", "direction": "left-to-right" },
+    { "id": "dots_orbit", "target": "track_position_map.dots", "frames": [30, 300], "type": "pathFollow", "easing": "linear", "loop": true, "speed": "proportional_to_gap" },
+    { "id": "telemetry_stream", "target": "telemetry_*.speed_graph", "frames": [45, 300], "type": "continuousScroll", "easing": "linear", "pixelsPerFrame": 2 },
+    { "id": "gap_flash", "target": "gap_timer_board.interval", "frames": [60, 90], "type": "flash", "easing": "easeInOutSine", "color": "#00FF66", "trigger": "on_overtake" },
+    { "id": "pit_stop_anim", "target": "pit_strategy_timeline", "frames": [120, 150], "type": "pitStopMarkerDrop", "easing": "easeOutBounce" },
+    { "id": "fastest_lap_glow", "target": "fastest_lap_bar", "frames": [180, 210], "type": "pulseGlow", "easing": "easeInOutSine", "color": "#A020F0", "intensity": 1.5 },
+    { "id": "radio_scroll", "target": "radio_transcript", "frames": [45, 300], "type": "verticalScroll", "easing": "linear", "continuous": true },
+    { "id": "tire_cliff_flash", "target": "tire_degradation.cliffZone", "frames": [200, 300], "type": "pulseOpacity", "easing": "easeInOutSine", "min": 0.1, "max": 0.3, "period": 30 },
+    { "id": "sector_reveal", "target": "sector_times_grid", "frames": [90, 120], "type": "staggeredFadeIn", "easing": "easeOutQuart", "stagger": 5 },
+    { "id": "weather_sweep", "target": "weather_radar", "frames": [0, 300], "type": "radarSweep", "easing": "linear", "rpm": 6, "loop": true }
+  ],
+  "dataMapping": {
+    "agents": {
+      "alpha": { "mapTo": "Car 1 / ALF", "color": "#E10600", "role": "Lead agent — primary task executor" },
+      "beta": { "mapTo": "Car 2 / BET", "color": "#00D2BE", "role": "Secondary agent — code review" },
+      "gamma": { "mapTo": "Car 3 / GAM", "color": "#FF8700", "role": "Test agent — CI/CD runner" },
+      "delta": { "mapTo": "Car 4 / DEL", "color": "#0090FF", "role": "Deploy agent — infrastructure" }
+    },
+    "system": {
+      "c9_operator": "Race Director / FIA control",
+      "broker": "Pit wall strategist — session lifecycle",
+      "hub": "Broadcast director — WebSocket stream",
+      "api_gateway": "Timing tower — HTTP entry",
+      "projects": "Circuit / track — storage context",
+      "dashboard": "TV director feed — UI compositor"
+    },
+    "metrics": {
+      "tokens_per_sec": "Speed (km/h)",
+      "cpu_pct": "Throttle application %",
+      "memory_pct": "Brake pressure %",
+      "status": "DRS activation",
+      "milestones": "Team radio messages",
+      "progress_pct": "Energy recovery %",
+      "tasks_completed": "Laps completed"
+    }
+  }
+}

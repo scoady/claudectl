@@ -1,0 +1,412 @@
+{
+  "id": "wireframe-starship",
+  "title": "Starship Bridge Tactical Display",
+  "description": "Star Trek Discovery / Expanse hybrid bridge interface mapping c9-operator to a starship bridge with tactical displays, engineering diagnostics, and sensor systems",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+  "colorGrading": {
+    "background": "#060612",
+    "panelBg": "#0C0C20",
+    "panelBorder": "#1A1A3E",
+    "lcarsOrange": "#FF9900",
+    "lcarsBlue": "#5599FF",
+    "lcarsTeal": "#33CCCC",
+    "lcarsRed": "#FF3344",
+    "lcarsYellow": "#FFCC00",
+    "lcarsPurple": "#CC77FF",
+    "shieldCyan": "#00FFEE",
+    "warpBlue": "#3366FF",
+    "phaserOrange": "#FF6622",
+    "torpedoRed": "#FF2244",
+    "sensorGreen": "#00FF88",
+    "textPrimary": "#E0E8FF",
+    "textSecondary": "#8899BB",
+    "textMuted": "#3A4466",
+    "gridLine": "#141430",
+    "alertGreen": "#00FF66",
+    "alertYellow": "#FFCC00",
+    "alertRed": "#FF2244",
+    "hullIntegrity": "#44AAFF",
+    "subspaceViolet": "#8844FF"
+  },
+  "typography": {
+    "primary": { "fontFamily": "Orbitron, Rajdhani, sans-serif", "weight": 700 },
+    "secondary": { "fontFamily": "Rajdhani, sans-serif", "weight": 400 },
+    "mono": { "fontFamily": "Share Tech Mono, monospace", "weight": 400 },
+    "sizes": {
+      "alertCondition": 48,
+      "systemLabel": 14,
+      "readoutValue": 28,
+      "readoutLabel": 10,
+      "tacticalBearing": 11,
+      "commsLog": 12,
+      "starChartLabel": 9
+    }
+  },
+  "layout": {
+    "tacticalDisplay": { "x": 480, "y": 20, "w": 560, "h": 560, "description": "Central tactical display with bearing rings" },
+    "shieldDisplay": { "x": 1060, "y": 20, "w": 420, "h": 280, "description": "Shield harmonic frequency oscilloscope" },
+    "driveCore": { "x": 1488, "y": 20, "w": 424, "h": 280, "description": "Warp/Epstein drive core diagnostics" },
+    "sensorSweep": { "x": 8, "y": 20, "w": 464, "h": 340, "description": "Sensor sweep arc display" },
+    "hullSchematic": { "x": 8, "y": 368, "w": 464, "h": 340, "description": "Ship hull integrity schematic" },
+    "weaponsStatus": { "x": 480, "y": 588, "w": 560, "h": 200, "description": "Weapons charge status — 4 banks" },
+    "alertCondition": { "x": 1060, "y": 308, "w": 420, "h": 80, "description": "Alert condition indicator" },
+    "commsLog": { "x": 1060, "y": 396, "w": 420, "h": 200, "description": "Subspace communications log" },
+    "starChart": { "x": 1488, "y": 308, "w": 424, "h": 288, "description": "Navigation star chart" },
+    "statusBar": { "x": 0, "y": 796, "w": 1920, "h": 48, "description": "Bottom status bar" },
+    "engineeringReadouts": { "x": 1060, "y": 604, "w": 852, "h": 184, "description": "Engineering subsystem readouts" }
+  },
+  "elements": [
+    {
+      "id": "tactical_display",
+      "type": "tacticalRadar",
+      "region": "tacticalDisplay",
+      "position": { "x": 480, "y": 20, "w": 560, "h": 560 },
+      "description": "Circular tactical display with concentric bearing rings (0-360 deg), range rings at 1k/5k/10k/50k km. Ship icon at center. Threat vectors as colored pips with velocity lines.",
+      "center": { "x": 280, "y": 280, "shipIcon": "dorsal-silhouette" },
+      "bearingRings": { "count": 36, "labelEvery": 30, "color": "#1A1A3E", "labelColor": "#3A4466" },
+      "rangeRings": [
+        { "radius": 70, "label": "1K KM", "color": "#1A1A3E" },
+        { "radius": 140, "label": "5K KM", "color": "#1A1A3E" },
+        { "radius": 210, "label": "10K KM", "color": "#1A1A3E" },
+        { "radius": 260, "label": "50K KM", "color": "#1A1A3E", "dash": [2, 4] }
+      ],
+      "contacts": [
+        { "id": "contact1", "bearing": 45, "range": 4200, "classification": "FRIENDLY", "color": "#00FF88", "iff": "USS Reliant", "velocity": 0.25, "heading": 180 },
+        { "id": "contact2", "bearing": 170, "range": 8100, "classification": "UNKNOWN", "color": "#FFCC00", "iff": "UNIDENTIFIED", "velocity": 0.4, "heading": 350 },
+        { "id": "contact3", "bearing": 290, "range": 12000, "classification": "HOSTILE", "color": "#FF2244", "iff": "THREAT ALPHA", "velocity": 0.6, "heading": 90, "threatVector": true },
+        { "id": "contact4", "bearing": 220, "range": 2800, "classification": "NEUTRAL", "color": "#5599FF", "iff": "STATION K-7", "velocity": 0, "heading": 0 }
+      ],
+      "sweepLine": { "color": "#00FF8855", "rpm": 4 },
+      "centerReadout": { "heading": "047 MK 3", "speed": "WARP 6.2", "font": "mono" }
+    },
+    {
+      "id": "shield_harmonics",
+      "type": "oscilloscope",
+      "region": "shieldDisplay",
+      "position": { "x": 1060, "y": 20, "w": 420, "h": 280 },
+      "description": "Shield frequency oscilloscope showing harmonic waveform, frequency readout, and shield percentage per facing",
+      "waveform": { "type": "complex_sine", "frequency": "257.4 MHz", "amplitude": 0.8, "color": "#00FFEE", "glowRadius": 8 },
+      "shieldFacings": [
+        { "facing": "FORE", "strength": 98, "color": "#00FFEE" },
+        { "facing": "AFT", "strength": 94, "color": "#00FFEE" },
+        { "facing": "PORT", "strength": 100, "color": "#00FFEE" },
+        { "facing": "STBD", "strength": 100, "color": "#00FFEE" }
+      ],
+      "totalShield": { "value": 98, "unit": "%", "label": "SHIELD INTEGRITY" },
+      "modulationRate": "4.2 GHz",
+      "nutationFreq": "312.7 kHz",
+      "gridColor": "#141430",
+      "dataMapping": "system.shield_status"
+    },
+    {
+      "id": "drive_core_diagnostics",
+      "type": "engineeringPanel",
+      "region": "driveCore",
+      "position": { "x": 1488, "y": 20, "w": 424, "h": 280 },
+      "description": "Warp core / Epstein drive power output, temperature, magnetic containment, and reaction chamber status",
+      "coreSchematic": { "type": "verticalReactor", "x": 20, "y": 40, "w": 120, "h": 200, "glowColor": "#3366FF", "pulseRate": 1.5 },
+      "parameters": [
+        { "label": "POWER OUTPUT", "value": "1.21 TW", "gauge": { "current": 1.21, "max": 1.50, "unit": "TW" }, "color": "#3366FF", "status": "NOMINAL" },
+        { "label": "CORE TEMP", "value": "2,847,000 K", "gauge": { "current": 2847, "max": 4000, "unit": "kK" }, "color": "#FF9900", "status": "NOMINAL" },
+        { "label": "CONTAINMENT", "value": "99.97%", "gauge": { "current": 99.97, "max": 100, "unit": "%" }, "color": "#00FF88", "status": "NOMINAL", "criticalBelow": 97.0 },
+        { "label": "PLASMA FLOW", "value": "4,200 cc/s", "gauge": { "current": 4200, "max": 6000, "unit": "cc/s" }, "color": "#33CCCC", "status": "NOMINAL" },
+        { "label": "DILITHIUM MATRIX", "value": "94.2% INTEGRITY", "gauge": { "current": 94.2, "max": 100, "unit": "%" }, "color": "#CC77FF", "status": "NOMINAL" },
+        { "label": "ANTIMATTER RESERVE", "value": "78.4%", "gauge": { "current": 78.4, "max": 100, "unit": "%" }, "color": "#FFCC00", "status": "NOMINAL" }
+      ],
+      "dataMapping": "broker.process_health"
+    },
+    {
+      "id": "sensor_sweep",
+      "type": "sensorArc",
+      "region": "sensorSweep",
+      "position": { "x": 8, "y": 20, "w": 464, "h": 340 },
+      "description": "120-degree forward sensor arc with rotating sweep line and anomaly markers",
+      "arcAngle": 120,
+      "sweepColor": "#00FF8833",
+      "sweepSpeed": 3,
+      "maxRange": "100K KM",
+      "detectedObjects": [
+        { "type": "asteroid_field", "bearing": 15, "range": 22000, "size": "LARGE", "color": "#8899BB" },
+        { "type": "subspace_anomaly", "bearing": -30, "range": 45000, "size": "MEDIUM", "color": "#8844FF", "pulsing": true },
+        { "type": "debris_field", "bearing": 5, "range": 8000, "size": "SMALL", "color": "#FFCC00" },
+        { "type": "vessel_warp_signature", "bearing": 40, "range": 67000, "size": "POINT", "color": "#FF2244", "label": "WARP SIGNATURE" }
+      ],
+      "sensorModes": { "active": "LONG RANGE", "passive": true, "tachyon": false },
+      "signalStrength": { "value": -42, "unit": "dBm", "quality": "STRONG" },
+      "dataMapping": "hub.broadcast_range"
+    },
+    {
+      "id": "hull_integrity",
+      "type": "shipSchematic",
+      "region": "hullSchematic",
+      "position": { "x": 8, "y": 368, "w": 464, "h": 340 },
+      "description": "Top-down ship wireframe with color-coded hull sections showing integrity percentage and damage overlay",
+      "shipOutline": "federation_cruiser_dorsal",
+      "sections": [
+        { "id": "bridge", "label": "BRIDGE", "integrity": 100, "color": "#00FF88" },
+        { "id": "saucer_fore", "label": "SAUCER FORE", "integrity": 98, "color": "#00FF88" },
+        { "id": "saucer_aft", "label": "SAUCER AFT", "integrity": 95, "color": "#00FF88" },
+        { "id": "engineering", "label": "ENGINEERING", "integrity": 100, "color": "#00FF88" },
+        { "id": "port_nacelle", "label": "PORT NACELLE", "integrity": 88, "color": "#FFCC00", "damageOverlay": true },
+        { "id": "stbd_nacelle", "label": "STBD NACELLE", "integrity": 100, "color": "#00FF88" },
+        { "id": "deflector", "label": "DEFLECTOR", "integrity": 100, "color": "#00FF88" },
+        { "id": "shuttle_bay", "label": "SHUTTLE BAY", "integrity": 97, "color": "#00FF88" }
+      ],
+      "overallIntegrity": { "value": 97.3, "unit": "%", "label": "HULL INTEGRITY" },
+      "colorScale": { "100": "#00FF88", "80": "#FFCC00", "50": "#FF9900", "20": "#FF2244" },
+      "dataMapping": "system.infrastructure_health"
+    },
+    {
+      "id": "weapons_banks",
+      "type": "weaponsStatus",
+      "region": "weaponsStatus",
+      "position": { "x": 480, "y": 588, "w": 560, "h": 200 },
+      "description": "4 weapons banks (one per agent) showing charge level, type, and targeting status",
+      "banks": [
+        { "id": "bank1", "agent": "alpha", "label": "BANK 1 — PHASER ARRAY", "type": "phaser_type_XII", "charge": 92, "maxCharge": 100, "color": "#FF6622", "status": "ARMED", "target": "contact3", "firingArc": "FORE 180" },
+        { "id": "bank2", "agent": "beta", "label": "BANK 2 — TORPEDO BAY", "type": "quantum_torpedo", "charge": 100, "maxCharge": 100, "color": "#FF2244", "status": "LOADED", "magazine": { "loaded": 4, "reserve": 24, "type": "QUANTUM" }, "target": "none" },
+        { "id": "bank3", "agent": "gamma", "label": "BANK 3 — AFT PHASER", "type": "phaser_type_X", "charge": 78, "maxCharge": 100, "color": "#FF6622", "status": "CHARGING", "target": "none", "firingArc": "AFT 120" },
+        { "id": "bank4", "agent": "delta", "label": "BANK 4 — POINT DEFENSE", "type": "pulse_phaser", "charge": 100, "maxCharge": 100, "color": "#FFCC00", "status": "AUTO", "target": "debris", "firingArc": "360" }
+      ],
+      "tacticalMode": "DEFENSIVE",
+      "masterArm": "ARMED",
+      "dataMapping": "agents.*.readiness"
+    },
+    {
+      "id": "alert_condition",
+      "type": "alertIndicator",
+      "region": "alertCondition",
+      "position": { "x": 1060, "y": 308, "w": 420, "h": 80 },
+      "description": "Ship-wide alert condition indicator with pulsing border",
+      "states": {
+        "green": { "label": "CONDITION GREEN", "color": "#00FF66", "bgColor": "#0A1A0F", "pulse": false },
+        "yellow": { "label": "YELLOW ALERT", "color": "#FFCC00", "bgColor": "#1A1A0A", "pulse": true, "pulseRate": 1.0 },
+        "red": { "label": "RED ALERT", "color": "#FF2244", "bgColor": "#1A0A0A", "pulse": true, "pulseRate": 2.0, "klaxon": true }
+      },
+      "current": "yellow",
+      "reason": "UNIDENTIFIED VESSEL ON APPROACH — BEARING 170 MK 2",
+      "font": "primary",
+      "size": 36,
+      "dataMapping": "system.alert_level"
+    },
+    {
+      "id": "subspace_comms",
+      "type": "scrollingLog",
+      "region": "commsLog",
+      "position": { "x": 1060, "y": 396, "w": 420, "h": 200 },
+      "description": "Subspace communications log — incoming/outgoing transmissions mapped to WebSocket events",
+      "maxVisible": 8,
+      "entries": [
+        { "time": "SD 58742.3", "direction": "IN", "from": "STARFLEET CMD", "priority": "ROUTINE", "message": "Patrol sector 221-B acknowledged. Maintain course.", "encrypted": false, "color": "#5599FF" },
+        { "time": "SD 58742.4", "direction": "OUT", "from": "OPS", "priority": "NORMAL", "message": "Sensor contact bearing 170 — requesting IFF database check", "encrypted": true, "color": "#33CCCC" },
+        { "time": "SD 58742.5", "direction": "IN", "from": "USS RELIANT", "priority": "URGENT", "message": "Confirming hostile warp signature on long-range. Advise yellow alert.", "encrypted": false, "color": "#FFCC00" },
+        { "time": "SD 58742.6", "direction": "OUT", "from": "TAC", "priority": "PRIORITY", "message": "Yellow alert raised. All hands to stations.", "encrypted": false, "color": "#FFCC00" }
+      ],
+      "font": "mono",
+      "scrollSpeed": 1,
+      "dataMapping": "hub.websocket_events"
+    },
+    {
+      "id": "star_chart",
+      "type": "navigationChart",
+      "region": "starChart",
+      "position": { "x": 1488, "y": 308, "w": 424, "h": 288 },
+      "description": "3D-projected star chart showing current position, planned course, nearby systems",
+      "projection": "orthographic_top",
+      "gridSpacing": 10,
+      "gridUnit": "LY",
+      "currentPosition": { "x": 212, "y": 144, "label": "CURRENT", "color": "#00FF88" },
+      "course": {
+        "waypoints": [
+          { "x": 212, "y": 144, "label": "HERE" },
+          { "x": 280, "y": 120, "label": "WP-1" },
+          { "x": 350, "y": 90, "label": "DESTINATION", "system": "BETA QUADRANT OUTPOST" }
+        ],
+        "lineColor": "#5599FF",
+        "lineStyle": "dashed",
+        "eta": "4d 12h at Warp 6"
+      },
+      "nearbySystems": [
+        { "name": "Sol", "x": 100, "y": 200, "class": "G2V", "color": "#FFCC00", "radius": 3 },
+        { "name": "Alpha Centauri", "x": 120, "y": 190, "class": "G2V+K1V", "color": "#FFCC00", "radius": 2 },
+        { "name": "Vulcan", "x": 155, "y": 165, "class": "K1III", "color": "#FF9900", "radius": 3 },
+        { "name": "Andoria", "x": 180, "y": 130, "class": "B8V", "color": "#5599FF", "radius": 2 }
+      ],
+      "dangerZones": [
+        { "label": "NEUTRAL ZONE", "type": "polygon", "color": "#FF224433", "borderColor": "#FF2244", "dash": [6, 3] }
+      ],
+      "dataMapping": "projects.navigation"
+    },
+    {
+      "id": "status_bar",
+      "type": "bottomBar",
+      "region": "statusBar",
+      "position": { "x": 0, "y": 796, "w": 1920, "h": 48 },
+      "segments": [
+        { "label": "USS OPERATOR NCC-1701-C9", "w": 320, "font": "primary", "color": "#FF9900" },
+        { "label": "STARDATE 58742.6", "w": 200, "font": "mono", "color": "#E0E8FF" },
+        { "label": "WARP 6.2 | HDG 047 MK 3", "w": 280, "font": "mono", "color": "#33CCCC" },
+        { "label": "CREW: 428/430", "w": 180, "font": "mono", "color": "#00FF88" },
+        { "label": "MISSION: PATROL SECTOR 221-B", "w": 400, "font": "secondary", "color": "#8899BB" },
+        { "label": "NEXT STARBASE: 4d 12h", "w": 260, "font": "mono", "color": "#5599FF" }
+      ],
+      "bgColor": "#0C0C20",
+      "borderTop": "#1A1A3E"
+    },
+    {
+      "id": "engineering_readouts",
+      "type": "subsystemGrid",
+      "region": "engineeringReadouts",
+      "position": { "x": 1060, "y": 604, "w": 852, "h": 184 },
+      "description": "Engineering subsystem status grid with bar gauges",
+      "systems": [
+        { "label": "IMPULSE ENGINES", "value": 100, "unit": "%", "status": "ONLINE", "color": "#33CCCC" },
+        { "label": "WARP DRIVE", "value": 100, "unit": "%", "status": "ONLINE", "color": "#3366FF" },
+        { "label": "LIFE SUPPORT", "value": 100, "unit": "%", "status": "NOMINAL", "color": "#00FF88" },
+        { "label": "INERTIAL DAMPERS", "value": 98, "unit": "%", "status": "NOMINAL", "color": "#00FF88" },
+        { "label": "STRUCTURAL INTEG", "value": 97, "unit": "%", "status": "NOMINAL", "color": "#00FF88" },
+        { "label": "DEFLECTOR ARRAY", "value": 100, "unit": "%", "status": "ONLINE", "color": "#5599FF" },
+        { "label": "TRANSPORTER SYS", "value": 100, "unit": "%", "status": "STANDBY", "color": "#FFCC00" },
+        { "label": "TRACTOR BEAM", "value": 100, "unit": "%", "status": "OFFLINE", "color": "#3A4466" },
+        { "label": "HOLODECK 1", "value": 100, "unit": "%", "status": "IN USE", "color": "#CC77FF" },
+        { "label": "COMM ARRAY", "value": 100, "unit": "%", "status": "ONLINE", "color": "#33CCCC" }
+      ],
+      "columns": 5,
+      "rows": 2,
+      "barHeight": 6
+    },
+    {
+      "id": "power_distribution",
+      "type": "powerGrid",
+      "position": { "x": 480, "y": 500, "w": 560, "h": 80 },
+      "description": "EPS power distribution showing allocation across systems",
+      "totalPower": "1.21 TW",
+      "allocation": [
+        { "system": "PROPULSION", "pct": 45, "color": "#3366FF" },
+        { "system": "SHIELDS", "pct": 20, "color": "#00FFEE" },
+        { "system": "WEAPONS", "pct": 15, "color": "#FF6622" },
+        { "system": "SENSORS", "pct": 10, "color": "#00FF88" },
+        { "system": "LIFE SUPPORT", "pct": 7, "color": "#33CCCC" },
+        { "system": "RESERVE", "pct": 3, "color": "#3A4466" }
+      ],
+      "barType": "stacked_horizontal"
+    },
+    {
+      "id": "targeting_reticle",
+      "type": "targetingOverlay",
+      "position": { "x": 600, "y": 200, "w": 120, "h": 120 },
+      "description": "Targeting reticle overlay on tactical display for active weapon lock",
+      "targetId": "contact3",
+      "lockStatus": "SOFT LOCK",
+      "color": "#FF6622",
+      "brackets": "rotating",
+      "rangeToTarget": "12,000 km",
+      "closingSpeed": "450 km/s",
+      "weaponSolution": "INCOMPLETE"
+    },
+    {
+      "id": "warp_field_geometry",
+      "type": "fieldDiagram",
+      "position": { "x": 1488, "y": 600, "w": 212, "h": 184 },
+      "description": "Warp field cocoon geometry visualization — symmetry and stress indicators",
+      "fieldLayers": 6,
+      "symmetry": 99.2,
+      "stressPoints": [
+        { "location": "port_nacelle_pylon", "stress": 12, "unit": "%", "status": "nominal" }
+      ],
+      "subspaceDistortion": "0.003 cochrane deviation",
+      "fieldColor": "#3366FF",
+      "glowIntensity": 0.6
+    },
+    {
+      "id": "crew_status",
+      "type": "crewManifest",
+      "position": { "x": 1700, "y": 600, "w": 212, "h": 184 },
+      "description": "Bridge crew status indicators",
+      "stations": [
+        { "station": "COMMAND", "officer": "c9-operator", "status": "ON BRIDGE", "color": "#FF9900" },
+        { "station": "TACTICAL", "officer": "Agent Alpha", "status": "AT STATION", "color": "#FF6622" },
+        { "station": "OPS", "officer": "Agent Beta", "status": "AT STATION", "color": "#33CCCC" },
+        { "station": "HELM", "officer": "Agent Gamma", "status": "AT STATION", "color": "#00FF88" },
+        { "station": "SCIENCE", "officer": "Agent Delta", "status": "AT STATION", "color": "#5599FF" },
+        { "station": "ENGINEERING", "officer": "Broker", "status": "MAIN ENG", "color": "#FFCC00" },
+        { "station": "COMMS", "officer": "Hub", "status": "AT STATION", "color": "#CC77FF" }
+      ]
+    },
+    {
+      "id": "lcars_frame_top",
+      "type": "decorativeFrame",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 16 },
+      "description": "LCARS-style decorative border across top edge",
+      "segments": [
+        { "w": 200, "color": "#FF9900", "radius": 8 },
+        { "w": 40, "color": "#FFCC00" },
+        { "w": 1400, "color": "#5599FF", "height": 4, "yOffset": 6 },
+        { "w": 80, "color": "#33CCCC" },
+        { "w": 200, "color": "#CC77FF", "radius": 8 }
+      ]
+    },
+    {
+      "id": "lcars_frame_bottom",
+      "type": "decorativeFrame",
+      "position": { "x": 0, "y": 848, "w": 1920, "h": 16 },
+      "description": "LCARS-style decorative border across bottom",
+      "segments": [
+        { "w": 160, "color": "#CC77FF", "radius": 8 },
+        { "w": 1600, "color": "#5599FF", "height": 4, "yOffset": 6 },
+        { "w": 160, "color": "#FF9900", "radius": 8 }
+      ]
+    }
+  ],
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "opacity": 0.05, "spacing": 2, "speed": 0.3 },
+    "vignette": { "enabled": true, "intensity": 0.4, "radius": 0.8 },
+    "filmGrain": { "enabled": true, "intensity": 0.015, "fps": 24 },
+    "bloom": { "enabled": true, "threshold": 0.6, "intensity": 0.3, "radius": 12 },
+    "chromaticAberration": { "enabled": true, "offset": 1.2, "edgesOnly": true },
+    "lensFlare": { "enabled": true, "trigger": "warp_core_pulse", "color": "#3366FF", "intensity": 0.5 },
+    "backgroundTexture": "starfield-parallax",
+    "panelBevel": { "enabled": true, "size": 2, "highlight": "#2A2A5E", "shadow": "#030308" },
+    "alertOverlay": { "enabled": true, "trigger": "alert_condition.red", "color": "#FF224420", "pulseRate": 2 }
+  },
+  "animations": [
+    { "id": "tactical_sweep", "target": "tactical_display.sweepLine", "frames": [0, 300], "type": "radialSweep", "easing": "linear", "rpm": 4, "loop": true },
+    { "id": "sensor_sweep", "target": "sensor_sweep", "frames": [0, 300], "type": "arcSweep", "easing": "linear", "rpm": 3, "loop": true },
+    { "id": "shield_oscillate", "target": "shield_harmonics.waveform", "frames": [0, 300], "type": "oscillate", "easing": "linear", "loop": true },
+    { "id": "warp_core_pulse", "target": "drive_core_diagnostics.coreSchematic", "frames": [0, 300], "type": "pulseGlow", "easing": "easeInOutSine", "period": 45, "minOpacity": 0.6, "maxOpacity": 1.0 },
+    { "id": "intro_reveal", "target": "all", "frames": [0, 60], "type": "staggeredFadeIn", "easing": "easeOutQuart", "stagger": 4, "order": "center-outward" },
+    { "id": "contact_blink", "target": "tactical_display.contacts.hostile", "frames": [0, 300], "type": "blink", "easing": "step", "period": 15 },
+    { "id": "alert_pulse", "target": "alert_condition", "frames": [0, 300], "type": "borderPulse", "easing": "easeInOutSine", "color": "#FFCC00", "period": 30 },
+    { "id": "targeting_rotate", "target": "targeting_reticle.brackets", "frames": [0, 300], "type": "rotate", "easing": "linear", "rpm": 6 },
+    { "id": "comms_scroll", "target": "subspace_comms", "frames": [60, 300], "type": "verticalScroll", "easing": "linear" },
+    { "id": "star_chart_pan", "target": "star_chart", "frames": [120, 180], "type": "panSmooth", "easing": "easeInOutCubic", "dx": -20, "dy": -10 },
+    { "id": "hull_damage_flash", "target": "hull_integrity.port_nacelle", "frames": [200, 220], "type": "flash", "easing": "easeOutQuad", "color": "#FFCC00" },
+    { "id": "weapon_charge", "target": "weapons_banks.bank3", "frames": [60, 180], "type": "fillBar", "easing": "linear", "from": 40, "to": 78 }
+  ],
+  "dataMapping": {
+    "agents": {
+      "alpha": { "mapTo": "Weapons Bank 1 — Tactical Officer", "color": "#FF6622", "role": "Primary offensive agent" },
+      "beta": { "mapTo": "Weapons Bank 2 — Operations Officer", "color": "#33CCCC", "role": "Resource management agent" },
+      "gamma": { "mapTo": "Weapons Bank 3 — Helm Officer", "color": "#00FF88", "role": "Navigation/deployment agent" },
+      "delta": { "mapTo": "Weapons Bank 4 — Science Officer", "color": "#5599FF", "role": "Analysis/scanning agent" }
+    },
+    "system": {
+      "c9_operator": "Captain — central command authority",
+      "broker": "Chief Engineer — session/system lifecycle",
+      "hub": "Communications Officer — WebSocket broadcast relay",
+      "api_gateway": "Transporter Room — HTTP request materialization",
+      "projects": "Ship's computer core — data storage",
+      "dashboard": "Main viewscreen — UI rendering"
+    },
+    "metrics": {
+      "shield_strength": "Shield harmonic integrity",
+      "power_output": "Warp core output / processing power",
+      "hull_integrity": "Infrastructure health / uptime",
+      "weapon_charge": "Agent readiness percentage",
+      "sensor_range": "Hub broadcast/discovery range",
+      "alert_level": "System alert condition"
+    }
+  }
+}

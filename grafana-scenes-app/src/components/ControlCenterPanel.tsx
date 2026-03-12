@@ -43,6 +43,7 @@ interface StreamEvent {
   agent_id?: string;
   session_id?: string;
   data?: any;
+  chunk?: string;
   text?: string;
   content?: string;
   milestone?: string;
@@ -51,10 +52,10 @@ interface StreamEvent {
   timestamp?: string;
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+import { API_BASE } from '../services/api';
+import { WS_URL } from '../services/websocket';
 
-const API_BASE = 'http://localhost:4040';
-const WS_URL = 'ws://localhost:4040/ws';
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
   working: '#00ffcc',
@@ -1114,7 +1115,7 @@ export function ControlCenterPanel() {
             const agentId = event.agent_id || event.session_id;
 
             if (event.type === 'agent_stream' && agentId && agentId === selectedAgentRef.current) {
-              const text = event.text || event.content || event.data?.text || '';
+              const text = event.chunk || event.text || event.content || event.data?.text || '';
               if (text) {
                 setStreamLines((prev) => {
                   const next = [...prev, text];

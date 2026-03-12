@@ -55,7 +55,7 @@ function liveStatsQuery(): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'liveStats',
-        url: 'http://localhost:4040/api/stats',
+        url: '/api/stats',
         columns: [
           { selector: 'active_agents', text: 'Active Agents', type: 'number' },
           { selector: 'total_agents', text: 'Total Spawned', type: 'number' },
@@ -75,7 +75,7 @@ function agentTimeseriesQuery(): SceneQueryRunner {
     queries: [
       infinityTimeSeriesQuery({
         refId: 'agentTimeseries',
-        url: 'http://localhost:4040/api/metrics/timeseries?interval=5s',
+        url: '/api/metrics/timeseries?interval=5s',
         columns: [
           { selector: 'timestamp', text: 'Time', type: 'timestamp' },
           { selector: 'active_agents', text: 'Active Agents', type: 'number' },
@@ -93,7 +93,7 @@ function errorEventsQuery(): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'errors',
-        url: 'http://localhost:4040/api/events?type=error&limit=50',
+        url: '/api/events?type=error&limit=50',
         columns: [
           { selector: 'timestamp', text: 'Time', type: 'timestamp' },
           { selector: 'agent_id', text: 'Agent', type: 'string' },
@@ -112,7 +112,7 @@ function projectBreakdownQuery(): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'projectBreakdown',
-        url: 'http://localhost:4040/api/metrics/projects',
+        url: '/api/metrics/projects',
         columns: [
           { selector: 'name', text: 'Project', type: 'string' },
           { selector: 'active_agents', text: 'Active', type: 'number' },

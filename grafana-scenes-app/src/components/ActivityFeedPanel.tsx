@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface LogLine {
   ts: string;
@@ -6,8 +7,6 @@ interface LogLine {
   level: 'info' | 'warn' | 'error' | 'debug' | 'success';
   msg: string;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const LEVEL_STYLES: Record<string, { color: string; bg: string; border: string }> = {
   info: { color: '#67e8f9', bg: 'rgba(103,232,249,0.1)', border: 'rgba(103,232,249,0.15)' },

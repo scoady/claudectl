@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface Neuron {
   id: string;
@@ -29,8 +30,6 @@ interface StatsData {
   total_agents_spawned?: number;
   cumulative_cost?: number;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const REGION_COLORS: Record<string, string> = {
   frontal: '#9b59b6',   // purple

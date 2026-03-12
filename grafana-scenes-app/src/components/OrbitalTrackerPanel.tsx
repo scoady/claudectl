@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface AgentOrbit {
   id: string;
@@ -10,8 +11,6 @@ interface AgentOrbit {
   turns: number;
   model: string;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#67e8f9',

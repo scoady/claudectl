@@ -1,0 +1,84 @@
+{
+  "wireframeId": "nasa-mission-control",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "mission-elapsed-time", "bloomRadius": 16, "intensity": 0.5, "trigger": "always", "note": "Large phosphor digits should bleed light into surrounding dark panel" },
+      { "element": "go-nogo-board lamps", "bloomRadius": 10, "intensity": 0.6, "trigger": "status=GO", "note": "Each GO lamp needs a soft halo — they are the jewels of this scene" },
+      { "element": "heartbeat-indicators", "bloomRadius": 8, "intensity": 0.7, "trigger": "blink-peak", "note": "LEDs should bloom on each blink peak then decay" }
+    ],
+    "lensFlare": [
+      { "position": "mission-elapsed-time center", "triggerFrame": 0, "type": "horizontal-streak", "intensity": 0.15, "color": "#33ff66", "note": "Persistent subtle horizontal streak across the MET clock — CRT refraction artifact" }
+    ],
+    "chromaticAberration": { "offset": 1.0, "direction": "radial-from-center", "opacity": 0.25, "note": "Subtle RGB fringing toward screen edges — old CRT phosphor misalignment" },
+    "filmGrain": { "amount": 0.04, "monochrome": true, "note": "Good as specified, but should be monochrome green-tinted, not neutral gray" },
+    "scanLines": { "note": "Present but need horizontal jitter — every ~120 frames, scan lines should shift 1px vertically for 3 frames to simulate sync wobble" },
+    "crtBarrelDistortion": { "note": "0.012 is good. Add subtle horizontal bowing — left/right edges should curve inward 2px" },
+    "reflectionGlare": [
+      { "type": "glass-surface", "position": "fullscreen", "opacity": 0.03, "gradient": "top-left-to-center", "note": "CRT glass reflection — faint diagonal white gradient from top-left corner, suggests overhead fluorescent lighting" }
+    ],
+    "dustMotes": { "count": 8, "speed": 0.15, "opacity": 0.05, "note": "MOCR was dusty. Faint particles drifting in the foreground, out-of-focus bokeh circles" },
+    "heatDistortion": null,
+    "particleEffects": { "type": "phosphor-burnout-sparks", "count": 2, "trigger": "random-every-200-frames", "note": "Occasional single-pixel bright flash on random screen locations — old CRT phosphor pop" }
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 1.5, "amplitudeY": 1.0, "period": 240, "easing": "perlinNoise", "note": "Slight handheld drift suggesting a documentary cameraman in the MOCR" },
+    "rackFocus": [
+      { "from": "orbital-trajectory", "to": "capcom-log", "frameRange": [80, 100], "blurRadius": 3, "note": "At frame 80, subtly shift focus from center plot to the CAPCOM log as a new critical entry arrives" }
+    ],
+    "dramaticReveals": [
+      { "element": "flight-director-status", "frameRange": [0, 30], "type": "typewriter", "charsPerFrame": 3, "note": "Banner text should type out character by character on composition start" }
+    ],
+    "breathingAnimations": [
+      { "element": "reactor-core (c9-operator node)", "type": "glow-pulse", "period": 90, "intensityRange": [0.8, 1.0], "note": "Central node breathes — it is alive" },
+      { "element": "all-panel-borders", "type": "brightness-oscillate", "period": 600, "amplitude": 0.02, "note": "Panels very subtly brighten/dim — simulates CRT power supply ripple" }
+    ],
+    "microInteractions": [
+      { "element": "velocity-gauge needle", "type": "micro-jitter", "amplitude": 0.3, "speed": 8, "note": "Needle should have high-frequency micro-vibration on top of its oscillation — mechanical instrument feel" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [120, 180], "description": "Agent-gamma CAUTION event — go-nogo board flashes, capcom log gets amber entry, waveform shows spike, ambient light subtly shifts amber for 2 seconds" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "centerBottom gap between trajectory-data and flight-director-status", "fix": "Add a thin horizontal rule with 'FLIGHT DYNAMICS OFFICER' label centered, plus small auxiliary readouts: ORBIT NUMBER, GROUND ELAPSED TIME" },
+    { "region": "right column below heartbeat-indicators", "fix": "Space is tight but add a small 'REVISION: 2026.068 | BUILD: c9op-4.2.1' watermark" },
+    { "element": "project-inventory", "fix": "Add columns: TOKENS USED, ERROR COUNT, LAST ERROR" },
+    { "element": "orbital-trajectory", "fix": "Add a faint 'CONFIDENTIAL — INTERNAL USE ONLY' watermark diagonally across the background" },
+    { "background": true, "fix": "Add a 50x50px grid overlay at 0.04 opacity across the entire background — graph paper feel" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Cold green phosphor with warm amber accents — like shooting 16mm Kodak 7218 through a green-tinted CRT. Shadows should have slight blue-black tint (#0a0f14), not pure black",
+    "keyMoments": [
+      { "trigger": "agent-gamma CAUTION flash (frames 120-180)", "shift": "Ambient background subtly warms to #0f0f0a for 2 seconds — amber contamination from the warning" }
+    ],
+    "accentUsage": "Amber (#ffaa33) is underused. The mission-phase-label is amber but nothing else uses it. Add amber accents to the strip-chart threshold lines and table header borders for visual rhythm",
+    "backgroundAtmosphere": "Background should not be flat #0a0f0a. Use a very subtle radial gradient: center #0d130d, edges #060a06 — suggests the CRT is brighter in the center"
+  },
+
+  "typographyNotes": {
+    "fonts": "IBM Plex Mono is perfect for this — it has the right NASA/IBM heritage",
+    "monospaceReadout": "IBM Plex Mono at weight 600 is correct for data. Consider adding tabular-nums font-feature-settings for aligned columns",
+    "displayFont": "Title could use Space Mono for slight visual distinction from data text",
+    "sizeHierarchy": "The clock at 36px dominates correctly. But the 10px labels are too small for readability at 1080p — bump to 11px minimum. The 14px readout size is good but needs more leading (1.6x)"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "heartbeat-indicators", "sound": "Rhythmic soft beep on each LED blink — the heartbeat of the room" },
+      { "element": "comm-waveform", "sound": "Low-frequency white noise hum proportional to waveform amplitude" }
+    ],
+    "eventSounds": [
+      { "element": "capcom-log new entry", "sound": "Soft teletype click-clack as each character appears" },
+      { "element": "go-nogo-board agent-gamma flash", "sound": "Caution tone — two-note descending chime (C5-G4)" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [118, 122], "description": "Brief pause in all animation just before the agent-gamma caution event — the room holds its breath" }
+    ],
+    "visualRhythm": "The scrolling capcom log should have entries arrive in bursts (3 entries close together, then silence) rather than metronomic spacing — real comms are bursty"
+  }
+}

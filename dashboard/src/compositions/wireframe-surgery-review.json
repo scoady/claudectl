@@ -1,0 +1,86 @@
+{
+  "wireframeId": "wireframe-surgery",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "ecg_waveform QRS peak", "bloomRadius": 10, "intensity": 0.4, "trigger": "each-heartbeat-peak", "note": "The sharp QRS complex spike should flash with bloom on each heartbeat — the moment of electrical discharge. Bloom should be brief (3 frames) then decay" },
+      { "element": "hr_readout numeric value", "bloomRadius": 8, "intensity": 0.3, "note": "Heart rate number at 64px should have a constant soft green glow — it is THE vital sign, always visible across the room" },
+      { "element": "spo2_readout numeric value", "bloomRadius": 8, "intensity": 0.3, "note": "SpO2 at 99% should glow cyan — second most critical vital" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0, "note": "None. Medical monitors are high-precision displays — no optical artifacts. Clean image is critical for this genre" },
+    "filmGrain": { "note": "Film grain is disabled. Correct — medical monitors are pristine. But add very subtle TEMPORAL noise (0.005 intensity) that changes per-frame — digital sensor noise, not film grain" },
+    "scanLines": { "note": "Spacing 2 at 0.03 opacity, non-moving. Add subtle LCD pixel-grid effect: a faint grid of 1px lines at 3px spacing, opacity 0.02 — these are clinical LCD panels, not CRTs" },
+    "vignette": { "note": "0.25 intensity is appropriately subtle. Medical monitors have even illumination. Push radius out to 0.95 — barely perceptible darkening" },
+    "reflectionGlare": [
+      { "type": "overhead-surgical-lamp", "position": "ct_imaging panel", "opacity": 0.04, "shape": "circular-hot-spot", "radius": 60, "note": "CT imaging panel should have a faint circular reflection of the overhead surgical lamp — the OR has intense focused lighting" },
+      { "type": "monitor-bezel", "position": "all panels", "opacity": 0.02, "note": "Each panel should have a thin bright line along its top edge — overhead LED light bar reflecting off the monitor bezels" }
+    ],
+    "depthOfField": null,
+    "particleEffects": null,
+    "heatDistortion": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 0.3, "amplitudeY": 0.2, "period": 600, "note": "Near-zero drift — surgical monitors are wall-mounted, rock-solid. Barely perceptible vibration from hospital HVAC" },
+    "rackFocus": [],
+    "dramaticReveals": [
+      { "element": "intro_power_on", "note": "Fade-in at frames 0-30 is specified. Enhance: monitors should power on in sequence left-to-right with 3-frame stagger, each showing a brief white flash then their content. ECG flatlines during boot then starts beating at frame 20" },
+      { "element": "procedure_timeline active phase", "frameRange": [0, 15], "type": "wipe-to-current", "note": "On start, the timeline should rapidly wipe from left showing completed phases in 0.5s, then slow down as it reaches the current RESECTION phase" }
+    ],
+    "breathingAnimations": [
+      { "element": "ecg_waveform baseline", "type": "respiratory-variation", "period": 54, "amplitude": 3, "note": "ECG baseline should drift up and down with a 14/min respiratory cycle — real ECGs show respiratory sinus arrhythmia. This is a surgeon-level detail that sells authenticity" },
+      { "element": "robotic_arm_schematic arms", "note": "Joint rotation at amplitude 5 is specified. Add continuous tremor suppression visualization — tiny 1px micro-oscillation that the system actively cancels (ghost outline showing raw input, solid line showing filtered output)" }
+    ],
+    "microInteractions": [
+      { "element": "drug_infusion_pumps rate values", "type": "digit-roll", "speed": 0.5, "note": "When Propofol rate changes by 0.1%, the digit should roll like an odometer, not snap — smooth mechanical counter feel" },
+      { "element": "bis_monitor bisValue", "type": "slow-drift", "period": 300, "range": [40, 46], "note": "BIS should drift naturally between 40-46 — anesthesia depth is never perfectly stable" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [118, 142], "description": "BIS shift moment — BIS drifts from 42 to 45 (lightening). Propofol rate subtly increases from 150 to 155 mcg/kg/min in response. ECG HR ticks up from 72 to 74. Alert stack receives warning about EtCO2 trending up. Anesthesiologist (Hub) adjusts ventilator RR. This cascade shows the TEAM responding to a subtle change" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "gap below roboticArms (x:0-640, y:668-672)", "fix": "Add WORKSPACE UTILIZATION indicator — percentage of reachable workspace being used, and COLLISION PROXIMITY warning distance between nearest arm tips" },
+    { "element": "ct_imaging", "fix": "Add measurement calipers overlay — two dotted lines with distance readout (e.g., '3.2cm MARGIN'). Add SERIES/IMAGE NUMBER: 'Ser 4 / Img 142/256'" },
+    { "element": "procedure_timeline", "fix": "Add ESTIMATED BLOOD LOSS mini-graph running along the bottom of the timeline — EBL correlates with surgical phases" },
+    { "element": "ventilator_params", "fix": "Add COMPLIANCE readout (mL/cmH2O), RESISTANCE readout (cmH2O/L/s), and AUTO-PEEP indicator" },
+    { "element": "team_roster", "fix": "Add TIME IN ROLE per team member and BREAK STATUS (has the surgeon been operating >2h without a break? Fatigue indicator)" },
+    { "background": true, "fix": "Add patient demographics bar at the very top: 'DOE, JOHN M | MRN: 7284019 | DOB: 1978-04-12 | ALLERGY: PCN | BLOOD: O+'. This is ALWAYS visible on real OR monitors" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Clinical cool-blue with high contrast — grade like a Michael Mann film (Collateral). Dark panels are blue-black (#0B1017 is perfect). Vital sign colors must be instantly distinguishable — the current palette (green/cyan/red/yellow/purple/teal) follows the real GE/Philips monitor convention. No changes needed to those",
+    "keyMoments": [
+      { "trigger": "critical alarm (blood loss >500mL or SpO2 <92%)", "shift": "Red overlay pulses across the entire composition at 0.05 opacity — the OR goes into crisis mode. All non-critical elements dim 30%" },
+      { "trigger": "procedure phase transition", "shift": "Brief full-white flash (1 frame, 0.08 opacity) when a phase completes — like a camera flash documenting the milestone" }
+    ],
+    "accentUsage": "The 4 arm colors (green/cyan/orange/purple) are well-chosen. But they should appear more consistently — arm force gauges use them, but the CT imaging arm projection overlay should also use matching colors for all 4 arms, not just alpha",
+    "backgroundAtmosphere": "Background is appropriately flat and clinical. Add a very subtle blue gradient across the top — overhead surgical lamp glow reflecting off the ceiling and back onto the monitors"
+  },
+
+  "typographyNotes": {
+    "fonts": "Inter is excellent for medical UI — clean, wide, high x-height for readability under stress. SF Mono for numeric readouts is the Apple medical device standard",
+    "monospaceReadout": "SF Mono at weight 500 for vital numbers is perfect. Ensure proportional figures for labels but TABULAR figures for numeric values — digits must not jump around",
+    "displayFont": "Vital values at 64px are appropriately enormous. These must be readable from across the room. Add a subtle text-shadow (0 0 20px currentColor at 0.3 opacity) for glow effect",
+    "sizeHierarchy": "9px timestamp labels are acceptable for non-critical secondary info. 10px data labels are fine. But alert text at 14px should be 16px with weight 700 — alerts must scream"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "ecg_waveform heartbeat", "sound": "Soft cardiac monitor beep on each QRS — THE most recognizable sound in cinema medicine. Steady, reassuring. 72bpm = one beep every 0.833 seconds" },
+      { "element": "ventilator_params", "sound": "Mechanical ventilator breathing cycle — inhale whoosh (14/min = every 4.3 seconds), brief pause, passive exhale sigh" },
+      { "element": "spo2_pleth", "sound": "Pulse ox tone — continuous pitch that tracks SpO2 level. At 99% it is a clear high tone. If it drops, the pitch drops proportionally — the most anxiety-inducing sound in medicine" }
+    ],
+    "eventSounds": [
+      { "element": "alert_stack warning slide-in", "sound": "Double-tone alarm: two ascending notes (F4-Bb4), medium priority" },
+      { "element": "arm_force_feedback threshold crossing", "sound": "Haptic feedback click — the surgeon feels this through the console handles" },
+      { "element": "instrument_count verification", "sound": "Satisfied single click — nurse confirms count correct" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [88, 92], "description": "CT scroll pause — the surgeon stops scrolling the CT images, studying the anatomy. All motion pauses for 4 frames. The room is still except for the heartbeat" }
+    ]
+  }
+}

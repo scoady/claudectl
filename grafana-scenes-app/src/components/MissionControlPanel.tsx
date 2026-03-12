@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface MissionStats {
   active_agents: number;
@@ -9,8 +10,6 @@ interface MissionStats {
   uptime: string;
   model_breakdown: Record<string, number>;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const CYAN = '#00e5ff';
 const GREEN = '#00ff41';

@@ -1,0 +1,361 @@
+{
+  "id": "nuclear-scada",
+  "title": "Nuclear Reactor SCADA",
+  "subtitle": "c9-operator Reactor Control System",
+  "inspiration": "Chernobyl HBO control room — utilitarian Soviet-era SCADA panels with analog instruments",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+
+  "colorGrading": {
+    "background": "#1a1c1e",
+    "panelGray": "#2a2d30",
+    "panelBorder": "#3a3d40",
+    "instrumentFace": "#1e2022",
+    "textGreen": "#44cc66",
+    "textAmber": "#ccaa44",
+    "textWhite": "#d0d0d0",
+    "textDim": "#707070",
+    "coolantBlue": "#3388cc",
+    "coolantCyan": "#44bbcc",
+    "warningYellow": "#ccaa00",
+    "alarmRed": "#cc2222",
+    "alarmRedBright": "#ff3333",
+    "scramRed": "#ff0000",
+    "safeGreen": "#33aa55",
+    "rodGray": "#888888",
+    "rodInserted": "#44cc66",
+    "rodWithdrawn": "#cc2222",
+    "pipelineColor": "#3388cc",
+    "pipelineFlow": "#66ccff",
+    "reactorCore": "#ffaa22",
+    "reactorGlow": "rgba(255,170,34,0.15)",
+    "labelPlate": "#3a3a3a"
+  },
+
+  "typography": {
+    "primary": { "fontFamily": "JetBrains Mono", "weight": 400 },
+    "header": { "fontFamily": "JetBrains Mono", "weight": 700, "size": 14 },
+    "readout": { "fontFamily": "JetBrains Mono", "weight": 600, "size": 16 },
+    "label": { "fontFamily": "JetBrains Mono", "weight": 400, "size": 9 },
+    "alarm": { "fontFamily": "JetBrains Mono", "weight": 700, "size": 20 },
+    "title": { "fontFamily": "JetBrains Mono", "weight": 700, "size": 18 },
+    "engraved": { "fontFamily": "JetBrains Mono", "weight": 500, "size": 8, "letterSpacing": 2 }
+  },
+
+  "backgroundTexture": {
+    "type": "brushed-metal",
+    "baseColor": "#1a1c1e",
+    "grainDirection": "horizontal",
+    "grainIntensity": 0.03,
+    "scratchOpacity": 0.02,
+    "panelBevel": true,
+    "bevelWidth": 2,
+    "bevelHighlight": "#3a3d40",
+    "bevelShadow": "#0a0c0e"
+  },
+
+  "layout": {
+    "topAlarmBar": { "x": 0, "y": 0, "w": 1920, "h": 52 },
+    "leftCoolant": { "x": 16, "y": 60, "w": 440, "h": 700 },
+    "centerReactor": { "x": 472, "y": 60, "w": 560, "h": 700 },
+    "rightMonitors": { "x": 1048, "y": 60, "w": 440, "h": 700 },
+    "controlRods": { "x": 1504, "y": 60, "w": 400, "h": 700 },
+    "bottomReadouts": { "x": 16, "y": 772, "w": 1888, "h": 292 }
+  },
+
+  "elements": [
+    {
+      "id": "alarm-status-bar",
+      "label": "ALARM STATUS",
+      "type": "alarm-bar",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 52 },
+      "description": "Top alarm bar with status indicators. Left: plant status text. Center: alarm annunciator grid (4x8 small rectangles, each an alarm point). Right: date/time. Alarmed cells flash red/amber. Normal cells are dark gray with engraved labels.",
+      "alarms": [
+        { "id": "A1", "label": "RX POWER HIGH", "state": "normal", "dataMapping": "c9operator.powerHigh" },
+        { "id": "A2", "label": "COOLANT FLOW LO", "state": "normal", "dataMapping": "broker.flowLow" },
+        { "id": "A3", "label": "TEMP LIMIT", "state": "normal", "dataMapping": "system.tempLimit" },
+        { "id": "A4", "label": "PRESS HIGH", "state": "normal", "dataMapping": "system.pressureHigh" },
+        { "id": "A5", "label": "RAD LEVEL", "state": "caution", "dataMapping": "agents.gamma.radLevel" },
+        { "id": "A6", "label": "SCRAM INIT", "state": "normal", "dataMapping": "system.scramInit" },
+        { "id": "A7", "label": "CONT ISOL", "state": "normal", "dataMapping": "system.containment" },
+        { "id": "A8", "label": "GEN TRIP", "state": "normal", "dataMapping": "system.genTrip" }
+      ],
+      "plantStatus": "UNIT 1 — POWER OPERATION — 98.7% RATED",
+      "dataMapping": "system.alarms"
+    },
+    {
+      "id": "reactor-cross-section",
+      "label": "REACTOR VESSEL CROSS-SECTION",
+      "type": "schematic-diagram",
+      "position": { "x": 492, "y": 72, "w": 520, "h": 520 },
+      "description": "Large cross-section diagram of the c9-operator system depicted as a reactor vessel. Outer containment ring (gray). Pressure vessel wall (thick line). Core region in center showing c9-operator as the fuel assembly. Four coolant channels exit the vessel to four loops (one per agent). Core glows amber with subtle radial gradient. Instruments mounted around the vessel wall show temperature and pressure at 8 cardinal points. Labels engraved in industrial style.",
+      "layers": [
+        { "name": "containment", "type": "circle", "radius": 240, "color": "#3a3d40", "strokeWidth": 4 },
+        { "name": "pressureVessel", "type": "circle", "radius": 180, "color": "#2a2d30", "strokeWidth": 6 },
+        { "name": "core", "type": "circle", "radius": 60, "color": "#ffaa22", "glow": true },
+        { "name": "coreLabel", "text": "c9-OP", "position": "center" }
+      ],
+      "instrumentPorts": [
+        { "angle": 0, "label": "T1", "value": "312.4\u00b0C", "dataMapping": "agents.alpha.temp" },
+        { "angle": 45, "label": "P1", "value": "15.42 MPa", "dataMapping": "system.pressure1" },
+        { "angle": 90, "label": "T2", "value": "308.7\u00b0C", "dataMapping": "agents.beta.temp" },
+        { "angle": 135, "label": "P2", "value": "15.38 MPa", "dataMapping": "system.pressure2" },
+        { "angle": 180, "label": "T3", "value": "315.1\u00b0C", "dataMapping": "agents.gamma.temp" },
+        { "angle": 225, "label": "P3", "value": "15.44 MPa", "dataMapping": "system.pressure3" },
+        { "angle": 270, "label": "T4", "value": "310.2\u00b0C", "dataMapping": "agents.delta.temp" },
+        { "angle": 315, "label": "P4", "value": "15.40 MPa", "dataMapping": "system.pressure4" }
+      ],
+      "dataMapping": "system.reactorDiagram"
+    },
+    {
+      "id": "reactor-power-readout",
+      "label": "REACTOR THERMAL POWER",
+      "type": "large-digital-readout",
+      "position": { "x": 572, "y": 600, "w": 360, "h": 80 },
+      "value": "3,847.2",
+      "unit": "MWth",
+      "precision": 1,
+      "nominalRange": [3800, 3900],
+      "warningRange": [3900, 3950],
+      "criticalAbove": 3950,
+      "dataMapping": "c9operator.thermalPower",
+      "description": "Large seven-segment style digital readout. Green when in nominal range, amber for warning, red for critical. Housed in recessed panel with engraved label plate above."
+    },
+    {
+      "id": "coolant-loop-1",
+      "label": "PRIMARY LOOP 1 — AGENT-\u03b1",
+      "type": "coolant-schematic",
+      "position": { "x": 24, "y": 72, "w": 430, "h": 160 },
+      "description": "Piping schematic showing coolant flow from reactor to Agent-alpha and back. Pipe is blue line with animated flow direction arrows. Pump symbol (circle with triangle). Heat exchanger symbol (rectangle with diagonal lines). Temperature and flow rate readouts at inlet/outlet.",
+      "flowRate": { "value": 4820, "unit": "m\u00b3/h", "dataMapping": "agents.alpha.flowRate" },
+      "inletTemp": { "value": 289.3, "unit": "\u00b0C", "dataMapping": "agents.alpha.inletTemp" },
+      "outletTemp": { "value": 312.4, "unit": "\u00b0C", "dataMapping": "agents.alpha.outletTemp" },
+      "pumpStatus": "RUNNING",
+      "flowDirection": "clockwise"
+    },
+    {
+      "id": "coolant-loop-2",
+      "label": "PRIMARY LOOP 2 — AGENT-\u03b2",
+      "type": "coolant-schematic",
+      "position": { "x": 24, "y": 244, "w": 430, "h": 160 },
+      "flowRate": { "value": 4790, "unit": "m\u00b3/h", "dataMapping": "agents.beta.flowRate" },
+      "inletTemp": { "value": 287.1, "unit": "\u00b0C", "dataMapping": "agents.beta.inletTemp" },
+      "outletTemp": { "value": 308.7, "unit": "\u00b0C", "dataMapping": "agents.beta.outletTemp" },
+      "pumpStatus": "RUNNING",
+      "flowDirection": "clockwise"
+    },
+    {
+      "id": "coolant-loop-3",
+      "label": "PRIMARY LOOP 3 — AGENT-\u03b3",
+      "type": "coolant-schematic",
+      "position": { "x": 24, "y": 416, "w": 430, "h": 160 },
+      "flowRate": { "value": 4650, "unit": "m\u00b3/h", "dataMapping": "agents.gamma.flowRate" },
+      "inletTemp": { "value": 291.8, "unit": "\u00b0C", "dataMapping": "agents.gamma.inletTemp" },
+      "outletTemp": { "value": 315.1, "unit": "\u00b0C", "dataMapping": "agents.gamma.outletTemp" },
+      "pumpStatus": "RUNNING",
+      "flowDirection": "clockwise",
+      "warning": "OUTLET TEMP ELEVATED"
+    },
+    {
+      "id": "coolant-loop-4",
+      "label": "PRIMARY LOOP 4 — AGENT-\u03b4",
+      "type": "coolant-schematic",
+      "position": { "x": 24, "y": 588, "w": 430, "h": 160 },
+      "flowRate": { "value": 4810, "unit": "m\u00b3/h", "dataMapping": "agents.delta.flowRate" },
+      "inletTemp": { "value": 288.5, "unit": "\u00b0C", "dataMapping": "agents.delta.inletTemp" },
+      "outletTemp": { "value": 310.2, "unit": "\u00b0C", "dataMapping": "agents.delta.outletTemp" },
+      "pumpStatus": "RUNNING",
+      "flowDirection": "clockwise"
+    },
+    {
+      "id": "control-rod-bank",
+      "label": "CONTROL ROD POSITION — BROKER SESSIONS",
+      "type": "vertical-rod-indicators",
+      "position": { "x": 1514, "y": 72, "w": 380, "h": 440 },
+      "description": "8 vertical bar indicators representing control rod positions (mapped to Broker session parameters). Each bar: tall thin rectangle, fill from bottom = insertion depth (0-100%). Green = inserted, red = withdrawn. Scale markings every 10%. Label at top. Current rod position shown as numeric readout below each bar.",
+      "rods": [
+        { "id": "ROD-A1", "label": "SESS ALLOC", "position": 72, "dataMapping": "broker.sessionAlloc" },
+        { "id": "ROD-A2", "label": "TOKEN CAP", "position": 85, "dataMapping": "broker.tokenCap" },
+        { "id": "ROD-B1", "label": "QUEUE LIM", "position": 60, "dataMapping": "c9operator.queueLimit" },
+        { "id": "ROD-B2", "label": "CONCUR", "position": 50, "dataMapping": "c9operator.concurrency" },
+        { "id": "ROD-C1", "label": "MEM CEIL", "position": 30, "dataMapping": "system.memCeiling" },
+        { "id": "ROD-C2", "label": "CPU CEIL", "position": 34, "dataMapping": "system.cpuCeiling" },
+        { "id": "ROD-D1", "label": "WS LIMIT", "position": 45, "dataMapping": "hub.wsLimit" },
+        { "id": "ROD-D2", "label": "RATE LIM", "position": 88, "dataMapping": "apiGateway.rateLimit" }
+      ]
+    },
+    {
+      "id": "scram-panel",
+      "label": "EMERGENCY SCRAM",
+      "type": "emergency-panel",
+      "position": { "x": 1514, "y": 528, "w": 380, "h": 140 },
+      "description": "Red-bordered emergency panel. Large SCRAM button (mushroom cap style, rendered as circle with shadow). Status text: SCRAM NOT ACTIVE. When active, entire panel background flashes red. Below button: two key-switch indicators (AUTO/MANUAL). This maps to c9-operator emergency shutdown capability.",
+      "scramActive": false,
+      "mode": "AUTO",
+      "buttonColor": "#cc2222",
+      "borderColor": "#ff3333",
+      "dataMapping": "c9operator.scramStatus"
+    },
+    {
+      "id": "radiation-monitors",
+      "label": "RADIATION MONITORING",
+      "type": "dosimeter-array",
+      "position": { "x": 1058, "y": 72, "w": 430, "h": 200 },
+      "description": "6 dosimeter-style readouts in 2x3 grid. Each shows a location name, current dose rate in uSv/h, and a bargraph. Color-coded: green <10, amber 10-100, red >100. Maps to error rates and anomaly levels per component.",
+      "monitors": [
+        { "location": "c9-OPERATOR CORE", "value": 2.34, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "c9operator.errorRate" },
+        { "location": "BROKER HALL", "value": 0.87, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "broker.errorRate" },
+        { "location": "HUB CHAMBER", "value": 5.12, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "hub.errorRate" },
+        { "location": "API GATEWAY", "value": 1.44, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "apiGateway.errorRate" },
+        { "location": "AGENT BAY", "value": 12.7, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "agents.gamma.anomalyRate" },
+        { "location": "CONTAINMENT", "value": 0.22, "unit": "\u03bcSv/h", "max": 200, "dataMapping": "system.externalError" }
+      ]
+    },
+    {
+      "id": "temperature-gauges",
+      "label": "ZONE TEMPERATURES",
+      "type": "round-gauge-array",
+      "position": { "x": 1058, "y": 288, "w": 430, "h": 200 },
+      "description": "4 circular analog temperature gauges, one per agent zone. Each is a classic round instrument face with needle, scale 200-400\u00b0C, and colored zones (green 280-320, amber 320-350, red 350-400). Needle has slight mechanical lag in animation.",
+      "gauges": [
+        { "label": "ZONE \u03b1", "value": 312.4, "min": 200, "max": 400, "dataMapping": "agents.alpha.temp" },
+        { "label": "ZONE \u03b2", "value": 308.7, "min": 200, "max": 400, "dataMapping": "agents.beta.temp" },
+        { "label": "ZONE \u03b3", "value": 315.1, "min": 200, "max": 400, "dataMapping": "agents.gamma.temp" },
+        { "label": "ZONE \u03b4", "value": 310.2, "min": 200, "max": 400, "dataMapping": "agents.delta.temp" }
+      ]
+    },
+    {
+      "id": "pressure-vessel-gauge",
+      "label": "PRESSURE VESSEL",
+      "type": "large-analog-gauge",
+      "position": { "x": 1058, "y": 504, "w": 215, "h": 200 },
+      "description": "Large single pressure gauge. Scale 0-20 MPa. Needle at 15.42. Green zone 14-16, amber 16-18, red 18-20. Industrial metal bezel rendered as gradient border.",
+      "value": 15.42,
+      "min": 0,
+      "max": 20,
+      "unit": "MPa",
+      "dataMapping": "system.vesselPressure"
+    },
+    {
+      "id": "containment-pressure",
+      "label": "CONTAINMENT",
+      "type": "large-analog-gauge",
+      "position": { "x": 1283, "y": 504, "w": 215, "h": 200 },
+      "value": 0.103,
+      "min": 0,
+      "max": 0.5,
+      "unit": "MPa",
+      "dataMapping": "system.containmentPressure"
+    },
+    {
+      "id": "event-recorder",
+      "label": "EVENT RECORDER — SEQUENCE OF EVENTS",
+      "type": "scrolling-log",
+      "position": { "x": 24, "y": 784, "w": 620, "h": 270 },
+      "description": "Industrial event log. Each line: timestamp (HH:MM:SS.mmm), source tag, event text. Color-coded: white=info, amber=caution, red=alarm. Newest at bottom. Monospace on dark panel with recessed border.",
+      "maxLines": 16,
+      "sampleEntries": [
+        { "time": "14:27:01.234", "source": "BRK", "text": "SESSION s-7a2f CREATED — AGENT-\u03b1 ASSIGNED", "level": "info" },
+        { "time": "14:27:03.891", "source": "RX", "text": "CORE THERMAL OUTPUT 3847.2 MWth — NOMINAL", "level": "info" },
+        { "time": "14:27:08.102", "source": "HUB", "text": "BROADCAST RATE 2847 msg/s — 23 CLIENTS", "level": "info" },
+        { "time": "14:27:12.445", "source": "AGT", "text": "AGENT-\u03b3 TOKEN USAGE 82% — CAUTION", "level": "caution" },
+        { "time": "14:27:15.003", "source": "API", "text": "REQUEST RATE 142 req/s — P99 LAT 142ms", "level": "info" },
+        { "time": "14:27:19.771", "source": "RAD", "text": "AGENT BAY DOSE RATE 12.7 \u03bcSv/h — ELEVATED", "level": "caution" }
+      ],
+      "dataMapping": "system.eventLog"
+    },
+    {
+      "id": "power-trend",
+      "label": "REACTOR POWER TREND — 24H",
+      "type": "trend-chart",
+      "position": { "x": 660, "y": 784, "w": 620, "h": 130 },
+      "description": "Strip chart showing reactor power (throughput) over 24 hours. Y: 0-4000 MWth. X: 24h timeline. Green line trace. Setpoint as amber dashed line at 3900. Grid at 6h/1000MW intervals. Background: dark recessed panel.",
+      "dataMapping": "c9operator.powerTrend",
+      "yMin": 0,
+      "yMax": 4000,
+      "yUnit": "MWth",
+      "xDuration": "24h"
+    },
+    {
+      "id": "coolant-summary",
+      "label": "COOLANT SUMMARY",
+      "type": "data-table",
+      "position": { "x": 660, "y": 924, "w": 620, "h": 130 },
+      "columns": ["LOOP", "FLOW m\u00b3/h", "T-IN \u00b0C", "T-OUT \u00b0C", "\u0394T \u00b0C", "PUMP", "STATUS"],
+      "rows": [
+        ["LOOP-1 (\u03b1)", "4820", "289.3", "312.4", "23.1", "RUN", "NOMINAL"],
+        ["LOOP-2 (\u03b2)", "4790", "287.1", "308.7", "21.6", "RUN", "NOMINAL"],
+        ["LOOP-3 (\u03b3)", "4650", "291.8", "315.1", "23.3", "RUN", "ELEVATED"],
+        ["LOOP-4 (\u03b4)", "4810", "288.5", "310.2", "21.7", "RUN", "NOMINAL"]
+      ],
+      "dataMapping": "system.coolantSummary",
+      "rowHighlight": { "row": 2, "color": "#ccaa00" }
+    },
+    {
+      "id": "scram-history",
+      "label": "SCRAM HISTORY",
+      "type": "indicator-row",
+      "position": { "x": 1296, "y": 784, "w": 608, "h": 80 },
+      "description": "Row of 12 indicator lights showing last 12 SCRAM events. Green = no SCRAM in period. Red = SCRAM occurred. Each labeled with date. All green (no recent SRAMs).",
+      "indicators": 12,
+      "allGreen": true,
+      "dataMapping": "c9operator.scramHistory"
+    },
+    {
+      "id": "turbine-generator",
+      "label": "TURBINE-GENERATOR STATUS",
+      "type": "readout-panel",
+      "position": { "x": 1296, "y": 876, "w": 608, "h": 178 },
+      "fields": [
+        { "label": "TURBINE SPEED", "value": "3000", "unit": "RPM", "dataMapping": "hub.turbineSpeed" },
+        { "label": "GEN OUTPUT", "value": "1247.3", "unit": "MWe", "dataMapping": "system.genOutput" },
+        { "label": "EFFICIENCY", "value": "32.4", "unit": "%", "dataMapping": "system.efficiency" },
+        { "label": "GRID FREQ", "value": "50.001", "unit": "Hz", "dataMapping": "dashboard.gridFreq" },
+        { "label": "STEAM PRESS", "value": "6.82", "unit": "MPa", "dataMapping": "system.steamPressure" },
+        { "label": "CONDENSER VAC", "value": "-94.7", "unit": "kPa", "dataMapping": "system.condenserVac" }
+      ]
+    }
+  ],
+
+  "cinematicEffects": {
+    "scanLines": { "enabled": false },
+    "vignette": { "enabled": true, "strength": 0.35, "radius": 0.88, "softness": 0.3 },
+    "grain": { "enabled": true, "intensity": 0.025, "speed": 0.8 },
+    "bloom": { "enabled": true, "threshold": 0.85, "intensity": 0.15, "radius": 4 },
+    "panelShadows": { "enabled": true, "offsetY": 2, "blur": 6, "color": "rgba(0,0,0,0.5)" },
+    "instrumentGlare": { "enabled": true, "opacity": 0.08, "position": "top-left" },
+    "ambientFlicker": { "enabled": true, "frequency": 0.3, "amplitude": 0.01 },
+    "dustMotes": { "enabled": true, "count": 15, "speed": 0.2, "opacity": 0.06 }
+  },
+
+  "animations": [
+    { "target": "coolant-loop-1", "property": "flowArrows", "type": "travel", "frameRange": [0, 300], "speed": 2.0, "direction": "clockwise" },
+    { "target": "coolant-loop-2", "property": "flowArrows", "type": "travel", "frameRange": [0, 300], "speed": 2.0 },
+    { "target": "coolant-loop-3", "property": "flowArrows", "type": "travel", "frameRange": [0, 300], "speed": 1.8 },
+    { "target": "coolant-loop-4", "property": "flowArrows", "type": "travel", "frameRange": [0, 300], "speed": 2.0 },
+    { "target": "reactor-cross-section", "property": "coreGlow", "type": "pulse", "frameRange": [0, 300], "min": 0.8, "max": 1.0, "period": 90 },
+    { "target": "control-rod-bank", "property": "positions", "type": "oscillate", "frameRange": [0, 300], "amplitude": 2, "period": 120, "easing": "easeInOutSine" },
+    { "target": "temperature-gauges", "property": "needles", "type": "jitter", "frameRange": [0, 300], "amplitude": 0.8, "speed": 3 },
+    { "target": "pressure-vessel-gauge", "property": "needle", "type": "jitter", "frameRange": [0, 300], "amplitude": 0.05 },
+    { "target": "event-recorder", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "newLineEvery": 50 },
+    { "target": "power-trend", "property": "trace", "type": "shiftLeft", "frameRange": [0, 300] },
+    { "target": "alarm-status-bar", "property": "A5", "type": "flash", "frameRange": [0, 300], "color": "#ccaa00", "hz": 1 },
+    { "target": "radiation-monitors", "property": "agentBay", "type": "flash", "frameRange": [150, 250], "color": "#ccaa00", "hz": 0.5 }
+  ],
+
+  "dataMapping": {
+    "source": "c9-operator WebSocket stream",
+    "metaphorMapping": {
+      "reactorPower": "c9-operator total throughput (tasks processed/min)",
+      "coolantFlow": "agent data processing rate (tokens/sec)",
+      "temperature": "agent resource utilization (%)",
+      "pressure": "system memory / queue pressure",
+      "radiationLevel": "error rate / anomaly frequency",
+      "controlRods": "throttle parameters (session limits, rate limits)",
+      "SCRAM": "emergency shutdown / kill all agents"
+    },
+    "refreshRate": "1s for readouts, per-frame for animations",
+    "fallback": "static sample values shown in element definitions"
+  }
+}

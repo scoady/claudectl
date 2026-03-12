@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface SubmarineAgent {
   id: string;
@@ -23,8 +24,6 @@ interface StatsData {
   total_agents_spawned?: number;
   cumulative_cost?: number;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const SONAR_CYAN = '#00e5ff';
 const SONAR_GREEN = '#00ff88';

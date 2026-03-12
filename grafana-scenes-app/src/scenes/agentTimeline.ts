@@ -71,7 +71,7 @@ function getAgentListQuery(): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'agents',
-        url: 'http://localhost:4040/api/agents',
+        url: '/api/agents',
         columns: [
           { selector: 'session_id', text: 'Agent ID', type: 'string' },
           { selector: 'project', text: 'Project', type: 'string' },
@@ -92,7 +92,7 @@ function getStatsQuery(): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'stats',
-        url: 'http://localhost:4040/api/stats',
+        url: '/api/stats',
         columns: [
           { selector: 'active_agents', text: 'Active', type: 'number' },
           { selector: 'total_agents', text: 'Total', type: 'number' },
@@ -109,7 +109,7 @@ function getAgentMilestonesQuery(agentId: string): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: 'milestones',
-        url: `http://localhost:4040/api/agents/${agentId}/milestones`,
+        url: `/api/agents/${agentId}/milestones`,
         columns: [
           { selector: 'timestamp', text: 'Time', type: 'timestamp' },
           { selector: 'label', text: 'Milestone', type: 'string' },
@@ -299,7 +299,7 @@ function getAgentDetailScene(agentId: string): EmbeddedScene {
               queries: [
                 infinityJsonQuery({
                   refId: 'stream',
-                  url: `http://localhost:4040/api/agents/${agentId}/messages`,
+                  url: `/api/agents/${agentId}/messages`,
                   columns: [
                     { selector: 'timestamp', text: 'Time', type: 'timestamp' },
                     { selector: 'role', text: 'Role', type: 'string' },

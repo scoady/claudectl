@@ -1,0 +1,85 @@
+{
+  "wireframeId": "submarine-cic",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "compass-rose contacts (agent pips)", "bloomRadius": 8, "intensity": 0.5, "trigger": "always", "note": "Each contact pip on the tactical plot should glow with a soft halo — they are phosphor dots on a real radar scope" },
+      { "element": "sonar-waterfall bright signal bands", "bloomRadius": 6, "intensity": 0.4, "trigger": "signal > 0.7", "note": "Strong sonar returns should bloom vertically along the waterfall — bright lines bleed into adjacent frequencies" },
+      { "element": "compass-rose sweep line leading edge", "bloomRadius": 12, "intensity": 0.6, "note": "The rotating sweep should have a bright leading edge that fans into a fading trail" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0.5, "note": "Minimal — amber CRT displays had less chromatic issues than green phosphor. Apply only to the outer 15% of each display panel" },
+    "filmGrain": { "amount": 0.035, "note": "Present. Make it warm-tinted amber grain. Add heavier grain (0.06) specifically to the sonar waterfall display — sonar scopes had noisier phosphors" },
+    "scanLines": { "note": "Spacing 4 at 0.04 opacity. Good, but the sonar-waterfall and sonar-bearing should have TIGHTER scan lines (spacing 2, opacity 0.08) — those are small, high-res displays" },
+    "vignette": { "note": "0.55 strength is aggressive — perfect for submarine. The CIC is dark. Push inner radius to 0.75 for even darker corners" },
+    "reflectionGlare": [
+      { "type": "curved-glass-reflection", "element": "compass-rose", "opacity": 0.04, "shape": "circular", "note": "The tactical plot is viewed through a curved glass hood. Add a faint circular specular highlight at the 11-o'clock position" },
+      { "type": "panel-glass", "element": "sonar-waterfall", "opacity": 0.025, "note": "Sonar waterfall display has its own glass cover — slight rectangular glare" }
+    ],
+    "condensation": { "note": "8 droplets at 0.03 opacity specified. Increase to 15 droplets. Add 3-4 droplets that slowly roll down (0.5px/frame) leaving faint streak trails — submarines are humid" },
+    "heatDistortion": null,
+    "particleEffects": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 2.0, "amplitudeY": 3.0, "period": 200, "easing": "perlinNoise", "rotationAmplitude": 0.3, "note": "More Y-axis movement than X — the submarine sways vertically (depth oscillation). Add slight rotation (roll) drift" },
+    "rackFocus": [
+      { "from": "sonar-waterfall", "to": "compass-rose", "frameRange": [90, 105], "blurRadius": 3, "note": "When a new contact signal appears on sonar, focus shifts to the tactical plot to see where it resolves" }
+    ],
+    "dramaticReveals": [
+      { "element": "engine-telegraph", "frameRange": [178, 212], "note": "The telegraph sweep from HALF to FULL is specified. Add a mechanical thunk visual — brief 1-frame screen shake (2px) when the pointer hits FULL position, plus the pointer overshoots by 3 degrees then settles" }
+    ],
+    "breathingAnimations": [
+      { "element": "depth-gauge value", "type": "slow-oscillation", "note": "Depth oscillation 175-185m is specified at period 200. Perfect. The indicator bar should have slight mechanical lag (3-frame delay behind the actual value)" },
+      { "element": "all amber displays", "type": "brightness-oscillate", "period": 300, "amplitude": 0.03, "note": "Ambient CIC lighting fluctuates with the reactor — barely perceptible warm-cool shift" }
+    ],
+    "microInteractions": [
+      { "element": "contact-classification T-003 row", "type": "text-blink", "period": 45, "note": "The UNKN classification for T-003 should blink between 'UNKN' and '????' — operator uncertainty" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [175, 215], "description": "Speed increase moment — telegraph sweeps to FULL, speed readout ticks up from 12.4 to 16.8 kts, compass contacts shift bearing slightly (doppler effect of own movement), depth oscillation amplitude increases from 5m to 8m" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "right panel gap (x:1352, y:664-780)", "fix": "Add TIME SINCE LAST PING readout and ACOUSTIC CONDITIONS panel (SVP: NEGATIVE GRADIENT, LAYER DEPTH: 120m, CONVERGENCE ZONE: 42nm)" },
+    { "element": "hull-integrity", "fix": "Add individual frame number labels along the hull outline (FR20, FR40, FR60...) and pressure at depth readout" },
+    { "element": "torpedo-solution", "fix": "Add WEAPON TYPE column (Mk48 ADCAP), RUN TIME estimate, and ENABLE/DISABLE status per tube" },
+    { "element": "compass-rose", "fix": "Add OWN SHIP speed leader (line from center extending in heading direction, length proportional to speed). Add CPA/TCPA readout for closest contact" },
+    { "background": true, "fix": "Add rivet heads along panel borders (small 4px circles at rivet spacing intervals) and a faint 'CLASSIFICATION: CONFIDENTIAL' watermark diagonally across the composition" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Warm amber-dominant with deep brown-black shadows — grade like Das Boot (Jost Vacano cinematography). Shadows should be #060400 (warm black, not neutral). Red battle lighting mode should be available as a state change",
+    "keyMoments": [
+      { "trigger": "contact T-003 reclassification", "shift": "Compass-rose background subtly shifts warmer — tension building. Contact T-003 transitions from #ffcc00 to approaching #ff8800" },
+      { "trigger": "speed increase to FULL", "shift": "Slight overall brightness increase of 5% — more power, more light from instruments" }
+    ],
+    "accentUsage": "The sonar green (#33cc66) provides good contrast against the amber palette. But it's isolated to sonar only — consider green status indicators on the right panel for GO states to create visual dialogue between left/right screens",
+    "backgroundAtmosphere": "Background #0a0804 is correct warm-black. Add noise texture at 0.02 — real metal panels have surface imperfections. Also add a very faint radial warm gradient emanating from the compass-rose (it is a light source)"
+  },
+
+  "typographyNotes": {
+    "fonts": "Source Code Pro is excellent — its neutral monospace character works for military readability",
+    "monospaceReadout": "Source Code Pro at weight 600 for readouts is clean. For bearing values (22px), use weight 700 for maximum contrast",
+    "displayFont": "Consider Overpass Mono for panel headers — slightly more condensed, allowing more text in tight panel spaces",
+    "sizeHierarchy": "9px labels will be hard to read. Bump to 10px. The bearing at 22px is appropriately large. Add 8px tier for panel identification plates only"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "sonar-waterfall", "sound": "Constant broadband ocean noise — filtered white noise with emphasis on 200-800Hz. This IS the sound of the ocean pressing against the hull" },
+      { "element": "compass-rose sweep", "sound": "Soft rotating click every sweep — mechanical bearing resolver" },
+      { "element": "background", "sound": "Deep low-frequency rumble — hull under pressure, machinery vibration transmitted through the ship's structure" }
+    ],
+    "eventSounds": [
+      { "element": "sonar-waterfall bright spike", "sound": "Active sonar PING return — the iconic submarine sound. Sharp metallic ring with long reverb tail" },
+      { "element": "engine-telegraph sweep", "sound": "Mechanical bell ding-ding + heavy brass lever clunk when reaching FULL position" },
+      { "element": "torpedo-solution status READY", "sound": "Short confirmatory tone — high-pitched double beep" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [95, 100], "description": "Brief drop in ambient noise before sonar contact classification — the sonar operator calls 'new contact' and the CIC goes quiet" }
+    ]
+  }
+}

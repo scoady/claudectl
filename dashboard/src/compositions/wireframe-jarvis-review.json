@@ -1,0 +1,85 @@
+{
+  "wireframeId": "jarvis-holographic-hud",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "arc-reactor-gauge core", "bloomRadius": 32, "intensity": 0.7, "trigger": "always", "note": "Arc reactor is THE hero light source — needs aggressive bloom that spills onto adjacent biometric cards" },
+      { "element": "system-wireframe edge particles", "bloomRadius": 6, "intensity": 0.5, "note": "Traveling data particles should leave bloom trails" }
+    ],
+    "lensFlare": [
+      { "position": "arc-reactor-gauge center", "triggerFrame": null, "type": "anamorphic-horizontal", "intensity": 0.25, "color": "#00ccff", "length": 400, "note": "Persistent anamorphic streak from arc reactor — this IS the Iron Man signature" },
+      { "position": "system-wireframe center", "triggerFrame": [0, 300], "type": "subtle-hex-flare", "intensity": 0.1, "note": "As wireframe rotates, catch occasional hexagonal lens flare from bright vertices" }
+    ],
+    "chromaticAberration": { "note": "1.5px offset is present but should be DYNAMIC — increase to 3px during glitch bursts, snap back to 1.5px. Also add separate R/G/B channel offsets: R(+1,0), G(0,0), B(-1,+1)" },
+    "filmGrain": { "note": "0.015 is too subtle for holographic projection. Increase to 0.03 and make it color grain (not monochrome) — RGB noise channels slightly offset" },
+    "depthOfField": { "focalPlane": "depth 0 (wireframe)", "nearBlur": 0, "farBlur": 3, "note": "Present but underspecified. Depth layers 2-3 (bottom bar, floating cards) should have 2-3px Gaussian blur. Particles at depth 4 should have 4-6px bokeh blur" },
+    "lightLeaks": [
+      { "type": "cyan-bleed", "position": "top-left corner", "opacity": 0.06, "frameRange": [60, 120], "note": "Holographic projection light leak — cyan wash bleeds into corner" }
+    ],
+    "reflectionGlare": [
+      { "type": "hologram-projection-cone", "position": "bottom-center", "opacity": 0.04, "note": "Faint upward-pointing trapezoid of light from the bottom — as if the hologram is being projected from below" }
+    ],
+    "particleEffects": { "note": "60 ambient particles exist but need SIZE VARIATION with distance. Add 5 very close particles (size 5-8px, blurred) that drift across foreground — parallax depth cue" }
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 3, "amplitudeY": 2, "period": 200, "easing": "perlinNoise", "note": "More drift than NASA — this is Tony Stark waving his hands, the 'camera' follows subtly" },
+    "rackFocus": [
+      { "from": "system-wireframe (depth 0)", "to": "threat-assessment (depth 1)", "frameRange": [100, 115], "blurRadius": 4, "note": "When token exhaustion threat rises to 7, rack focus to the threat panel" },
+      { "from": "threat-assessment", "to": "notification-cards", "frameRange": [120, 135], "blurRadius": 4, "note": "Then focus shifts to the incoming notification" }
+    ],
+    "dramaticReveals": [
+      { "element": "hud-title", "note": "Glitch reveal is specified but needs: RGB split (3px) -> recombine -> slight overshoot scale (102%) -> settle to 100%. Duration should be 20 frames, not instant" },
+      { "element": "biometric cards", "type": "staggered-slide-in", "frameRange": [10, 40], "stagger": 5, "direction": "from-left", "easing": "easeOutBack", "note": "Cards should slide in one by one with slight overshoot bounce" }
+    ],
+    "breathingAnimations": [
+      { "element": "corner-brackets", "type": "opacity-pulse", "period": 120, "range": [0.15, 0.25], "note": "HUD frame should breathe — alive, not static" },
+      { "element": "panelBorders", "type": "glow-pulse", "period": 180, "intensityRange": [0.2, 0.3], "note": "Panel borders subtly brighten and dim" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [95, 135], "description": "Threat escalation sequence — threat panel severity 7 turns amber, rack focus, notification slides in, brief chromatic aberration spike to 4px, ambient particles speed up 2x for 20 frames" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "bottom-left corner (x:0-200, y:920-1080)", "fix": "Add a small system clock with date: '2026.068 // 14:27:33 UTC' in dimCyan, plus uptime counter" },
+    { "element": "threat-assessment", "fix": "Add a 5th row: 'LATENCY SPIKE' at severity 4, trend 'rising'. Also add percentage labels on severity bars" },
+    { "element": "biometric cards", "fix": "Add per-agent model name (e.g., 'opus-4') and session ID as tiny text below status badge" },
+    { "region": "center wireframe area below model", "fix": "Add floating text annotations near vertices: 'ACTIVE', '4 SESSIONS', '2847 msg/s' — like JARVIS labels components in mid-air" },
+    { "background": true, "fix": "The hex grid at 0.03 opacity is good. Add coordinate labels at hex intersections every 5th hex: 'A7', 'B3', etc. — military HUD grid reference" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Cool cyan-dominant with warm orange as danger accent — like Deakins lighting through cyan gels. Shadows are pure black (correct for hologram). Add very subtle blue (#001122) to the darkest areas instead of pure #000000",
+    "keyMoments": [
+      { "trigger": "threat-assessment token exhaustion at severity 7+", "shift": "Ambient hex grid shifts from cyan to warm orange tint for the right-panel area — localized color contamination" },
+      { "trigger": "glitch bursts", "shift": "Entire frame desaturates 20% for 3 frames during glitch — momentary hologram instability" }
+    ],
+    "accentUsage": "Orange (#ff6600) is only used for agent-gamma WARNING. Underutilized. Add orange accent lines to threat panel borders and high-severity notification card edges",
+    "backgroundAtmosphere": "Pure black is correct for hologram but add a very faint radial gradient: center #000811 edges #000000 — suggests depth behind the projection"
+  },
+
+  "typographyNotes": {
+    "fonts": "Rajdhani + Share Tech Mono is an excellent pairing. Rajdhani gives the futuristic UI feel, Share Tech Mono grounds the data",
+    "monospaceReadout": "Share Tech Mono is good but consider Oxanium for labels — it has a more angular, holographic quality",
+    "displayFont": "The title at 28px Rajdhani 700 could use letter-spacing: 8px as specified, but also add text-transform: uppercase if not already",
+    "sizeHierarchy": "10px labels are too small. Bump to 11px. The 13px readout is fine. Add a 'mega' tier at 48px for the arc reactor percentage display — it deserves hero treatment"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "system-wireframe rotation", "sound": "Low harmonic hum that modulates with rotation speed — the hologram projector" },
+      { "element": "arc-reactor-gauge", "sound": "Deep 60Hz electrical hum with subtle harmonic overtones on each ring pulse" },
+      { "element": "depth-particles", "sound": "Very faint high-frequency shimmer — holographic air distortion" }
+    ],
+    "eventSounds": [
+      { "element": "notification-cards slideIn", "sound": "Sharp glass tap + short whoosh as each card arrives" },
+      { "element": "gesture-trails", "sound": "Soft synthetic swipe — rising pitch for upward arcs, falling for downward" },
+      { "element": "glitch bursts", "sound": "Digital distortion crackle — 0.1s burst of bit-crushed noise" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [0, 5], "description": "Complete silence before hud-title glitch reveal — then the system powers on with a rising tone" }
+    ]
+  }
+}

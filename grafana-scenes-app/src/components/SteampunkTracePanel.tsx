@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface TraceNode {
   name: string;
@@ -21,8 +22,6 @@ interface AgentData {
   elapsed?: string;
   milestone?: string;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 /**
  * SteampunkTracePanel - A steampunk-themed distributed trace waterfall

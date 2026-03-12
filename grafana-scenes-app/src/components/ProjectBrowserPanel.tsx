@@ -5,7 +5,7 @@ import {
   inputField, primaryButton, ghostButton, modalBackdrop, thinScrollbar,
   statusDot, formatDuration,
 } from '../styles/theme';
-import { api } from '../services/api';
+import { api, API_BASE } from '../services/api';
 import { agentWS } from '../services/websocket';
 import type { Project, Agent, Stats, Task } from '../types';
 
@@ -113,7 +113,7 @@ const ProjectBrowserPanel: React.FC<ProjectBrowserPanelProps> = ({ onSelectProje
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      await fetch('http://localhost:4040/api/projects', {
+      await fetch(`${API_BASE}/api/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName.trim(), description: newDesc.trim(), model: newModel }),

@@ -9,7 +9,7 @@
 
 import type { StreamEvent, WSEventType } from '../types';
 
-const WS_URL = 'ws://localhost:4040/ws';
+const WS_URL = 'ws://claude-manager.localhost/ws';
 
 type EventHandler = (event: StreamEvent) => void;
 
@@ -115,7 +115,14 @@ class WebSocketManager {
 
       this.ws.onmessage = (ev: MessageEvent) => {
         try {
-          const event: StreamEvent = JSON.parse(ev.data);
+          const raw = JSON.parse(ev.data);
+          // The backend wraps events in a WSEvent envelope: {type, data, timestamp}
+          // Flatten the data fields onto the top level for handler convenience
+          const event: StreamEvent = {
+            ...raw.data,
+            type: raw.type,
+            timestamp: raw.timestamp,
+          };
           this.dispatch(event);
         } catch {
           // Silently ignore unparseable messages

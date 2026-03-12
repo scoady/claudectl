@@ -1,0 +1,508 @@
+{
+  "id": "wireframe-drone",
+  "title": "Military Drone Command Ground Control Station",
+  "description": "GCS interface inspired by Eye in the Sky / MQ-9 Reaper operations, mapping 4 agents to UAV feeds with kill chain tracking, ISR overlay, and C2 comms",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+  "colorGrading": {
+    "background": "#0A0D0F",
+    "panelBg": "#0F1317",
+    "panelBorder": "#1C2228",
+    "uav1Color": "#00FF88",
+    "uav2Color": "#00CCFF",
+    "uav3Color": "#FF9944",
+    "uav4Color": "#FF4466",
+    "crosshairGreen": "#33FF66",
+    "targetRed": "#FF3344",
+    "trackingYellow": "#FFCC33",
+    "friendlyBlue": "#4488FF",
+    "missionAreaCyan": "#00DDCC",
+    "textPrimary": "#D4DDE6",
+    "textSecondary": "#7A8894",
+    "textMuted": "#3A4450",
+    "gridLine": "#151C22",
+    "killChainActive": "#FF4444",
+    "killChainComplete": "#00FF88",
+    "killChainPending": "#3A4450",
+    "datalinkGood": "#00FF88",
+    "datalinkDegraded": "#FFCC33",
+    "datalinkLost": "#FF3344",
+    "roeGreen": "#00CC66",
+    "roeAmber": "#FFAA22",
+    "roeRed": "#FF2233",
+    "bdaBlue": "#3388DD"
+  },
+  "typography": {
+    "primary": { "fontFamily": "Roboto Condensed, Arial Narrow, sans-serif", "weight": 700 },
+    "secondary": { "fontFamily": "Roboto, sans-serif", "weight": 400 },
+    "mono": { "fontFamily": "Source Code Pro, Consolas, monospace", "weight": 500 },
+    "sizes": {
+      "feedLabel": 16,
+      "hudOverlay": 11,
+      "killChainPhase": 13,
+      "panelTitle": 12,
+      "dataValue": 18,
+      "dataLabel": 9,
+      "commsText": 11,
+      "roeText": 12,
+      "timestamp": 10
+    }
+  },
+  "layout": {
+    "uavFeeds": { "x": 0, "y": 0, "w": 1280, "h": 640, "description": "2x2 quadrant video feeds" },
+    "killChainBar": { "x": 0, "y": 644, "w": 1280, "h": 56, "description": "Kill chain status bar" },
+    "satelliteMap": { "x": 1288, "y": 0, "w": 632, "h": 400, "description": "Satellite imagery mission map" },
+    "datalinkMeters": { "x": 1288, "y": 408, "w": 316, "h": 140, "description": "Datalink quality per UAV" },
+    "weaponStatus": { "x": 1612, "y": 408, "w": 308, "h": 140, "description": "Weapon status per UAV" },
+    "timeOnStation": { "x": 1288, "y": 556, "w": 200, "h": 60, "description": "TOS countdown" },
+    "roePanel": { "x": 1496, "y": 556, "w": 424, "h": 144, "description": "Rules of engagement sidebar" },
+    "commsTranscript": { "x": 0, "y": 708, "w": 640, "h": 196, "description": "Communications transcript" },
+    "bdaPanel": { "x": 648, "y": 708, "w": 632, "h": 196, "description": "Battle damage assessment" },
+    "missionClock": { "x": 1288, "y": 624, "w": 200, "h": 76, "description": "Mission elapsed time" },
+    "statusBar": { "x": 0, "y": 908, "w": 1920, "h": 36, "description": "Bottom classification bar" }
+  },
+  "elements": [
+    {
+      "id": "uav_feed_alpha",
+      "type": "videoFeed",
+      "region": "uavFeeds",
+      "position": { "x": 0, "y": 0, "w": 640, "h": 320 },
+      "description": "UAV-1 FLIR/EO video feed with HUD overlay and tracking crosshairs",
+      "agent": "alpha",
+      "feedLabel": "REAPER-1 // AGENT-ALPHA",
+      "sensorMode": "IR WHITE HOT",
+      "hudOverlay": {
+        "crosshair": { "type": "mil-dot", "color": "#33FF66", "size": 80, "center": { "x": 320, "y": 160 } },
+        "compass": { "heading": 247, "position": "top-center", "color": "#33FF66" },
+        "altSpeed": { "altitude": "18,500 ft MSL", "groundSpeed": "142 KTAS", "position": "bottom-left" },
+        "coordinates": { "lat": "33.4255 N", "lon": "044.3661 E", "position": "bottom-right" },
+        "laserDesignator": { "code": "1688", "status": "ACTIVE", "position": "top-left" },
+        "fov": { "current": "NARROW", "zoom": "x12", "position": "top-right" },
+        "timestamp": "06-MAR-2026 14:32:07Z"
+      },
+      "targetTracking": {
+        "enabled": true,
+        "boundingBox": { "x": 280, "y": 130, "w": 80, "h": 60, "color": "#FF3344", "label": "TGT-001" },
+        "trackQuality": "FIRM",
+        "slantRange": "4.2 NM"
+      }
+    },
+    {
+      "id": "uav_feed_beta",
+      "type": "videoFeed",
+      "region": "uavFeeds",
+      "position": { "x": 640, "y": 0, "w": 640, "h": 320 },
+      "agent": "beta",
+      "feedLabel": "REAPER-2 // AGENT-BETA",
+      "sensorMode": "EO DAY",
+      "hudOverlay": {
+        "crosshair": { "type": "bore-sight", "color": "#33FF66", "size": 60, "center": { "x": 320, "y": 160 } },
+        "compass": { "heading": 89, "position": "top-center", "color": "#33FF66" },
+        "altSpeed": { "altitude": "22,000 ft MSL", "groundSpeed": "128 KTAS", "position": "bottom-left" },
+        "coordinates": { "lat": "33.4301 N", "lon": "044.3720 E", "position": "bottom-right" },
+        "fov": { "current": "WIDE", "zoom": "x4", "position": "top-right" },
+        "timestamp": "06-MAR-2026 14:32:07Z"
+      },
+      "targetTracking": {
+        "enabled": false,
+        "searchArea": { "x": 200, "y": 100, "w": 240, "h": 120, "color": "#FFCC33", "label": "SEARCH BOX" }
+      }
+    },
+    {
+      "id": "uav_feed_gamma",
+      "type": "videoFeed",
+      "region": "uavFeeds",
+      "position": { "x": 0, "y": 320, "w": 640, "h": 320 },
+      "agent": "gamma",
+      "feedLabel": "REAPER-3 // AGENT-GAMMA",
+      "sensorMode": "IR BLACK HOT",
+      "hudOverlay": {
+        "crosshair": { "type": "mil-dot", "color": "#33FF66", "size": 80, "center": { "x": 320, "y": 160 } },
+        "compass": { "heading": 315, "position": "top-center", "color": "#33FF66" },
+        "altSpeed": { "altitude": "20,000 ft MSL", "groundSpeed": "135 KTAS", "position": "bottom-left" },
+        "coordinates": { "lat": "33.4198 N", "lon": "044.3580 E", "position": "bottom-right" },
+        "timestamp": "06-MAR-2026 14:32:07Z"
+      },
+      "targetTracking": {
+        "enabled": true,
+        "boundingBox": { "x": 290, "y": 140, "w": 60, "h": 50, "color": "#FFCC33", "label": "SUSP-003" },
+        "trackQuality": "TENTATIVE",
+        "slantRange": "5.8 NM"
+      }
+    },
+    {
+      "id": "uav_feed_delta",
+      "type": "videoFeed",
+      "region": "uavFeeds",
+      "position": { "x": 640, "y": 320, "w": 640, "h": 320 },
+      "agent": "delta",
+      "feedLabel": "REAPER-4 // AGENT-DELTA",
+      "sensorMode": "SAR",
+      "hudOverlay": {
+        "crosshair": { "type": "sar-frame", "color": "#33FF66", "size": 100, "center": { "x": 320, "y": 160 } },
+        "compass": { "heading": 180, "position": "top-center", "color": "#33FF66" },
+        "altSpeed": { "altitude": "25,000 ft MSL", "groundSpeed": "118 KTAS", "position": "bottom-left" },
+        "coordinates": { "lat": "33.4150 N", "lon": "044.3500 E", "position": "bottom-right" },
+        "timestamp": "06-MAR-2026 14:32:07Z",
+        "sarMode": "SPOT",
+        "resolution": "0.3m"
+      },
+      "targetTracking": { "enabled": false }
+    },
+    {
+      "id": "kill_chain_bar",
+      "type": "phaseBar",
+      "region": "killChainBar",
+      "position": { "x": 0, "y": 644, "w": 1280, "h": 56 },
+      "description": "F2T2EA kill chain phases with current status",
+      "phases": [
+        { "id": "find", "label": "FIND", "status": "complete", "color": "#00FF88", "timestamp": "14:08:22Z", "icon": "search" },
+        { "id": "fix", "label": "FIX", "status": "complete", "color": "#00FF88", "timestamp": "14:15:41Z", "icon": "pin" },
+        { "id": "track", "label": "TRACK", "status": "active", "color": "#FFCC33", "timestamp": "14:15:41Z", "elapsed": "16:26", "icon": "crosshair" },
+        { "id": "target", "label": "TARGET", "status": "pending", "color": "#3A4450", "icon": "target" },
+        { "id": "engage", "label": "ENGAGE", "status": "pending", "color": "#3A4450", "icon": "missile" },
+        { "id": "assess", "label": "ASSESS", "status": "pending", "color": "#3A4450", "icon": "clipboard" }
+      ],
+      "connectors": { "color": "#1C2228", "activeColor": "#00FF88", "thickness": 3 },
+      "dataMapping": "workflow.phases"
+    },
+    {
+      "id": "satellite_map",
+      "type": "mapView",
+      "region": "satelliteMap",
+      "position": { "x": 1288, "y": 0, "w": 632, "h": 400 },
+      "description": "Overhead satellite imagery with mission area polygon, UAV positions, and target tracks",
+      "imagery": "satellite_highres",
+      "center": { "lat": 33.425, "lon": 44.365 },
+      "zoom": 14,
+      "layers": [
+        {
+          "id": "mission_area",
+          "type": "polygon",
+          "vertices": [
+            { "lat": 33.430, "lon": 44.350 },
+            { "lat": 33.430, "lon": 44.380 },
+            { "lat": 33.415, "lon": 44.380 },
+            { "lat": 33.415, "lon": 44.350 }
+          ],
+          "strokeColor": "#00DDCC",
+          "fillColor": "#00DDCC11",
+          "strokeWidth": 2,
+          "label": "AO HAMMER"
+        },
+        {
+          "id": "uav_positions",
+          "type": "icons",
+          "items": [
+            { "agent": "alpha", "lat": 33.4255, "lon": 44.3661, "heading": 247, "icon": "uav", "color": "#00FF88", "orbit": { "radius": 0.002, "direction": "CCW" } },
+            { "agent": "beta", "lat": 33.4301, "lon": 44.3720, "heading": 89, "icon": "uav", "color": "#00CCFF", "orbit": { "radius": 0.003, "direction": "CW" } },
+            { "agent": "gamma", "lat": 33.4198, "lon": 44.3580, "heading": 315, "icon": "uav", "color": "#FF9944", "orbit": { "radius": 0.002, "direction": "CCW" } },
+            { "agent": "delta", "lat": 33.4150, "lon": 44.3500, "heading": 180, "icon": "uav", "color": "#FF4466", "orbit": null }
+          ]
+        },
+        {
+          "id": "target_track",
+          "type": "trackLine",
+          "points": [
+            { "lat": 33.4240, "lon": 44.3640, "time": "14:08:22Z" },
+            { "lat": 33.4250, "lon": 44.3655, "time": "14:20:00Z" },
+            { "lat": 33.4255, "lon": 44.3661, "time": "14:32:07Z" }
+          ],
+          "color": "#FF3344",
+          "dotColor": "#FF3344",
+          "label": "TGT-001 TRACK"
+        },
+        {
+          "id": "no_strike_zone",
+          "type": "polygon",
+          "vertices": [
+            { "lat": 33.428, "lon": 44.360 },
+            { "lat": 33.428, "lon": 44.365 },
+            { "lat": 33.426, "lon": 44.365 },
+            { "lat": 33.426, "lon": 44.360 }
+          ],
+          "strokeColor": "#FF2233",
+          "fillColor": "#FF223322",
+          "strokeWidth": 2,
+          "dash": [6, 3],
+          "label": "NO-STRIKE ZONE"
+        }
+      ],
+      "scaleBar": { "position": "bottom-left", "unit": "m" },
+      "mgrs": "38SMB 4365 3425",
+      "northArrow": true
+    },
+    {
+      "id": "datalink_meters",
+      "type": "signalMeters",
+      "region": "datalinkMeters",
+      "position": { "x": 1288, "y": 408, "w": 316, "h": 140 },
+      "description": "Datalink quality and latency per UAV",
+      "meters": [
+        { "uav": "REAPER-1", "agent": "alpha", "linkType": "Ku-SATCOM", "signalStrength": -62, "unit": "dBm", "latency": 1.2, "latencyUnit": "s", "packetLoss": 0.02, "status": "GOOD", "color": "#00FF88" },
+        { "uav": "REAPER-2", "agent": "beta", "linkType": "C-BAND LOS", "signalStrength": -48, "unit": "dBm", "latency": 0.08, "latencyUnit": "s", "packetLoss": 0.00, "status": "EXCELLENT", "color": "#00FF88" },
+        { "uav": "REAPER-3", "agent": "gamma", "linkType": "Ku-SATCOM", "signalStrength": -71, "unit": "dBm", "latency": 1.8, "latencyUnit": "s", "packetLoss": 0.05, "status": "DEGRADED", "color": "#FFCC33" },
+        { "uav": "REAPER-4", "agent": "delta", "linkType": "Ku-SATCOM", "signalStrength": -65, "unit": "dBm", "latency": 1.4, "latencyUnit": "s", "packetLoss": 0.01, "status": "GOOD", "color": "#00FF88" }
+      ],
+      "barHeight": 8,
+      "dataMapping": "hub.connection_quality"
+    },
+    {
+      "id": "weapon_status",
+      "type": "weaponRacks",
+      "region": "weaponStatus",
+      "position": { "x": 1612, "y": 408, "w": 308, "h": 140 },
+      "description": "Ordnance status per UAV — pylons, weapon type, arm state",
+      "racks": [
+        { "uav": "REAPER-1", "agent": "alpha", "pylons": [
+          { "station": "L-INBD", "weapon": "AGM-114R", "status": "ARMED", "color": "#FF3344" },
+          { "station": "L-OUTBD", "weapon": "AGM-114R", "status": "SAFE", "color": "#3A4450" },
+          { "station": "R-INBD", "weapon": "GBU-12", "status": "SAFE", "color": "#3A4450" },
+          { "station": "R-OUTBD", "weapon": "EMPTY", "status": "--", "color": "#1C2228" }
+        ]},
+        { "uav": "REAPER-2", "agent": "beta", "pylons": [
+          { "station": "L-INBD", "weapon": "AGM-114R", "status": "SAFE", "color": "#3A4450" },
+          { "station": "R-INBD", "weapon": "AGM-114R", "status": "SAFE", "color": "#3A4450" }
+        ]},
+        { "uav": "REAPER-3", "agent": "gamma", "pylons": [
+          { "station": "L-INBD", "weapon": "GBU-38", "status": "SAFE", "color": "#3A4450" },
+          { "station": "R-INBD", "weapon": "GBU-38", "status": "SAFE", "color": "#3A4450" }
+        ]},
+        { "uav": "REAPER-4", "agent": "delta", "pylons": [
+          { "station": "L-INBD", "weapon": "NONE", "status": "ISR ONLY", "color": "#1C2228" }
+        ]}
+      ]
+    },
+    {
+      "id": "time_on_station",
+      "type": "countdown",
+      "region": "timeOnStation",
+      "position": { "x": 1288, "y": 556, "w": 200, "h": 60 },
+      "description": "Time remaining on station before RTB for fuel",
+      "countdowns": [
+        { "uav": "R-1", "remaining": "04:12:00", "fuel": 62, "color": "#00FF88" },
+        { "uav": "R-2", "remaining": "06:30:00", "fuel": 78, "color": "#00FF88" },
+        { "uav": "R-3", "remaining": "02:45:00", "fuel": 41, "color": "#FFCC33" },
+        { "uav": "R-4", "remaining": "05:15:00", "fuel": 68, "color": "#00FF88" }
+      ],
+      "warningBelow": "03:00:00",
+      "criticalBelow": "01:00:00",
+      "font": "mono"
+    },
+    {
+      "id": "roe_sidebar",
+      "type": "roeChecklist",
+      "region": "roePanel",
+      "position": { "x": 1496, "y": 556, "w": 424, "h": 144 },
+      "description": "Rules of engagement authorization checklist",
+      "currentRoeLevel": "WEAPONS TIGHT",
+      "roeLevels": {
+        "WEAPONS FREE": { "color": "#FF2233", "description": "Engage any target not positively identified as friendly" },
+        "WEAPONS TIGHT": { "color": "#FFAA22", "description": "Engage only targets positively identified as hostile" },
+        "WEAPONS HOLD": { "color": "#00CC66", "description": "Engage only in self-defense" }
+      },
+      "authorizations": [
+        { "check": "PID CONFIRMED", "status": true, "color": "#00CC66" },
+        { "check": "CDE MET (<10 CIV)", "status": true, "color": "#00CC66" },
+        { "check": "JA APPROVED", "status": false, "color": "#FF2233", "note": "AWAITING LEGAL" },
+        { "check": "CMD AUTH", "status": false, "color": "#3A4450", "note": "PENDING JA" },
+        { "check": "PATTERN OF LIFE", "status": true, "color": "#00CC66", "note": "72HR ESTABLISHED" }
+      ],
+      "dataMapping": "system.permissions"
+    },
+    {
+      "id": "comms_transcript",
+      "type": "scrollingChat",
+      "region": "commsTranscript",
+      "position": { "x": 0, "y": 708, "w": 640, "h": 196 },
+      "description": "Multi-net communications transcript — mapped to agent milestones and system events",
+      "nets": ["COMMAND", "ISR", "FIRES", "GROUND"],
+      "messages": [
+        { "time": "14:28:44Z", "net": "ISR", "callsign": "REAPER-1", "message": "Tally one MAM exiting compound bearing 247. Positive track.", "color": "#00FF88" },
+        { "time": "14:29:12Z", "net": "COMMAND", "callsign": "OVERLORD", "message": "Copy REAPER-1. Maintain track. ROE WEAPONS TIGHT.", "color": "#FFAA22" },
+        { "time": "14:30:01Z", "net": "GROUND", "callsign": "TALON-6", "message": "Ground confirms no friendlies in AO HAMMER at this time.", "color": "#4488FF" },
+        { "time": "14:31:15Z", "net": "FIRES", "callsign": "REAPER-1", "message": "Request HELLFIRE engagement TGT-001. 9-line follows.", "color": "#FF3344" },
+        { "time": "14:31:42Z", "net": "COMMAND", "callsign": "OVERLORD", "message": "Stand by REAPER-1. JA review in progress.", "color": "#FFAA22" },
+        { "time": "14:32:05Z", "net": "ISR", "callsign": "REAPER-3", "message": "SUSP-003 has stopped movement. Possible meeting.", "color": "#FF9944" }
+      ],
+      "font": "mono",
+      "maxVisible": 8,
+      "dataMapping": "hub.websocket_events"
+    },
+    {
+      "id": "bda_panel",
+      "type": "assessmentPanel",
+      "region": "bdaPanel",
+      "position": { "x": 648, "y": 708, "w": 632, "h": 196 },
+      "description": "Battle damage assessment panel with previous strike results and imagery",
+      "lastStrike": {
+        "time": "12:44:18Z",
+        "target": "TGT-044",
+        "weapon": "AGM-114R HELLFIRE",
+        "result": "DESTROYED",
+        "confidence": "HIGH",
+        "bda": [
+          { "item": "Structure", "assessment": "DESTROYED", "confidence": 95, "color": "#00FF88" },
+          { "item": "Vehicle (Technical)", "assessment": "DAMAGED", "confidence": 80, "color": "#FFCC33" },
+          { "item": "Personnel", "assessment": "2x EKIA ASSESSED", "confidence": 75, "color": "#FF3344" }
+        ],
+        "restrikeRecommendation": "NOT REQUIRED",
+        "collateralDamage": "NONE OBSERVED",
+        "imageryTimestamp": "12:45:02Z POST-STRIKE"
+      },
+      "currentStrikes": 3,
+      "totalMissions": 12,
+      "font": "mono"
+    },
+    {
+      "id": "mission_clock",
+      "type": "missionTimer",
+      "region": "missionClock",
+      "position": { "x": 1288, "y": 624, "w": 200, "h": 76 },
+      "label": "MISSION ELAPSED",
+      "value": "06:17:07",
+      "startTime": "08:15:00Z",
+      "font": "mono",
+      "size": 32,
+      "color": "#D4DDE6",
+      "zuluTime": "14:32:07Z",
+      "localTime": "17:32:07 +0300"
+    },
+    {
+      "id": "classification_bar",
+      "type": "classificationBanner",
+      "region": "statusBar",
+      "position": { "x": 0, "y": 908, "w": 1920, "h": 36 },
+      "text": "SECRET // NOFORN // REL TO USA, GBR",
+      "bgColor": "#FF0000",
+      "textColor": "#FFFFFF",
+      "font": "primary",
+      "size": 14,
+      "topBar": true
+    },
+    {
+      "id": "nine_line_brief",
+      "type": "nineLine",
+      "position": { "x": 648, "y": 644, "w": 632, "h": 56 },
+      "description": "Abbreviated 9-line CAS brief for current engagement request",
+      "lines": {
+        "1_ip": "IP ANVIL",
+        "2_heading": "HDG 270",
+        "3_distance": "4.2 NM",
+        "4_elevation": "1,240 ft MSL",
+        "5_description": "COMPOUND W/ VEHICLE",
+        "6_location": "38SMB 43661 34255",
+        "7_mark": "LASER 1688",
+        "8_friendlies": "SOUTH 2 KM",
+        "9_egress": "EAST"
+      },
+      "status": "PENDING APPROVAL",
+      "font": "mono",
+      "compact": true
+    },
+    {
+      "id": "weather_overlay",
+      "type": "weatherData",
+      "position": { "x": 1820, "y": 360, "w": 100, "h": 40 },
+      "data": { "ceiling": "CLR", "visibility": "10+ SM", "wind": "180/08", "temp": "34C", "qnh": "1013" },
+      "font": "mono",
+      "size": 9
+    },
+    {
+      "id": "geo_fence_alert",
+      "type": "alertIndicator",
+      "position": { "x": 1288, "y": 360, "w": 200, "h": 40 },
+      "label": "GEO-FENCE",
+      "states": {
+        "clear": { "text": "ALL UAV IN BOUNDS", "color": "#00FF88" },
+        "warning": { "text": "APPROACH BOUNDARY", "color": "#FFCC33" },
+        "breach": { "text": "BOUNDARY BREACH", "color": "#FF3344" }
+      },
+      "current": "clear"
+    },
+    {
+      "id": "altitude_profile",
+      "type": "verticalProfile",
+      "position": { "x": 1496, "y": 360, "w": 424, "h": 40 },
+      "description": "Side-view altitude profile showing terrain and UAV altitudes",
+      "terrain": { "maxElevation": 3200, "unit": "ft" },
+      "uavs": [
+        { "agent": "alpha", "altitude": 18500, "color": "#00FF88" },
+        { "agent": "beta", "altitude": 22000, "color": "#00CCFF" },
+        { "agent": "gamma", "altitude": 20000, "color": "#FF9944" },
+        { "agent": "delta", "altitude": 25000, "color": "#FF4466" }
+      ],
+      "minimumSafeAlt": 8000
+    },
+    {
+      "id": "network_health",
+      "type": "statusGrid",
+      "position": { "x": 1288, "y": 708, "w": 312, "h": 196 },
+      "label": "C2 NETWORK",
+      "items": [
+        { "label": "GCS PRIMARY", "status": "ONLINE", "color": "#00FF88" },
+        { "label": "GCS BACKUP", "status": "STANDBY", "color": "#FFCC33" },
+        { "label": "SATCOM LINK", "status": "NOMINAL", "color": "#00FF88" },
+        { "label": "LOS RELAY", "status": "ONLINE", "color": "#00FF88" },
+        { "label": "DCGS FEED", "status": "ACTIVE", "color": "#00FF88" },
+        { "label": "CHAT/mIRC", "status": "CONNECTED", "color": "#00FF88" },
+        { "label": "GPS SAASM", "status": "LOCK 12 SV", "color": "#00FF88" },
+        { "label": "CRYPTO", "status": "FILLED", "color": "#00FF88" }
+      ],
+      "dataMapping": "system.infrastructure"
+    },
+    {
+      "id": "pir_checklist",
+      "type": "checklist",
+      "position": { "x": 1608, "y": 708, "w": 312, "h": 196 },
+      "label": "PRIORITY INTEL REQUIREMENTS",
+      "items": [
+        { "id": "PIR-1", "text": "Confirm TGT-001 identity via facial recognition", "status": "IN PROGRESS", "color": "#FFCC33" },
+        { "id": "PIR-2", "text": "Identify vehicle type and registration", "status": "COMPLETE", "color": "#00FF88" },
+        { "id": "PIR-3", "text": "Establish pattern of life at compound", "status": "COMPLETE", "color": "#00FF88" },
+        { "id": "PIR-4", "text": "Locate secondary meeting site", "status": "ACTIVE", "color": "#FFCC33" },
+        { "id": "PIR-5", "text": "Identify exfiltration routes", "status": "PENDING", "color": "#3A4450" }
+      ],
+      "font": "secondary"
+    }
+  ],
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "opacity": 0.06, "spacing": 2, "speed": 0 },
+    "vignette": { "enabled": true, "intensity": 0.3, "radius": 0.85 },
+    "filmGrain": { "enabled": true, "intensity": 0.04, "fps": 30 },
+    "bloom": { "enabled": true, "threshold": 0.85, "intensity": 0.1, "radius": 4 },
+    "crtCurvature": { "enabled": true, "amount": 0.02 },
+    "backgroundTexture": "military-panel-matte",
+    "feedNoise": { "enabled": true, "intensity": 0.08, "type": "analog-static", "applyTo": "uav_feeds" },
+    "irSimulation": { "enabled": true, "applyTo": ["uav_feed_alpha", "uav_feed_gamma"], "whiteHot": true }
+  },
+  "animations": [
+    { "id": "intro_boot", "target": "all", "frames": [0, 45], "type": "terminalBoot", "easing": "step", "lineDelay": 2 },
+    { "id": "crosshair_pulse", "target": "uav_feed_alpha.crosshair", "frames": [0, 300], "type": "pulse", "easing": "easeInOutSine", "period": 60, "scale": 1.05 },
+    { "id": "track_box_blink", "target": "uav_feed_alpha.targetTracking.boundingBox", "frames": [0, 300], "type": "blink", "easing": "step", "period": 20 },
+    { "id": "uav_orbit", "target": "satellite_map.uav_positions", "frames": [30, 300], "type": "orbitPath", "easing": "linear", "loop": true },
+    { "id": "kill_chain_advance", "target": "kill_chain_bar.track", "frames": [150, 170], "type": "fillGlow", "easing": "easeOutQuad", "color": "#FFCC33" },
+    { "id": "comms_scroll", "target": "comms_transcript", "frames": [30, 300], "type": "verticalScroll", "easing": "linear", "continuous": true },
+    { "id": "datalink_fluctuate", "target": "datalink_meters.REAPER-3", "frames": [0, 300], "type": "oscillate", "easing": "perlinNoise", "amplitude": 5 },
+    { "id": "fuel_countdown", "target": "time_on_station", "frames": [0, 300], "type": "countdown", "easing": "linear", "rate": 1 },
+    { "id": "map_track_grow", "target": "satellite_map.target_track", "frames": [60, 120], "type": "pathGrow", "easing": "linear" },
+    { "id": "roe_check_anim", "target": "roe_sidebar.JA_APPROVED", "frames": [240, 260], "type": "statusChange", "easing": "easeOutBack", "from": false, "to": true }
+  ],
+  "dataMapping": {
+    "agents": {
+      "alpha": { "mapTo": "REAPER-1 — Primary ISR/Strike", "color": "#00FF88", "role": "Lead sensor operator, target engagement" },
+      "beta": { "mapTo": "REAPER-2 — Wide Area Search", "color": "#00CCFF", "role": "Pattern of life, area surveillance" },
+      "gamma": { "mapTo": "REAPER-3 — Overwatch", "color": "#FF9944", "role": "Force protection, suspicious activity" },
+      "delta": { "mapTo": "REAPER-4 — SAR/SIGINT", "color": "#FF4466", "role": "Mapping, signals collection" }
+    },
+    "system": {
+      "c9_operator": "Mission Commander — kill chain authority",
+      "broker": "Sensor Operator — session/feed management",
+      "hub": "Datalink relay — broadcast to all stations",
+      "api_gateway": "GCS interface — HTTP command entry",
+      "projects": "Intelligence database — target folders",
+      "dashboard": "Multi-display wall — operator UI"
+    }
+  }
+}

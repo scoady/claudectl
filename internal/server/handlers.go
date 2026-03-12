@@ -139,6 +139,52 @@ const narratePrefix = "Narrate what you're doing in plain English as you work. "
 	"The user sees your text on a live dashboard. Write short status updates " +
 	"before tool calls and summarize results after. Never go silent.\n\n"
 
+func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
+	var req CreateProjectRequest
+	if err := readJSON(r, &req); err != nil {
+		httpError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	if req.Name == "" {
+		httpError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	projPath := filepath.Join(s.ProjectsDir, req.Name)
+	if _, err := os.Stat(projPath); err == nil {
+		httpError(w, http.StatusConflict, "project already exists: "+req.Name)
+		return
+	}
+
+	// Create project directory structure
+	if err := os.MkdirAll(filepath.Join(projPath, ".claude"), 0o755); err != nil {
+		httpError(w, http.StatusInternalServerError, "failed to create project: "+err.Error())
+		return
+	}
+
+	// Write PROJECT.md
+	projectMD := fmt.Sprintf("# %s\n\n%s\n", req.Name, req.Description)
+	if err := os.WriteFile(filepath.Join(projPath, "PROJECT.md"), []byte(projectMD), 0o644); err != nil {
+		httpError(w, http.StatusInternalServerError, "failed to write PROJECT.md: "+err.Error())
+		return
+	}
+
+	// Write settings.local.json with permissive tool access
+	settings := `{"permissions":{"allow":["Bash(*)","Read(*)","Write(*)","Edit(*)","Glob(*)","Grep(*)"]}}`
+	os.WriteFile(filepath.Join(projPath, ".claude", "settings.local.json"), []byte(settings), 0o644)
+
+	// Write model config if specified
+	if req.Model != "" {
+		cfg := fmt.Sprintf(`{"parallelism":1,"model":"%s"}`, req.Model)
+		os.WriteFile(filepath.Join(projPath, ".claude", "manager.json"), []byte(cfg), 0o644)
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]string{
+		"name":   req.Name,
+		"status": "created",
+	})
+}
+
 func (s *Server) handleDispatch(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
@@ -162,6 +208,13 @@ func (s *Server) handleDispatch(w http.ResponseWriter, r *http.Request) {
 	if s.Operator == nil {
 		httpError(w, http.StatusServiceUnavailable, "operator not initialized")
 		return
+	}
+
+	// Add task to TASKS.md so it appears on the kanban board
+	tasksPath := filepath.Join(projPath, "TASKS.md")
+	if f, err := os.OpenFile(tasksPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+		fmt.Fprintf(f, "- [~] %s\n", req.Task)
+		f.Close()
 	}
 
 	// Emit dispatch event — operator handles spawning

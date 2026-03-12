@@ -1,0 +1,344 @@
+{
+  "id": "jarvis-holographic-hud",
+  "title": "JARVIS Holographic HUD",
+  "subtitle": "c9-operator Holographic Interface",
+  "inspiration": "Iron Man JARVIS / Transparent holographic UI with depth parallax",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+
+  "colorGrading": {
+    "background": "#000000",
+    "primaryCyan": "#00d4ff",
+    "secondaryCyan": "#0099cc",
+    "dimCyan": "#004466",
+    "ghostCyan": "#002233",
+    "accentWhite": "#e0f4ff",
+    "accentOrange": "#ff6600",
+    "alertRed": "#ff2244",
+    "hologramBlue": "#1a8cff",
+    "panelFill": "rgba(0,212,255,0.04)",
+    "panelBorder": "rgba(0,212,255,0.25)",
+    "depthLayer0": "rgba(0,212,255,1.0)",
+    "depthLayer1": "rgba(0,212,255,0.6)",
+    "depthLayer2": "rgba(0,212,255,0.3)",
+    "depthLayer3": "rgba(0,212,255,0.12)",
+    "arcReactorCore": "#00ccff",
+    "arcReactorGlow": "#66ddff"
+  },
+
+  "typography": {
+    "primary": { "fontFamily": "Rajdhani", "weight": 500 },
+    "header": { "fontFamily": "Rajdhani", "weight": 700, "size": 16 },
+    "readout": { "fontFamily": "Share Tech Mono", "weight": 400, "size": 13 },
+    "label": { "fontFamily": "Rajdhani", "weight": 400, "size": 10 },
+    "title": { "fontFamily": "Rajdhani", "weight": 700, "size": 28 },
+    "notification": { "fontFamily": "Rajdhani", "weight": 600, "size": 12 },
+    "biometric": { "fontFamily": "Share Tech Mono", "weight": 400, "size": 11 }
+  },
+
+  "backgroundTexture": {
+    "type": "pure-black-hologram",
+    "hexGridOverlay": true,
+    "hexSize": 40,
+    "hexOpacity": 0.03,
+    "ambientParticles": 60,
+    "particleColor": "rgba(0,212,255,0.15)",
+    "depthOfField": true
+  },
+
+  "layout": {
+    "centerRotor": { "x": 660, "y": 240, "w": 600, "h": 600, "depth": 0 },
+    "topBanner": { "x": 0, "y": 0, "w": 1920, "h": 64, "depth": 1 },
+    "leftPanels": { "x": 32, "y": 80, "w": 400, "h": 920, "depth": 1 },
+    "rightPanels": { "x": 1488, "y": 80, "w": 400, "h": 920, "depth": 1 },
+    "bottomBar": { "x": 200, "y": 920, "w": 1520, "h": 144, "depth": 2 },
+    "floatingCards": { "depth": 3 }
+  },
+
+  "elements": [
+    {
+      "id": "system-wireframe",
+      "label": "SYSTEM TOPOLOGY",
+      "type": "3d-wireframe-model",
+      "position": { "x": 660, "y": 190, "w": 600, "h": 600, "depth": 0 },
+      "description": "Central rotating wireframe representation of the c9-operator system. Icosahedral frame with c9-operator as central vertex. Inner vertices = Broker, Hub, API Gateway. Outer vertices = 4 Agents. Edges glow cyan with data flow particles traveling along them. Rotates slowly on Y-axis (full rotation over 300 frames). Translucent faces with depth-dependent opacity.",
+      "rotationAxis": "Y",
+      "rotationSpeed": "1.2 deg/frame",
+      "wireColor": "#00d4ff",
+      "wireOpacity": 0.7,
+      "faceOpacity": 0.04,
+      "edgeParticles": true,
+      "dataMapping": "system.topology"
+    },
+    {
+      "id": "hud-title",
+      "label": "C9-OPERATOR // ORCHESTRATION INTERFACE",
+      "type": "hologram-text",
+      "position": { "x": 560, "y": 8, "w": 800, "h": 48, "depth": 1 },
+      "style": "primaryCyan",
+      "glitchOnReveal": true,
+      "trackingSpacing": 8
+    },
+    {
+      "id": "status-indicator",
+      "type": "text-readout",
+      "position": { "x": 32, "y": 16, "w": 300, "h": 32, "depth": 1 },
+      "value": "SYSTEMS ONLINE",
+      "dataMapping": "system.overallStatus",
+      "pulseColor": "#00d4ff"
+    },
+    {
+      "id": "arc-reactor-gauge",
+      "label": "SYSTEM POWER",
+      "type": "arc-reactor",
+      "position": { "x": 56, "y": 100, "w": 180, "h": 180, "depth": 1 },
+      "description": "Circular power gauge styled as an arc reactor. Concentric rings that pulse with energy. Center shows percentage. Rings glow brighter with higher load. Three concentric rings rotating in alternating directions.",
+      "value": 72,
+      "unit": "%",
+      "rings": 3,
+      "coreColor": "#00ccff",
+      "glowRadius": 24,
+      "dataMapping": "system.powerUtilization"
+    },
+    {
+      "id": "biometric-alpha",
+      "label": "AGENT-\u03b1 BIOMETRICS",
+      "type": "biometric-card",
+      "position": { "x": 32, "y": 300, "w": 190, "h": 140, "depth": 1 },
+      "description": "Heartbeat-style activity line for Agent alpha. ECG-like trace showing tool call frequency. Below: token count, uptime, status badge. Border pulses with activity.",
+      "fields": [
+        { "label": "PULSE", "type": "ecg-trace", "dataMapping": "agents.alpha.activityTrace" },
+        { "label": "TOKENS", "value": "14,207", "dataMapping": "agents.alpha.tokenCount" },
+        { "label": "UPTIME", "value": "12m 33s", "dataMapping": "agents.alpha.uptime" },
+        { "label": "STATUS", "value": "ACTIVE", "color": "#00d4ff" }
+      ]
+    },
+    {
+      "id": "biometric-beta",
+      "label": "AGENT-\u03b2 BIOMETRICS",
+      "type": "biometric-card",
+      "position": { "x": 232, "y": 300, "w": 190, "h": 140, "depth": 1 },
+      "fields": [
+        { "label": "PULSE", "type": "ecg-trace", "dataMapping": "agents.beta.activityTrace" },
+        { "label": "TOKENS", "value": "8,934", "dataMapping": "agents.beta.tokenCount" },
+        { "label": "UPTIME", "value": "8m 17s", "dataMapping": "agents.beta.uptime" },
+        { "label": "STATUS", "value": "ACTIVE", "color": "#00d4ff" }
+      ]
+    },
+    {
+      "id": "biometric-gamma",
+      "label": "AGENT-\u03b3 BIOMETRICS",
+      "type": "biometric-card",
+      "position": { "x": 32, "y": 454, "w": 190, "h": 140, "depth": 1 },
+      "fields": [
+        { "label": "PULSE", "type": "ecg-trace", "dataMapping": "agents.gamma.activityTrace" },
+        { "label": "TOKENS", "value": "163,440", "dataMapping": "agents.gamma.tokenCount" },
+        { "label": "UPTIME", "value": "41m 02s", "dataMapping": "agents.gamma.uptime" },
+        { "label": "STATUS", "value": "WARNING", "color": "#ff6600" }
+      ]
+    },
+    {
+      "id": "biometric-delta",
+      "label": "AGENT-\u03b4 BIOMETRICS",
+      "type": "biometric-card",
+      "position": { "x": 232, "y": 454, "w": 190, "h": 140, "depth": 1 },
+      "fields": [
+        { "label": "PULSE", "type": "ecg-trace", "dataMapping": "agents.delta.activityTrace" },
+        { "label": "TOKENS", "value": "5,102", "dataMapping": "agents.delta.tokenCount" },
+        { "label": "UPTIME", "value": "3m 44s", "dataMapping": "agents.delta.uptime" },
+        { "label": "STATUS", "value": "ACTIVE", "color": "#00d4ff" }
+      ]
+    },
+    {
+      "id": "gesture-trails",
+      "type": "gesture-arcs",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 1080, "depth": 3 },
+      "description": "Decorative curved arcs that sweep across the screen at various intervals. Thin cyan lines with glow that fade in, trace an arc, then fade out. 3-5 arcs active at any time. Simulates holographic gesture interaction trails.",
+      "arcCount": 5,
+      "color": "rgba(0,212,255,0.4)",
+      "trailDecay": 0.95,
+      "curvature": "bezier"
+    },
+    {
+      "id": "threat-assessment",
+      "label": "THREAT ASSESSMENT",
+      "type": "threat-panel",
+      "position": { "x": 1488, "y": 100, "w": 400, "h": 200, "depth": 1 },
+      "description": "Grid of potential issues. Each row: threat name, severity bar (1-10), trend arrow. Color-coded: green < 3, yellow 3-6, red > 6. Shows token exhaustion risk, memory pressure, queue saturation, error rate.",
+      "threats": [
+        { "name": "TOKEN EXHAUSTION", "severity": 7, "trend": "rising", "dataMapping": "threats.tokenExhaustion" },
+        { "name": "MEMORY PRESSURE", "severity": 3, "trend": "stable", "dataMapping": "threats.memoryPressure" },
+        { "name": "QUEUE SATURATION", "severity": 2, "trend": "falling", "dataMapping": "threats.queueSaturation" },
+        { "name": "ERROR CASCADE", "severity": 1, "trend": "stable", "dataMapping": "threats.errorCascade" }
+      ]
+    },
+    {
+      "id": "network-topology",
+      "label": "NETWORK TOPOLOGY",
+      "type": "holographic-network",
+      "position": { "x": 1488, "y": 320, "w": 400, "h": 280, "depth": 1 },
+      "description": "Force-directed graph showing connections between all components. Nodes float with slight bob animation. Edges show data throughput as thickness. Active data transfer shown as traveling light pulses along edges. Node size proportional to current load.",
+      "nodes": [
+        { "id": "c9op", "label": "c9-OP", "size": 18, "load": 0.34 },
+        { "id": "broker", "label": "BRK", "size": 14, "load": 0.22 },
+        { "id": "hub", "label": "HUB", "size": 16, "load": 0.67 },
+        { "id": "api", "label": "API", "size": 12, "load": 0.45 },
+        { "id": "a-alpha", "label": "\u03b1", "size": 10, "load": 0.71 },
+        { "id": "a-beta", "label": "\u03b2", "size": 10, "load": 0.44 },
+        { "id": "a-gamma", "label": "\u03b3", "size": 10, "load": 0.82 },
+        { "id": "a-delta", "label": "\u03b4", "size": 10, "load": 0.19 }
+      ],
+      "dataMapping": "system.networkGraph"
+    },
+    {
+      "id": "notification-cards",
+      "label": "NOTIFICATIONS",
+      "type": "floating-cards",
+      "position": { "x": 1488, "y": 620, "w": 400, "h": 300, "depth": 2 },
+      "description": "Stack of translucent notification cards that slide in from right, hover, then fade out. Each card: title, body text, timestamp, severity icon. Cards have frosted glass effect with cyan border glow. Max 4 visible, newest on top.",
+      "maxVisible": 4,
+      "entryAnimation": "slideFromRight",
+      "exitAnimation": "fadeAndShrink",
+      "sampleCards": [
+        { "title": "Agent \u03b3 Token Warning", "body": "82% of budget consumed. Consider session rotation.", "time": "14:27:19", "severity": "warning" },
+        { "title": "Task Completed", "body": "stellar-engine: implement API endpoint", "time": "14:26:55", "severity": "info" },
+        { "title": "New Session", "body": "Broker spawned s-7a2f for Agent \u03b1", "time": "14:27:01", "severity": "info" }
+      ],
+      "dataMapping": "system.notifications"
+    },
+    {
+      "id": "broker-lifecycle",
+      "label": "BROKER SESSION LIFECYCLE",
+      "type": "timeline-strip",
+      "position": { "x": 200, "y": 928, "w": 740, "h": 64, "depth": 2 },
+      "description": "Horizontal timeline showing session create/destroy events. Each session is a colored bar segment. Active = cyan, completed = dim cyan, failed = orange. Time flows left to right. Labels above each segment.",
+      "sessions": [
+        { "id": "s-3c01", "agent": "\u03b1", "start": 0, "end": 180, "status": "active" },
+        { "id": "s-3c02", "agent": "\u03b2", "start": 30, "end": 160, "status": "active" },
+        { "id": "s-3c03", "agent": "\u03b3", "start": 10, "end": 280, "status": "warning" },
+        { "id": "s-3c04", "agent": "\u03b4", "start": 90, "end": 220, "status": "active" }
+      ],
+      "dataMapping": "broker.sessionTimeline"
+    },
+    {
+      "id": "hub-broadcast-meter",
+      "label": "HUB BROADCAST RATE",
+      "type": "radial-meter",
+      "position": { "x": 960, "y": 928, "w": 120, "h": 120, "depth": 2 },
+      "description": "Circular radial meter with sweeping fill. Shows messages broadcast per second. 0-5000 scale. Current: 2847. Fill arc is cyan gradient.",
+      "min": 0,
+      "max": 5000,
+      "value": 2847,
+      "unit": "msg/s",
+      "dataMapping": "hub.broadcastRate"
+    },
+    {
+      "id": "api-latency-histogram",
+      "label": "API LATENCY DISTRIBUTION",
+      "type": "histogram",
+      "position": { "x": 1100, "y": 928, "w": 340, "h": 120, "depth": 2 },
+      "description": "Vertical bar histogram of API response times. Bins: <10ms, 10-50ms, 50-100ms, 100-250ms, 250-500ms, >500ms. Bars are translucent cyan. P50/P95/P99 markers as horizontal dashed lines.",
+      "bins": [
+        { "range": "<10ms", "count": 1240 },
+        { "range": "10-50ms", "count": 3420 },
+        { "range": "50-100ms", "count": 890 },
+        { "range": "100-250ms", "count": 210 },
+        { "range": "250-500ms", "count": 34 },
+        { "range": ">500ms", "count": 3 }
+      ],
+      "markers": [
+        { "label": "P50", "value": "23ms" },
+        { "label": "P95", "value": "112ms" },
+        { "label": "P99", "value": "142ms" }
+      ],
+      "dataMapping": "apiGateway.latencyHistogram"
+    },
+    {
+      "id": "project-cards",
+      "label": "ACTIVE PROJECTS",
+      "type": "hologram-card-stack",
+      "position": { "x": 32, "y": 610, "w": 400, "h": 300, "depth": 1 },
+      "description": "Stacked translucent cards for each project. Cards tilt slightly in 3D with parallax. Each shows: project name, agent count, task progress bar, last activity. Cards are layered with depth offset.",
+      "projects": [
+        { "name": "stellar-engine", "agents": 2, "tasks": "14/18", "progress": 0.78, "activity": "2m ago" },
+        { "name": "agent-reports", "agents": 1, "tasks": "7/7", "progress": 1.0, "activity": "32m ago" },
+        { "name": "helm-platform", "agents": 1, "tasks": "3/9", "progress": 0.33, "activity": "3m ago" }
+      ],
+      "dataMapping": "projects.list"
+    },
+    {
+      "id": "crosshair-overlay",
+      "type": "hud-crosshair",
+      "position": { "x": 860, "y": 440, "w": 200, "h": 200, "depth": 3 },
+      "description": "Thin crosshair reticle overlaying the center wireframe. Rotating outer ring with tick marks. Inner targeting brackets. Purely decorative cinematic element. Very low opacity (0.15) to avoid obscuring content.",
+      "opacity": 0.15,
+      "rotationSpeed": "-0.5 deg/frame"
+    },
+    {
+      "id": "corner-brackets",
+      "type": "hud-frame",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 1080, "depth": 2 },
+      "description": "Corner bracket decorations at all four corners of the viewport. L-shaped lines with small tick marks. Very subtle (opacity 0.2). Gives the composition a framed HUD feel.",
+      "cornerSize": 80,
+      "lineWidth": 1.5,
+      "opacity": 0.2
+    },
+    {
+      "id": "depth-particles",
+      "type": "ambient-particles",
+      "position": { "x": 0, "y": 0, "w": 1920, "h": 1080, "depth": 4 },
+      "description": "60 tiny floating particles at various depths. Slow drift with slight randomness. Creates depth-of-field illusion. Particles closer to camera are larger and more opaque, distant ones are tiny dots.",
+      "count": 60,
+      "minSize": 0.5,
+      "maxSize": 3,
+      "color": "rgba(0,212,255,0.15)",
+      "driftSpeed": 0.3
+    },
+    {
+      "id": "dashboard-feed",
+      "label": "LIVE FEED",
+      "type": "scrolling-text",
+      "position": { "x": 1488, "y": 920, "w": 400, "h": 140, "depth": 2 },
+      "description": "Rolling feed of dashboard WebSocket events. Each line color-coded by type. Monospace font. Auto-scrolls. Shows real-time stream of system events as the dashboard would display them.",
+      "maxLines": 8,
+      "dataMapping": "dashboard.eventFeed"
+    }
+  ],
+
+  "cinematicEffects": {
+    "scanLines": { "enabled": false },
+    "vignette": { "enabled": true, "strength": 0.3, "radius": 0.9, "softness": 0.5 },
+    "grain": { "enabled": true, "intensity": 0.015, "speed": 0.5 },
+    "bloom": { "enabled": true, "threshold": 0.5, "intensity": 0.5, "radius": 12 },
+    "chromaticAberration": { "enabled": true, "offset": 1.5, "opacity": 0.4 },
+    "hologramFlicker": { "enabled": true, "frequency": 3, "amplitude": 0.03 },
+    "depthBlur": { "enabled": true, "focalDepth": 0, "blurStrength": 2 },
+    "glitchBursts": { "enabled": true, "probability": 0.02, "duration": 3, "intensity": 0.3 }
+  },
+
+  "animations": [
+    { "target": "system-wireframe", "property": "rotation", "type": "rotate", "frameRange": [0, 300], "speed": 1.2, "axis": "Y", "easing": "linear" },
+    { "target": "gesture-trails", "property": "arcs", "type": "spawnAndFade", "frameRange": [0, 300], "spawnEvery": 45, "lifetime": 60 },
+    { "target": "notification-cards", "property": "stack", "type": "slideIn", "frameRange": [30, 60], "easing": "easeOutBack" },
+    { "target": "notification-cards", "property": "stack", "type": "slideIn", "frameRange": [120, 150], "easing": "easeOutBack" },
+    { "target": "arc-reactor-gauge", "property": "rings", "type": "rotateAlternating", "frameRange": [0, 300], "speeds": [0.8, -1.2, 0.5] },
+    { "target": "arc-reactor-gauge", "property": "glow", "type": "pulse", "frameRange": [0, 300], "min": 0.6, "max": 1.0, "period": 60 },
+    { "target": "biometric-alpha", "property": "ecg", "type": "ecgTrace", "frameRange": [0, 300], "bpm": 72 },
+    { "target": "biometric-beta", "property": "ecg", "type": "ecgTrace", "frameRange": [0, 300], "bpm": 65 },
+    { "target": "biometric-gamma", "property": "ecg", "type": "ecgTrace", "frameRange": [0, 300], "bpm": 110 },
+    { "target": "biometric-delta", "property": "ecg", "type": "ecgTrace", "frameRange": [0, 300], "bpm": 58 },
+    { "target": "crosshair-overlay", "property": "rotation", "type": "rotate", "frameRange": [0, 300], "speed": -0.5, "easing": "linear" },
+    { "target": "depth-particles", "property": "positions", "type": "drift", "frameRange": [0, 300], "easing": "linear" },
+    { "target": "network-topology", "property": "edges", "type": "pulseTravel", "frameRange": [0, 300], "speed": 1.5 },
+    { "target": "broker-lifecycle", "property": "bars", "type": "growRight", "frameRange": [0, 300], "easing": "linear" },
+    { "target": "hud-title", "property": "glitch", "type": "glitchReveal", "frameRange": [0, 20], "easing": "easeOutExpo" }
+  ],
+
+  "dataMapping": {
+    "source": "c9-operator WebSocket stream",
+    "events": ["agent_spawned", "agent_milestone", "agent_done", "stats_update", "agent_stream"],
+    "refreshRate": "per-frame for animations, 500ms for data fields",
+    "fallback": "static sample values shown in element definitions"
+  }
+}

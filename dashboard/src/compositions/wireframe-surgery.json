@@ -1,0 +1,445 @@
+{
+  "id": "wireframe-surgery",
+  "title": "Surgical Theater Monitor",
+  "description": "Operating room patient monitoring and robotic surgery interface mapping c9-operator agents to 4 robotic surgical arms with continuous vital signs, anesthesia depth, and procedure timeline",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+  "colorGrading": {
+    "background": "#0B1017",
+    "panelBg": "#101820",
+    "panelBorder": "#1A2636",
+    "ecgGreen": "#00FF6A",
+    "spo2Cyan": "#00E5FF",
+    "bpRed": "#FF3B4A",
+    "tempYellow": "#FFD644",
+    "co2Purple": "#B388FF",
+    "textPrimary": "#E8F0F8",
+    "textSecondary": "#7A8EA0",
+    "textMuted": "#3D4F5F",
+    "warningAmber": "#FFB300",
+    "criticalRed": "#FF1744",
+    "nominalGreen": "#00E676",
+    "arm1Color": "#00FF6A",
+    "arm2Color": "#00E5FF",
+    "arm3Color": "#FF9100",
+    "arm4Color": "#E040FB",
+    "gridLine": "#152030",
+    "anesthesiaBlue": "#448AFF",
+    "ventilatorTeal": "#26C6DA"
+  },
+  "typography": {
+    "primary": { "fontFamily": "Inter, Helvetica Neue, sans-serif", "weight": 600 },
+    "secondary": { "fontFamily": "Inter, sans-serif", "weight": 400 },
+    "mono": { "fontFamily": "SF Mono, JetBrains Mono, monospace", "weight": 500 },
+    "sizes": {
+      "vitalValue": 64,
+      "vitalLabel": 12,
+      "vitalUnit": 16,
+      "panelTitle": 13,
+      "dataValue": 20,
+      "dataLabel": 10,
+      "alertText": 14,
+      "timestampSmall": 9
+    }
+  },
+  "layout": {
+    "ecgStrip": { "x": 0, "y": 0, "w": 1280, "h": 140, "description": "Continuous ECG waveform strip" },
+    "spo2Strip": { "x": 0, "y": 144, "w": 1280, "h": 100, "description": "SpO2 plethysmograph waveform" },
+    "vitalReadouts": { "x": 1288, "y": 0, "w": 632, "h": 248, "description": "Numeric vital signs readouts" },
+    "roboticArms": { "x": 0, "y": 248, "w": 640, "h": 420, "description": "Robotic arm position schematic" },
+    "medicalImaging": { "x": 648, "y": 248, "w": 480, "h": 420, "description": "CT cross-section / imaging" },
+    "anesthesiaPanel": { "x": 1136, "y": 248, "w": 392, "h": 200, "description": "Anesthesia depth and BIS" },
+    "ventilatorPanel": { "x": 1536, "y": 248, "w": 384, "h": 200, "description": "Ventilator parameters" },
+    "drugInfusion": { "x": 1136, "y": 456, "w": 784, "h": 108, "description": "Drug infusion pump rates" },
+    "procedureTimeline": { "x": 0, "y": 672, "w": 1440, "h": 108, "description": "Procedure phase timeline" },
+    "alertStack": { "x": 1136, "y": 572, "w": 784, "h": 96, "description": "Stacked clinical alerts" },
+    "bloodPressureTrend": { "x": 1448, "y": 672, "w": 472, "h": 108, "description": "BP trend over time" }
+  },
+  "elements": [
+    {
+      "id": "ecg_waveform",
+      "type": "continuousWaveform",
+      "region": "ecgStrip",
+      "position": { "x": 0, "y": 0, "w": 1280, "h": 140 },
+      "description": "Lead II ECG trace — continuous scrolling, PQRST morphology",
+      "waveColor": "#00FF6A",
+      "gridColor": "#152030",
+      "gridSpacing": { "major": 50, "minor": 10 },
+      "speed": "25mm/s",
+      "gain": "10mm/mV",
+      "heartRate": { "value": 72, "unit": "bpm", "position": { "x": 1200, "y": 16 }, "font": "mono", "size": 48, "color": "#00FF6A" },
+      "dataMapping": "system.heartbeat_interval"
+    },
+    {
+      "id": "spo2_pleth",
+      "type": "continuousWaveform",
+      "region": "spo2Strip",
+      "position": { "x": 0, "y": 144, "w": 1280, "h": 100 },
+      "description": "Pulse oximetry plethysmograph waveform",
+      "waveColor": "#00E5FF",
+      "gridColor": "#152030",
+      "perfusionIndex": 4.2,
+      "spo2Readout": { "value": 99, "unit": "%", "position": { "x": 1200, "y": 10 }, "font": "mono", "size": 48, "color": "#00E5FF" },
+      "dataMapping": "system.health_score"
+    },
+    {
+      "id": "hr_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1288, "y": 0, "w": 210, "h": 120 },
+      "label": "HR",
+      "value": 72,
+      "unit": "bpm",
+      "color": "#00FF6A",
+      "alarmLimits": { "low": 50, "high": 120 },
+      "trend": "stable",
+      "dataMapping": "broker.active_sessions"
+    },
+    {
+      "id": "spo2_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1500, "y": 0, "w": 210, "h": 120 },
+      "label": "SpO2",
+      "value": 99,
+      "unit": "%",
+      "color": "#00E5FF",
+      "alarmLimits": { "low": 92, "high": 100 },
+      "trend": "stable",
+      "dataMapping": "system.health_score"
+    },
+    {
+      "id": "bp_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1712, "y": 0, "w": 200, "h": 120 },
+      "label": "ABP",
+      "value": { "systolic": 118, "diastolic": 72, "mean": 87 },
+      "format": "{systolic}/{diastolic} ({mean})",
+      "unit": "mmHg",
+      "color": "#FF3B4A",
+      "alarmLimits": { "systolicHigh": 160, "systolicLow": 90, "diastolicHigh": 100, "diastolicLow": 50 },
+      "dataMapping": "system.load"
+    },
+    {
+      "id": "temp_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1288, "y": 124, "w": 210, "h": 120 },
+      "label": "TEMP",
+      "value": 36.4,
+      "unit": "C",
+      "color": "#FFD644",
+      "alarmLimits": { "low": 35.0, "high": 38.5 },
+      "precision": 1,
+      "dataMapping": "system.cpu_temp"
+    },
+    {
+      "id": "etco2_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1500, "y": 124, "w": 210, "h": 120 },
+      "label": "EtCO2",
+      "value": 35,
+      "unit": "mmHg",
+      "color": "#B388FF",
+      "alarmLimits": { "low": 30, "high": 45 },
+      "capnographWaveform": true,
+      "dataMapping": "system.co2_level"
+    },
+    {
+      "id": "cvp_readout",
+      "type": "vitalNumeric",
+      "region": "vitalReadouts",
+      "position": { "x": 1712, "y": 124, "w": 200, "h": 120 },
+      "label": "CVP",
+      "value": 8,
+      "unit": "mmHg",
+      "color": "#26C6DA",
+      "alarmLimits": { "low": 2, "high": 14 },
+      "dataMapping": "system.memory_pressure"
+    },
+    {
+      "id": "robotic_arm_schematic",
+      "type": "roboticArmDiagram",
+      "region": "roboticArms",
+      "position": { "x": 0, "y": 248, "w": 640, "h": 420 },
+      "description": "Top-down schematic of 4 da Vinci-style robotic arms positioned around surgical field. Each arm = one agent.",
+      "centerPoint": { "x": 320, "y": 210, "label": "OPERATIVE FIELD" },
+      "arms": [
+        { "id": "arm1", "agent": "alpha", "color": "#00FF6A", "label": "ARM 1 — DISSECTOR", "position": "NE", "jointAngles": [45, 120, 30], "endEffector": "Maryland bipolar", "force": "2.4N", "status": "ACTIVE" },
+        { "id": "arm2", "agent": "beta", "color": "#00E5FF", "label": "ARM 2 — GRASPER", "position": "NW", "jointAngles": [315, 95, 45], "endEffector": "Cadiere forceps", "force": "1.8N", "status": "ACTIVE" },
+        { "id": "arm3", "agent": "gamma", "color": "#FF9100", "label": "ARM 3 — CAUTERY", "position": "SE", "jointAngles": [135, 110, 20], "endEffector": "Monopolar scissors", "force": "3.1N", "status": "ACTIVE" },
+        { "id": "arm4", "agent": "delta", "color": "#E040FB", "label": "ARM 4 — CAMERA", "position": "SW", "jointAngles": [225, 80, 60], "endEffector": "30-deg scope", "force": "0.5N", "status": "TRACKING" }
+      ],
+      "workspace_boundary": { "radius": 180, "color": "#1A2636", "dash": [4, 4] },
+      "collision_zones": { "enabled": true, "warningRadius": 30, "color": "#FFB300" }
+    },
+    {
+      "id": "ct_imaging",
+      "type": "medicalImage",
+      "region": "medicalImaging",
+      "position": { "x": 648, "y": 248, "w": 480, "h": 420 },
+      "description": "CT cross-section with surgical overlay showing arm positions and target zone",
+      "modality": "CT",
+      "slice": { "current": 142, "total": 256, "thickness": "2.5mm" },
+      "window": { "width": 400, "center": 40, "preset": "ABDOMEN" },
+      "overlays": [
+        { "type": "targetZone", "color": "#FF3B4A", "opacity": 0.3, "label": "RESECTION MARGIN" },
+        { "type": "criticalStructure", "color": "#FFB300", "label": "HEPATIC ARTERY", "outline": true },
+        { "type": "armProjection", "agent": "alpha", "color": "#00FF6A", "dotted": true }
+      ],
+      "scrollbar": { "position": "right", "trackColor": "#1A2636", "thumbColor": "#3D4F5F" }
+    },
+    {
+      "id": "bis_monitor",
+      "type": "anesthesiaDepth",
+      "region": "anesthesiaPanel",
+      "position": { "x": 1136, "y": 248, "w": 392, "h": 200 },
+      "description": "Bispectral Index (BIS) anesthesia depth monitor",
+      "bisValue": 42,
+      "bisRange": { "min": 0, "max": 100 },
+      "zones": [
+        { "range": [0, 20], "label": "BURST SUPPRESSION", "color": "#FF1744" },
+        { "range": [20, 40], "label": "DEEP HYPNOTIC", "color": "#FF9100" },
+        { "range": [40, 60], "label": "GENERAL ANESTHESIA", "color": "#00E676" },
+        { "range": [60, 80], "label": "SEDATION", "color": "#FFB300" },
+        { "range": [80, 100], "label": "AWAKE", "color": "#FF1744" }
+      ],
+      "emgBar": { "value": 28, "label": "EMG", "unit": "dB" },
+      "sqValue": 92,
+      "trendLine": { "duration": "30min", "color": "#448AFF" },
+      "dataMapping": "c9_operator.orchestration_depth"
+    },
+    {
+      "id": "ventilator_params",
+      "type": "ventilatorDisplay",
+      "region": "ventilatorPanel",
+      "position": { "x": 1536, "y": 248, "w": 384, "h": 200 },
+      "description": "Mechanical ventilation parameters and pressure/flow waveforms",
+      "mode": "PCV-VG",
+      "parameters": [
+        { "label": "Vt", "value": 520, "unit": "mL", "target": 500, "color": "#26C6DA" },
+        { "label": "RR", "value": 14, "unit": "/min", "color": "#26C6DA" },
+        { "label": "PEEP", "value": 5, "unit": "cmH2O", "color": "#26C6DA" },
+        { "label": "FiO2", "value": 40, "unit": "%", "color": "#26C6DA" },
+        { "label": "Ppeak", "value": 22, "unit": "cmH2O", "alarm": 35, "color": "#FFB300" },
+        { "label": "Pplat", "value": 18, "unit": "cmH2O", "color": "#26C6DA" },
+        { "label": "I:E", "value": "1:2.0", "unit": "", "color": "#26C6DA" },
+        { "label": "MV", "value": 7.3, "unit": "L/min", "color": "#26C6DA" }
+      ],
+      "pressureWaveform": { "type": "miniWave", "h": 40, "color": "#26C6DA" },
+      "flowWaveform": { "type": "miniWave", "h": 40, "color": "#B388FF" }
+    },
+    {
+      "id": "drug_infusion_pumps",
+      "type": "infusionPanel",
+      "region": "drugInfusion",
+      "position": { "x": 1136, "y": 456, "w": 784, "h": 108 },
+      "description": "4 drug infusion pump displays with rate, VTBI, and time remaining",
+      "pumps": [
+        { "drug": "Propofol", "concentration": "10mg/mL", "rate": 150, "unit": "mcg/kg/min", "vtbi": 180, "vtbiUnit": "mL", "remaining": "2:14:00", "color": "#448AFF", "status": "RUNNING" },
+        { "drug": "Remifentanil", "concentration": "50mcg/mL", "rate": 0.15, "unit": "mcg/kg/min", "vtbi": 50, "vtbiUnit": "mL", "remaining": "4:32:00", "color": "#E040FB", "status": "RUNNING" },
+        { "drug": "Rocuronium", "concentration": "10mg/mL", "rate": 0, "unit": "mg/hr", "vtbi": 0, "vtbiUnit": "mL", "remaining": "--:--", "color": "#FF9100", "status": "STANDBY" },
+        { "drug": "Lactated Ringer", "concentration": "--", "rate": 200, "unit": "mL/hr", "vtbi": 800, "vtbiUnit": "mL", "remaining": "4:00:00", "color": "#00E676", "status": "RUNNING" }
+      ]
+    },
+    {
+      "id": "procedure_timeline",
+      "type": "phaseTimeline",
+      "region": "procedureTimeline",
+      "position": { "x": 0, "y": 672, "w": 1440, "h": 108 },
+      "description": "Horizontal procedure timeline with color-coded phases and milestone markers",
+      "startTime": "08:15",
+      "currentTime": "10:42",
+      "estimatedEnd": "12:30",
+      "phases": [
+        { "label": "PREP / DRAPE", "start": "08:15", "end": "08:45", "color": "#3D4F5F", "status": "complete" },
+        { "label": "INDUCTION", "start": "08:45", "end": "09:00", "color": "#448AFF", "status": "complete" },
+        { "label": "PORT PLACEMENT", "start": "09:00", "end": "09:25", "color": "#26C6DA", "status": "complete" },
+        { "label": "DISSECTION", "start": "09:25", "end": "10:20", "color": "#00E676", "status": "complete" },
+        { "label": "RESECTION", "start": "10:20", "end": "11:15", "color": "#FF9100", "status": "active" },
+        { "label": "HEMOSTASIS", "start": "11:15", "end": "11:45", "color": "#FF3B4A", "status": "pending" },
+        { "label": "CLOSURE", "start": "11:45", "end": "12:15", "color": "#B388FF", "status": "pending" },
+        { "label": "EMERGENCE", "start": "12:15", "end": "12:30", "color": "#FFD644", "status": "pending" }
+      ],
+      "milestones": [
+        { "time": "09:22", "label": "First port in", "icon": "flag" },
+        { "time": "10:05", "label": "Cystic duct identified", "icon": "pin" },
+        { "time": "10:38", "label": "Critical view of safety", "icon": "check" }
+      ],
+      "dataMapping": "workflow.phases"
+    },
+    {
+      "id": "alert_stack",
+      "type": "alertStack",
+      "region": "alertStack",
+      "position": { "x": 1136, "y": 572, "w": 784, "h": 96 },
+      "description": "Stacked clinical alerts with severity levels",
+      "maxVisible": 3,
+      "alerts": [
+        { "severity": "info", "time": "10:41:22", "message": "Specimen labeled and handed off to nurse", "color": "#448AFF" },
+        { "severity": "warning", "time": "10:38:15", "message": "EtCO2 trending upward — verify ventilator settings", "color": "#FFB300" },
+        { "severity": "info", "time": "10:35:03", "message": "Blood loss estimated 120mL — within limits", "color": "#448AFF" }
+      ]
+    },
+    {
+      "id": "bp_trend_chart",
+      "type": "trendChart",
+      "region": "bloodPressureTrend",
+      "position": { "x": 1448, "y": 672, "w": 472, "h": 108 },
+      "description": "Systolic/diastolic blood pressure trend over procedure duration",
+      "xAxis": { "label": "TIME", "range": ["08:15", "12:30"], "gridEvery": "30min" },
+      "yAxis": { "label": "mmHg", "range": [40, 180] },
+      "lines": [
+        { "label": "SYSTOLIC", "color": "#FF3B4A", "style": "solid" },
+        { "label": "MEAN", "color": "#FF3B4A", "style": "dashed" },
+        { "label": "DIASTOLIC", "color": "#FF3B4A", "style": "dotted" }
+      ],
+      "normalBand": { "systolic": [90, 140], "diastolic": [60, 90], "fillColor": "rgba(0,230,118,0.08)" }
+    },
+    {
+      "id": "blood_gas_panel",
+      "type": "labResults",
+      "position": { "x": 0, "y": 784, "w": 480, "h": 120 },
+      "label": "LAST ABG — 10:15",
+      "results": [
+        { "test": "pH", "value": 7.38, "unit": "", "range": "7.35-7.45", "status": "normal" },
+        { "test": "pCO2", "value": 41, "unit": "mmHg", "range": "35-45", "status": "normal" },
+        { "test": "pO2", "value": 210, "unit": "mmHg", "range": ">80", "status": "normal" },
+        { "test": "HCO3", "value": 24, "unit": "mEq/L", "range": "22-26", "status": "normal" },
+        { "test": "Lactate", "value": 1.2, "unit": "mmol/L", "range": "<2.0", "status": "normal" },
+        { "test": "Hgb", "value": 11.8, "unit": "g/dL", "range": "12-16", "status": "low" }
+      ]
+    },
+    {
+      "id": "blood_loss_gauge",
+      "type": "fluidBalance",
+      "position": { "x": 488, "y": 784, "w": 300, "h": 120 },
+      "description": "Estimated blood loss and fluid balance",
+      "ebl": { "value": 120, "unit": "mL", "warningAt": 500, "criticalAt": 1000 },
+      "fluidsIn": { "crystalloid": 1400, "colloid": 0, "blood": 0, "unit": "mL" },
+      "urineOutput": { "value": 280, "unit": "mL", "rate": "1.2 mL/kg/hr" },
+      "netBalance": "+1000 mL"
+    },
+    {
+      "id": "surgical_countdown",
+      "type": "timer",
+      "position": { "x": 796, "y": 784, "w": 240, "h": 60 },
+      "label": "ELAPSED",
+      "value": "02:27:14",
+      "font": "mono",
+      "size": 36,
+      "color": "#E8F0F8"
+    },
+    {
+      "id": "tof_monitor",
+      "type": "neuromuscularMonitor",
+      "position": { "x": 796, "y": 848, "w": 240, "h": 56 },
+      "description": "Train-of-four neuromuscular monitoring",
+      "tofRatio": 0,
+      "tofCount": "0/4",
+      "ptcCount": 3,
+      "status": "DEEP BLOCK",
+      "color": "#FF9100"
+    },
+    {
+      "id": "instrument_count",
+      "type": "safetyChecklist",
+      "position": { "x": 1044, "y": 784, "w": 300, "h": 120 },
+      "label": "INSTRUMENT & SPONGE COUNT",
+      "items": [
+        { "item": "Sponges", "expected": 10, "counted": 10, "status": "CORRECT" },
+        { "item": "Sharps", "expected": 4, "counted": 4, "status": "CORRECT" },
+        { "item": "Instruments", "expected": 24, "counted": 24, "status": "CORRECT" }
+      ],
+      "lastVerified": "10:35",
+      "statusColor": { "CORRECT": "#00E676", "DISCREPANCY": "#FF1744" }
+    },
+    {
+      "id": "team_roster",
+      "type": "teamList",
+      "position": { "x": 1352, "y": 784, "w": 280, "h": 120 },
+      "label": "SURGICAL TEAM",
+      "members": [
+        { "role": "Surgeon (Console)", "name": "c9-operator", "status": "active" },
+        { "role": "Assistant", "name": "Broker", "status": "active" },
+        { "role": "Anesthesiologist", "name": "Hub", "status": "monitoring" },
+        { "role": "Scrub Nurse", "name": "API Gateway", "status": "active" },
+        { "role": "Circulator", "name": "Dashboard", "status": "active" }
+      ]
+    },
+    {
+      "id": "arm_force_feedback",
+      "type": "forceGauges",
+      "position": { "x": 0, "y": 572, "w": 320, "h": 96 },
+      "description": "Real-time force feedback from each robotic arm tip",
+      "gauges": [
+        { "arm": 1, "agent": "alpha", "force": 2.4, "maxForce": 8.0, "unit": "N", "color": "#00FF6A" },
+        { "arm": 2, "agent": "beta", "force": 1.8, "maxForce": 8.0, "unit": "N", "color": "#00E5FF" },
+        { "arm": 3, "agent": "gamma", "force": 3.1, "maxForce": 8.0, "unit": "N", "color": "#FF9100" },
+        { "arm": 4, "agent": "delta", "force": 0.5, "maxForce": 8.0, "unit": "N", "color": "#E040FB" }
+      ],
+      "warningThreshold": 5.0,
+      "criticalThreshold": 7.0
+    },
+    {
+      "id": "console_ergonomics",
+      "type": "ergonomicsDisplay",
+      "position": { "x": 328, "y": 572, "w": 312, "h": 96 },
+      "description": "Surgeon console position and fatigue indicators",
+      "clutchPedal": "ENGAGED",
+      "masterScale": "3:1",
+      "tremourFilter": "6Hz",
+      "sessionDuration": "1:42:00",
+      "fatigueAlert": { "threshold": "2:00:00", "status": "nominal", "color": "#00E676" }
+    }
+  ],
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "opacity": 0.03, "spacing": 2, "speed": 0 },
+    "vignette": { "enabled": true, "intensity": 0.25, "radius": 0.9 },
+    "filmGrain": { "enabled": false },
+    "bloom": { "enabled": true, "threshold": 0.8, "intensity": 0.15, "radius": 6 },
+    "ecgGlow": { "enabled": true, "color": "#00FF6A", "intensity": 0.4, "blurRadius": 12 },
+    "backgroundTexture": "surgical-monitor-matte",
+    "panelBevel": { "enabled": true, "size": 1, "highlight": "#1A2636", "shadow": "#050A10" },
+    "alarmFlash": { "enabled": true, "color": "#FF1744", "trigger": "on_critical_alarm", "frequency": 2 }
+  },
+  "animations": [
+    { "id": "ecg_scroll", "target": "ecg_waveform", "frames": [0, 300], "type": "continuousScroll", "easing": "linear", "pixelsPerFrame": 4, "traceGlow": true },
+    { "id": "spo2_scroll", "target": "spo2_pleth", "frames": [0, 300], "type": "continuousScroll", "easing": "linear", "pixelsPerFrame": 4 },
+    { "id": "intro_power_on", "target": "all", "frames": [0, 30], "type": "fadeIn", "easing": "easeOutQuad" },
+    { "id": "vital_pulse", "target": "hr_readout", "frames": [0, 300], "type": "pulse", "easing": "easeOutQuad", "period": 25, "scale": 1.02 },
+    { "id": "arm_movement", "target": "robotic_arm_schematic.arms", "frames": [60, 240], "type": "jointRotation", "easing": "easeInOutQuad", "amplitude": 5 },
+    { "id": "ct_scroll", "target": "ct_imaging", "frames": [90, 150], "type": "sliceScroll", "easing": "easeInOutSine", "fromSlice": 130, "toSlice": 155 },
+    { "id": "bis_update", "target": "bis_monitor.bisValue", "frames": [120, 140], "type": "numericInterpolate", "easing": "easeInOutSine", "from": 42, "to": 45 },
+    { "id": "timeline_progress", "target": "procedure_timeline", "frames": [0, 300], "type": "progressBar", "easing": "linear" },
+    { "id": "alert_slide_in", "target": "alert_stack", "frames": [180, 200], "type": "slideIn", "easing": "easeOutBack", "direction": "right" },
+    { "id": "force_fluctuation", "target": "arm_force_feedback", "frames": [0, 300], "type": "oscillate", "easing": "perlinNoise", "amplitude": 0.3 }
+  ],
+  "dataMapping": {
+    "agents": {
+      "alpha": { "mapTo": "Robotic Arm 1 — Dissector", "color": "#00FF6A", "role": "Primary dissection agent" },
+      "beta": { "mapTo": "Robotic Arm 2 — Grasper", "color": "#00E5FF", "role": "Tissue retraction agent" },
+      "gamma": { "mapTo": "Robotic Arm 3 — Cautery", "color": "#FF9100", "role": "Hemostasis agent" },
+      "delta": { "mapTo": "Robotic Arm 4 — Camera", "color": "#E040FB", "role": "Visualization/monitoring agent" }
+    },
+    "system": {
+      "c9_operator": "Lead Surgeon at console — central coordinator",
+      "broker": "Anesthesiologist — session lifecycle management",
+      "hub": "Circulating Nurse — broadcast/coordination",
+      "api_gateway": "Scrub Nurse — instrument handoff (HTTP requests)",
+      "projects": "Patient record / imaging archive",
+      "dashboard": "OR display monitors — UI rendering"
+    },
+    "metrics": {
+      "heartbeat_interval": "ECG / system heartbeat",
+      "health_score": "SpO2 / overall system health",
+      "cpu_load": "Blood pressure / system load",
+      "memory_pct": "Temperature / resource utilization",
+      "active_sessions": "Heart rate / concurrent sessions",
+      "agent_force": "Robotic arm force / agent resource pressure"
+    }
+  }
+}

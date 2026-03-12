@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface AgentBlip {
   id: string;
@@ -23,8 +24,6 @@ interface StatsData {
   total_agents?: number;
   uptime_seconds?: number;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const ATC_GREEN = '#00ff41';
 const ATC_GREEN_DIM = 'rgba(0,255,65,0.15)';

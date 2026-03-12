@@ -6,7 +6,7 @@ import {
   statusDot, statusBadge, compactBadge, terminalOutput,
   statusColor, shortModel, formatDuration,
 } from '../styles/theme';
-import { api } from '../services/api';
+import { api, API_BASE } from '../services/api';
 import { agentWS } from '../services/websocket';
 import type { Agent, Task, StreamEvent } from '../types';
 
@@ -120,7 +120,7 @@ const ProjectDetailPanel: React.FC<ProjectDetailPanelProps> = ({ projectName, on
       setTabs(prev => {
         const tab = prev.find(t => t.sessionId === sid);
         if (!tab) return prev;
-        const text = event.text || event.content || '';
+        const text = event.chunk || event.text || event.content || '';
         if (!text) return prev;
         return prev.map(t =>
           t.sessionId === sid
@@ -193,14 +193,27 @@ const ProjectDetailPanel: React.FC<ProjectDetailPanelProps> = ({ projectName, on
     fetchAgents();
   };
 
-  const openAgentTab = (agent: Agent) => {
+  const openAgentTab = async (agent: Agent) => {
     setTerminalOpen(true);
     const existing = tabs.find(t => t.sessionId === agent.session_id);
     if (!existing) {
+      // Load historical messages from the API
+      let lines: string[] = [];
+      try {
+        const resp = await fetch(`${API_BASE}/api/agents/${encodeURIComponent(agent.session_id)}/messages`);
+        if (resp.ok) {
+          const msgs: Array<Record<string, any>> = await resp.json();
+          lines = msgs
+            .filter((m: any) => m.type === 'text' && (m.content || m.text))
+            .map((m: any) => m.content || m.text);
+        }
+      } catch {
+        // Ignore — will populate via WebSocket if agent is still running
+      }
       setTabs(prev => [...prev, {
         sessionId: agent.session_id,
         label: agent.session_id.substring(0, 8),
-        lines: [],
+        lines,
         milestones: agent.milestones || [],
       }]);
     }

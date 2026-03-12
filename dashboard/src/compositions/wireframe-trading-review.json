@@ -1,0 +1,88 @@
+{
+  "wireframeId": "wireframe-trading",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "main_candlestick currentPrice marker", "bloomRadius": 6, "intensity": 0.3, "trigger": "price-update", "note": "The current price line should have a small bloom that flashes on each tick update — the price is ALIVE, always moving" },
+      { "element": "pnl_ticker positive values", "bloomRadius": 4, "intensity": 0.2, "note": "Green P&L numbers should have very subtle bloom — money glowing" },
+      { "element": "alert_stack critical card", "bloomRadius": 10, "intensity": 0.4, "note": "MARGIN CALL WARNING should bloom red — this is the 'Margin Call' movie moment" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0, "note": "None needed. Bloomberg terminals are flat-panel precision displays. Clean image is the aesthetic" },
+    "filmGrain": { "note": "0.01 at 24fps is very subtle. This is correct for Bloomberg. But add a unique Bloomberg artifact: CRT phosphor pattern (specified as rgb-stripe at 0.08). This should be visible on close inspection — the RGB sub-pixel grid of an old Bloomberg terminal" },
+    "priceFlash": { "note": "Uptick/downtick flash is specified at 8-frame duration. Enhance: uptick flash should be a rapid GREEN -> WHITE -> GREEN transition over 4 frames, downtick RED -> WHITE -> RED. The white flash at frame 2 sells the 'tick just happened' immediacy" },
+    "scanLines": { "note": "Spacing 2 at 0.03. Add HORIZONTAL BANDING — every 180px, a slightly brighter band (0.02 opacity increase) that slowly scrolls upward at 0.1px/frame. Old CRT refresh artifact" },
+    "reflectionGlare": [
+      { "type": "trading-floor-monitors", "position": "fullscreen", "opacity": 0.015, "note": "Multiple monitors on a desk create cross-reflections. Add very faint rectangular highlights from adjacent monitors — suggests this is one of 6 screens" }
+    ],
+    "motionBlur": [
+      { "element": "market_ticker_tape scroll", "blur": 3, "direction": "horizontal", "note": "Ticker tape should have distinct horizontal motion blur — it scrolls fast enough to smear" },
+      { "element": "order_book_depth level changes", "blur": 1, "direction": "vertical", "note": "When order book levels shift, brief vertical motion blur on the moving rows — the ladder slides" }
+    ],
+    "depthOfField": null,
+    "particleEffects": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 0.3, "amplitudeY": 0.2, "period": 400, "note": "Near-zero. Trading terminals are on desks. But add occasional deliberate 'lean-in' — every 120 frames, scale increases 100.5% for 15 frames then returns, as if the trader leans toward the screen" },
+    "rackFocus": [],
+    "dramaticReveals": [
+      { "element": "intro_terminal_boot", "note": "Terminal boot at frames 0-40 is good. Add the classic Bloomberg login: orange text on black, 'BLOOMBERG PROFESSIONAL SERVICE', progress bar, then panels populate in Z-pattern (top-left first). Boot text should include 'CONNECTING TO MARKET DATA...OK'" },
+      { "element": "correlation_matrix cell reveal", "note": "Cell reveal at frames 50-70 is specified. Each cell should fade in with its color intensifying from gray to final correlation color — like a heatmap warming up" }
+    ],
+    "breathingAnimations": [
+      { "element": "order_book_depth bid/ask sizes", "type": "flicker", "speed": 4, "amplitude": 15, "note": "Order book sizes should CONSTANTLY change — flicker between values every 4-8 frames. Real order books are never still. This is the single most important animation for authenticity" },
+      { "element": "main_candlestick current candle", "type": "wick-extension", "speed": 1, "note": "The rightmost candle (current) should have its high/low wicks constantly extending and retracting — the price is being discovered in real-time" },
+      { "element": "risk_dashboard VaR values", "type": "digit-roll", "period": 60, "note": "VaR numbers should slowly recalculate — digits roll through intermediate values to a new settled value every 60 frames" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [78, 105], "description": "Alert cascade — MARGIN CALL warning slides in (frame 80), immediately followed by VOLATILITY SPIKE (frame 85). Order book spread widens from 0.08 to 0.16. Candlestick current candle extends downward sharply. P&L ticker values flash red. RSI drops from 62 to 48. The room feels the tremor" },
+      { "frameRange": [160, 190], "description": "Recovery rally — price reverses upward. New candle forms green. Order book bid side thickens. P&L ticks back up. VIX equivalent decreases. Correlation matrix subtly shifts. The tension breaks" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "element": "main_candlestick", "fix": "Add VWAP deviation bands (1 and 2 sigma), time-weighted average price line, and a miniature volume-at-price histogram on the right edge (specified as separate element but should be integrated into the chart panel)" },
+    { "element": "order_book_depth", "fix": "Add LAST TRADE indicator — a flashing arrow (up/down) next to the mid-price showing the direction of the last execution. Add IMBALANCE RATIO trend (last 30 readings as a mini-sparkline)" },
+    { "element": "risk_dashboard", "fix": "Add P&L ATTRIBUTION breakdown: how much P&L is from alpha (skill) vs beta (market). Add POSITION CONCENTRATION risk — largest single-name exposure as % of portfolio" },
+    { "region": "bottom row (y:848-932)", "fix": "Trade blotter and bloomberg header are thin. Add a TIME AND SALES panel with a speed histogram showing trade velocity in 1-second bins — how fast the tape is moving" },
+    { "element": "position_table", "fix": "Add UNREALIZED vs REALIZED P&L split, HOLDING PERIOD per position, and a RED FLAG column for positions exceeding risk limits" },
+    { "element": "sector_pie", "fix": "Add a dashed-line ring showing TARGET allocation overlaid on actual — visual delta between where you are and where you should be" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Near-monochrome with green/red punches — grade like Margin Call (J.C. Chandor). The Bloomberg orange (#FF8800) is the only brand color; everything else is black, gray, green, or red. Shadows should be lifted slightly to #111111, never pure black. The overall tone should feel CLINICAL, like fluorescent office lighting — slightly desaturated, slightly too cold",
+    "keyMoments": [
+      { "trigger": "margin call warning (frame 80)", "shift": "Subtle red wash across the entire screen — 0.02 opacity #FF1133 overlay for 30 frames. The trader's blood pressure just spiked" },
+      { "trigger": "price recovery (frame 170)", "shift": "Shift lifts — very slight green tint to the background for 20 frames. Relief" },
+      { "trigger": "terminal boot (frames 0-40)", "shift": "Bloomberg orange (#FF8800) dominates during boot — black screen with orange text. Then the color drains to the normal muted palette as panels populate" }
+    ],
+    "accentUsage": "Green/red for up/down is universal and well-applied. The Bloomberg orange needs more presence — it appears in the header and top banner border but should also accent the chart timeframe selector and active panel headers",
+    "backgroundAtmosphere": "Background is appropriately near-black. Add very subtle horizontal banding at 0.01 opacity — the CRT RGB stripe pattern creates barely visible lines that say 'this is a terminal, not a webpage'"
+  },
+
+  "typographyNotes": {
+    "fonts": "Consolas is the authentic Bloomberg terminal font — perfect choice. Inter for secondary text is a good modern complement",
+    "monospaceReadout": "Consolas at weight 400 for data is correct. For prices, use weight 700 — prices must stand out from surrounding data. Ensure TABULAR FIGURES everywhere — alignment is sacred in financial data",
+    "displayFont": "Ticker price at 32px is good. But the correlation matrix cell values at 11px mono are too small — bump to 13px for the diagonal (1.00) values which are reference points",
+    "sizeHierarchy": "9px labels are standard Bloomberg density — acceptable for experienced users. 11px table cells are fine. Add a 'flash' tier: when a price updates, briefly render at 2px larger then snap back — visual tick indicator"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "order_book_depth flickering", "sound": "Rapid soft clicking — like a stock ticker mechanical tape. This is the sound of price discovery" },
+      { "element": "market_ticker_tape scroll", "sound": "Faint electronic hum with rhythmic pulse — the tape never stops" },
+      { "element": "background", "sound": "Trading floor ambient — distant keyboards, muffled phone conversations, occasional sharp 'FILL!' shout from a distant desk" }
+    ],
+    "eventSounds": [
+      { "element": "alert_stack critical (MARGIN CALL)", "sound": "Sharp three-tone descending alarm (G5-D5-Bb4) — unmistakable danger. This sound should make the viewer's stomach drop" },
+      { "element": "main_candlestick new candle formation", "sound": "Soft mechanical snap — the timeframe bar closing" },
+      { "element": "price_update tick", "sound": "Brief electronic pip — pitched higher for upticks, lower for downticks. Frequency of pips indicates market velocity" },
+      { "element": "pnl_ticker crossing zero", "sound": "Deep resonant bell — crossing from profit to loss or vice versa is a significant event" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [75, 80], "description": "The split-second before the margin call alert — the order book briefly freezes (sizes stop flickering for 5 frames). Something is wrong. Then the alert hits" }
+    ]
+  }
+}

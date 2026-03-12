@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface FlightEntry {
   id: string;
@@ -13,8 +14,6 @@ interface FlightEntry {
   time: string;
   rawStatus: string;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const AMBER = '#ffbf00';
 const GREEN = '#00ff41';

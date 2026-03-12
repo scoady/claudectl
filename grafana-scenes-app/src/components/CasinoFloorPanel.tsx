@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface SlotAgent {
   id: string;
@@ -23,8 +24,6 @@ interface StatsData {
   total_agents_spawned?: number;
   cumulative_cost?: number;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 const NEON_PINK = '#ff1493';
 const NEON_YELLOW = '#ffd700';

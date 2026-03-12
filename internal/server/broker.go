@@ -1,10 +1,15 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"log"
 	"sync"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const defaultModel = "claude-opus-4-6"
@@ -62,7 +67,31 @@ func (b *Broker) SpawnSession(
 
 	sessionID := newUUID()
 
+	// Create a dispatch span that becomes the parent of agent.session spans
+	tracer := otel.Tracer("claudectl")
+	taskSnippet := task
+	if len(taskSnippet) > 256 {
+		taskSnippet = taskSnippet[:256] + "..."
+	}
+	dispatchCtx, dispatchSpan := tracer.Start(context.Background(), "dispatch",
+		trace.WithAttributes(
+			attribute.String("dispatch.session_id", sessionID),
+			attribute.String("dispatch.project", projectName),
+			attribute.String("dispatch.task", taskSnippet),
+			attribute.String("dispatch.model", model),
+			attribute.Bool("dispatch.is_controller", isController),
+		),
+	)
+	// End the dispatch span immediately — it's a marker event.
+	// The agent.session span will be a child via the trace context.
+	dispatchSpan.End()
+
 	session := NewSession(sessionID, projectName, projectPath, model, isController, taskIndex, mcpConfigPath)
+
+	// Inject the dispatch trace context so agent.session is a child of dispatch
+	session.mu.Lock()
+	session.traceCtx = dispatchCtx
+	session.mu.Unlock()
 
 	// Wire callbacks
 	session.OnPhaseChange = b.onPhaseChange

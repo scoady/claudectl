@@ -8,6 +8,8 @@ import {
   Crosshair,
   Server,
   Network,
+  ShieldCheck,
+  Music,
 } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 
@@ -19,6 +21,8 @@ const navItems = [
   { to: '/targets', label: 'Targets', icon: Crosshair },
   { to: '/system', label: 'System', icon: Server },
   { to: '/architecture', label: 'Architecture', icon: Network },
+  { to: '/operator', label: 'Operator', icon: ShieldCheck },
+  { to: '/studio', label: 'Studio', icon: Music },
 ];
 
 export default function Sidebar() {

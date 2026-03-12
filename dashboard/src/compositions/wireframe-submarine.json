@@ -1,0 +1,360 @@
+{
+  "id": "submarine-cic",
+  "title": "Submarine Combat Information Center",
+  "subtitle": "c9-operator Tactical Operations",
+  "inspiration": "Hunt for Red October / Das Boot — Cold War submarine CIC with sonar displays and tactical plotting",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+
+  "colorGrading": {
+    "background": "#0a0804",
+    "panelDark": "#12100c",
+    "panelBorder": "#2a2418",
+    "amberPrimary": "#ff8800",
+    "amberDim": "#aa5500",
+    "amberGhost": "#553300",
+    "redPrimary": "#cc2200",
+    "redDim": "#881800",
+    "greenSafe": "#44aa44",
+    "sonarGreen": "#33cc66",
+    "sonarTrail": "#1a6633",
+    "waterBlue": "#1a3355",
+    "depthBlue": "#0d1a33",
+    "contactYellow": "#ffcc00",
+    "contactHostile": "#ff2200",
+    "contactFriendly": "#33cc66",
+    "contactUnknown": "#ffcc00",
+    "compassRose": "#cc8844",
+    "gridLine": "rgba(255,136,0,0.1)",
+    "textPrimary": "#ff8800",
+    "textDim": "#885500"
+  },
+
+  "typography": {
+    "primary": { "fontFamily": "Source Code Pro", "weight": 400 },
+    "header": { "fontFamily": "Source Code Pro", "weight": 700, "size": 13 },
+    "readout": { "fontFamily": "Source Code Pro", "weight": 600, "size": 15 },
+    "label": { "fontFamily": "Source Code Pro", "weight": 400, "size": 9 },
+    "bearing": { "fontFamily": "Source Code Pro", "weight": 700, "size": 22 },
+    "title": { "fontFamily": "Source Code Pro", "weight": 700, "size": 16 },
+    "sonar": { "fontFamily": "Source Code Pro", "weight": 400, "size": 10 },
+    "tactical": { "fontFamily": "Source Code Pro", "weight": 600, "size": 11 }
+  },
+
+  "backgroundTexture": {
+    "type": "dark-metal-panel",
+    "baseColor": "#0a0804",
+    "rivets": true,
+    "rivetSpacing": 120,
+    "rivetColor": "#1a1810",
+    "ambientLight": "warm-dim",
+    "reflectionOpacity": 0.02
+  },
+
+  "layout": {
+    "sonarLeft": { "x": 16, "y": 16, "w": 480, "h": 780 },
+    "centerTactical": { "x": 512, "y": 16, "w": 560, "h": 560 },
+    "centerBottom": { "x": 512, "y": 590, "w": 560, "h": 206 },
+    "rightPanels": { "x": 1088, "y": 16, "w": 480, "h": 780 },
+    "depthGauge": { "x": 1584, "y": 16, "w": 80, "h": 780 },
+    "bottomStrip": { "x": 16, "y": 810, "w": 1648, "h": 254 },
+    "statusBar": { "x": 1680, "y": 16, "w": 224, "h": 1048 }
+  },
+
+  "elements": [
+    {
+      "id": "sonar-waterfall",
+      "label": "SONAR WATERFALL DISPLAY — BROADBAND",
+      "type": "waterfall-spectrogram",
+      "position": { "x": 24, "y": 32, "w": 464, "h": 540 },
+      "description": "Vertical waterfall display. X-axis: frequency (0-2000 Hz). Y-axis: time (newest at top, scrolling down). Intensity shown as color: dark = quiet, green = signal, bright green/yellow = strong. Shows agent activity patterns as frequency bands. Each agent occupies a distinct frequency range. Active tool calls appear as bright horizontal lines. Idle periods are dark. Grid overlay at 200Hz / 30s intervals.",
+      "xRange": [0, 2000],
+      "xUnit": "Hz",
+      "yDuration": "5 min",
+      "colorMap": ["#0a0804", "#0d2211", "#1a6633", "#33cc66", "#ffcc00"],
+      "agentBands": [
+        { "agent": "\u03b1", "freqRange": [100, 450], "label": "BAND \u03b1" },
+        { "agent": "\u03b2", "freqRange": [500, 850], "label": "BAND \u03b2" },
+        { "agent": "\u03b3", "freqRange": [900, 1250], "label": "BAND \u03b3" },
+        { "agent": "\u03b4", "freqRange": [1300, 1650], "label": "BAND \u03b4" }
+      ],
+      "dataMapping": "agents.activitySpectrogram"
+    },
+    {
+      "id": "sonar-bearing",
+      "label": "BEARING-TIME INDICATOR",
+      "type": "bearing-time-display",
+      "position": { "x": 24, "y": 584, "w": 464, "h": 200 },
+      "description": "BTI display. X-axis: bearing 0-360\u00b0. Y-axis: time (scrolling down). Contacts appear as bright lines/traces at their bearing. Each agent contact is a distinct trace. Allows tracking bearing changes over time. Amber on dark background.",
+      "bearingRange": [0, 360],
+      "yDuration": "3 min",
+      "contacts": [
+        { "id": "agent-alpha", "bearing": 45, "intensity": 0.8 },
+        { "id": "agent-beta", "bearing": 142, "intensity": 0.6 },
+        { "id": "agent-gamma", "bearing": 228, "intensity": 0.9 },
+        { "id": "agent-delta", "bearing": 310, "intensity": 0.4 }
+      ],
+      "dataMapping": "agents.bearingTime"
+    },
+    {
+      "id": "compass-rose",
+      "label": "TACTICAL PLOT",
+      "type": "compass-radar",
+      "position": { "x": 532, "y": 32, "w": 520, "h": 520 },
+      "description": "Central compass rose / tactical plot. Own ship (c9-operator) at center. Compass rose with degree markings every 10\u00b0, cardinal labels N/S/E/W. Range rings at 5nm, 10nm, 15nm, 20nm intervals. Contacts plotted as symbols: triangle = agent (friendly), square = API requests (neutral), diamond = errors (hostile). Each contact shows bearing line from center, speed leader (line extending in direction of travel). Contacts are amber, hostile contacts red.",
+      "rangeScale": 20,
+      "rangeUnit": "nm",
+      "rangeRings": [5, 10, 15, 20],
+      "ownShip": { "label": "c9-OP", "position": "center", "heading": 0 },
+      "contacts": [
+        { "id": "alpha", "type": "friendly", "bearing": 45, "range": 8, "speed": 12, "course": 90, "label": "AGENT-\u03b1", "dataMapping": "agents.alpha" },
+        { "id": "beta", "type": "friendly", "bearing": 142, "range": 12, "speed": 8, "course": 180, "label": "AGENT-\u03b2", "dataMapping": "agents.beta" },
+        { "id": "gamma", "type": "unknown", "bearing": 228, "range": 6, "speed": 15, "course": 270, "label": "AGENT-\u03b3", "dataMapping": "agents.gamma" },
+        { "id": "delta", "type": "friendly", "bearing": 310, "range": 15, "speed": 5, "course": 350, "label": "AGENT-\u03b4", "dataMapping": "agents.delta" },
+        { "id": "broker", "type": "friendly", "bearing": 180, "range": 3, "speed": 0, "course": 0, "label": "BROKER" },
+        { "id": "hub", "type": "friendly", "bearing": 90, "range": 4, "speed": 0, "course": 0, "label": "HUB" }
+      ],
+      "dataMapping": "system.tacticalPlot"
+    },
+    {
+      "id": "torpedo-solution",
+      "label": "TASK SOLUTION TRACKING",
+      "type": "solution-panel",
+      "position": { "x": 522, "y": 600, "w": 540, "h": 190 },
+      "description": "Torpedo fire control solution panel (mapped to task dispatch). 4 tubes (task slots). Each shows: tube number, assigned agent, bearing to target (task), range (estimated completion), solution quality (confidence %). Ready/Not Ready indicator.",
+      "tubes": [
+        { "tube": 1, "agent": "\u03b1", "bearing": "045\u00b0", "range": "8.2 nm", "solution": 94, "status": "READY", "dataMapping": "agents.alpha.currentTask" },
+        { "tube": 2, "agent": "\u03b2", "bearing": "142\u00b0", "range": "12.1 nm", "solution": 78, "status": "TRACKING", "dataMapping": "agents.beta.currentTask" },
+        { "tube": 3, "agent": "\u03b3", "bearing": "228\u00b0", "range": "6.4 nm", "solution": 88, "status": "READY", "dataMapping": "agents.gamma.currentTask" },
+        { "tube": 4, "agent": "\u03b4", "bearing": "310\u00b0", "range": "15.7 nm", "solution": 52, "status": "TRACKING", "dataMapping": "agents.delta.currentTask" }
+      ]
+    },
+    {
+      "id": "depth-gauge",
+      "label": "DEPTH",
+      "type": "vertical-depth-gauge",
+      "position": { "x": 1592, "y": 24, "w": 64, "h": 760 },
+      "description": "Tall vertical gauge showing depth. Scale 0-400m (top to bottom). Current depth indicator as horizontal bar. Depth zones: 0-100m green (safe), 100-250m amber (operational), 250-350m red (danger), 350-400m flashing red (crush depth). Numeric readout at current position. Maps to system resource depth (how deep into resource utilization).",
+      "min": 0,
+      "max": 400,
+      "value": 180,
+      "unit": "m",
+      "zones": [
+        { "from": 0, "to": 100, "color": "#44aa44", "label": "SAFE" },
+        { "from": 100, "to": 250, "color": "#ff8800", "label": "OPERATIONAL" },
+        { "from": 250, "to": 350, "color": "#cc2200", "label": "DANGER" },
+        { "from": 350, "to": 400, "color": "#ff0000", "label": "CRUSH", "flash": true }
+      ],
+      "dataMapping": "system.resourceDepth"
+    },
+    {
+      "id": "ballast-tanks",
+      "label": "BALLAST TANKS",
+      "type": "tank-fill-indicators",
+      "position": { "x": 1096, "y": 32, "w": 240, "h": 180 },
+      "description": "6 tank fill indicators (3 forward, 3 aft) showing ballast levels. Each is a small vertical rectangle filled from bottom with blue. Percentage readout below. Maps to memory pool utilization segments.",
+      "tanks": [
+        { "id": "FWD-1", "fill": 0.45, "dataMapping": "system.memPool1" },
+        { "id": "FWD-2", "fill": 0.62, "dataMapping": "system.memPool2" },
+        { "id": "FWD-3", "fill": 0.38, "dataMapping": "system.memPool3" },
+        { "id": "AFT-1", "fill": 0.71, "dataMapping": "system.memPool4" },
+        { "id": "AFT-2", "fill": 0.55, "dataMapping": "system.memPool5" },
+        { "id": "AFT-3", "fill": 0.29, "dataMapping": "system.memPool6" }
+      ]
+    },
+    {
+      "id": "hull-integrity",
+      "label": "HULL INTEGRITY",
+      "type": "hull-diagram",
+      "position": { "x": 1096, "y": 228, "w": 240, "h": 120 },
+      "description": "Side-profile outline of submarine hull. Sections color-coded: green = nominal, amber = stress, red = breach. All sections green except one amber section at frame 47 (maps to Agent-gamma elevated activity). Numeric percentage at center: 97.3%.",
+      "sections": 8,
+      "integrity": 97.3,
+      "unit": "%",
+      "stressedSections": [{ "index": 5, "level": "amber" }],
+      "dataMapping": "system.hullIntegrity"
+    },
+    {
+      "id": "speed-heading",
+      "label": "SPEED / HEADING",
+      "type": "dual-readout",
+      "position": { "x": 1096, "y": 364, "w": 240, "h": 100 },
+      "fields": [
+        { "label": "SPEED", "value": "12.4", "unit": "kts", "dataMapping": "c9operator.dispatchRate" },
+        { "label": "HEADING", "value": "347\u00b0", "unit": "T", "dataMapping": "c9operator.heading" }
+      ]
+    },
+    {
+      "id": "engine-telegraph",
+      "label": "ENGINE ORDER TELEGRAPH",
+      "type": "telegraph-gauge",
+      "position": { "x": 1096, "y": 480, "w": 240, "h": 160 },
+      "description": "Semicircular engine order telegraph. Positions: STOP, DEAD SLOW, SLOW, HALF, FULL, FLANK. Pointer currently at HALF. Brass/amber colored with engraved positions. Maps to c9-operator throttle level.",
+      "positions": ["STOP", "D.SLOW", "SLOW", "HALF", "FULL", "FLANK"],
+      "currentPosition": "HALF",
+      "dataMapping": "c9operator.throttle"
+    },
+    {
+      "id": "contact-classification",
+      "label": "CONTACT CLASSIFICATION BOARD",
+      "type": "data-table",
+      "position": { "x": 1352, "y": 32, "w": 216, "h": 360 },
+      "columns": ["TRACK", "CLASS", "BRG", "RNG", "CPA"],
+      "rows": [
+        ["T-001", "FRDLY", "045", "8.2", "4.1"],
+        ["T-002", "FRDLY", "142", "12.1", "7.3"],
+        ["T-003", "UNKN", "228", "6.4", "2.8"],
+        ["T-004", "FRDLY", "310", "15.7", "9.2"],
+        ["T-005", "FRDLY", "180", "3.0", "3.0"],
+        ["T-006", "FRDLY", "090", "4.0", "4.0"]
+      ],
+      "highlightRow": 2,
+      "highlightColor": "#ffcc00",
+      "dataMapping": "system.contactBoard"
+    },
+    {
+      "id": "reactor-plant",
+      "label": "REACTOR PLANT",
+      "type": "mini-readout",
+      "position": { "x": 1352, "y": 408, "w": 216, "h": 120 },
+      "fields": [
+        { "label": "RX POWER", "value": "78%", "dataMapping": "system.powerLevel" },
+        { "label": "STEAM GEN", "value": "ONLINE", "color": "#44aa44" },
+        { "label": "COOLANT", "value": "NOMINAL", "color": "#44aa44" }
+      ]
+    },
+    {
+      "id": "atmosphere",
+      "label": "ATMOSPHERE MONITORING",
+      "type": "mini-readout",
+      "position": { "x": 1352, "y": 544, "w": 216, "h": 120 },
+      "fields": [
+        { "label": "O2", "value": "20.8%", "dataMapping": "system.oxygen" },
+        { "label": "CO2", "value": "0.42%", "dataMapping": "system.co2" },
+        { "label": "CO", "value": "< 5 ppm", "dataMapping": "system.co" },
+        { "label": "H2", "value": "< 1%", "dataMapping": "system.hydrogen" }
+      ]
+    },
+    {
+      "id": "navlog",
+      "label": "NAVIGATION LOG",
+      "type": "scrolling-text",
+      "position": { "x": 24, "y": 822, "w": 540, "h": 240 },
+      "maxLines": 14,
+      "sampleEntries": [
+        "14:27:01 NAV > NEW CONTACT T-001 BRG 045 RNG 8.2 — AGENT-\u03b1 DISPATCHED",
+        "14:27:03 TAC > T-001 CLASSIFIED FRIENDLY — SOLUTION QUALITY 94%",
+        "14:27:08 SON > BROADBAND SPIKE BAND-\u03b3 1200Hz — ELEVATED ACTIVITY",
+        "14:27:12 NAV > T-003 BEARING DRIFT 228\u2192231 — TRACKING",
+        "14:27:15 ENG > AHEAD HALF — ALL SYSTEMS NOMINAL",
+        "14:27:19 TAC > T-003 RECLASSIFIED UNKNOWN — TOKEN USAGE ANOMALY"
+      ],
+      "dataMapping": "system.navLog"
+    },
+    {
+      "id": "time-bearing-plot",
+      "label": "TIME-BEARING PLOT",
+      "type": "polar-timeline",
+      "position": { "x": 580, "y": 822, "w": 480, "h": 240 },
+      "description": "Small polar plot showing contact bearing tracks over time. Each contact is a colored arc showing bearing history. Helps visualize agent movement patterns. c9-operator at center.",
+      "duration": "10 min",
+      "dataMapping": "agents.bearingHistory"
+    },
+    {
+      "id": "alert-status",
+      "label": "ALERT STATUS",
+      "type": "alert-indicator",
+      "position": { "x": 1080, "y": 822, "w": 200, "h": 80 },
+      "levels": ["NORMAL", "MODIFIED", "BATTLE STATIONS"],
+      "current": "MODIFIED",
+      "colors": ["#44aa44", "#ff8800", "#cc2200"],
+      "dataMapping": "system.alertLevel"
+    },
+    {
+      "id": "comms-log",
+      "label": "COMMS",
+      "type": "scrolling-text",
+      "position": { "x": 1296, "y": 822, "w": 368, "h": 240 },
+      "maxLines": 12,
+      "sampleEntries": [
+        "14:27:01 WS > HUB: 23 clients connected",
+        "14:27:05 API > GET /projects 200 12ms",
+        "14:27:08 WS > BROADCAST agent_milestone",
+        "14:27:12 API > POST /dispatch 201 34ms"
+      ],
+      "dataMapping": "hub.commsLog"
+    },
+    {
+      "id": "status-lights",
+      "label": "SHIP STATUS",
+      "type": "vertical-status-lights",
+      "position": { "x": 1688, "y": 24, "w": 216, "h": 1040 },
+      "description": "Vertical column of 20 status indicator lights along the right edge. Each is a small labeled circle. Green = nominal, amber = caution, red = alarm. Covers all system subsystems in a dense industrial layout.",
+      "lights": [
+        { "label": "c9-OPERATOR", "state": "green" },
+        { "label": "BROKER", "state": "green" },
+        { "label": "HUB", "state": "green" },
+        { "label": "API GATEWAY", "state": "green" },
+        { "label": "AGENT-\u03b1", "state": "green" },
+        { "label": "AGENT-\u03b2", "state": "green" },
+        { "label": "AGENT-\u03b3", "state": "amber" },
+        { "label": "AGENT-\u03b4", "state": "green" },
+        { "label": "PROJECT STORE", "state": "green" },
+        { "label": "DASHBOARD", "state": "green" },
+        { "label": "SONAR ARRAY", "state": "green" },
+        { "label": "NAVIGATION", "state": "green" },
+        { "label": "REACTOR", "state": "green" },
+        { "label": "PROPULSION", "state": "green" },
+        { "label": "WEAPONS", "state": "green" },
+        { "label": "LIFE SUPPORT", "state": "green" },
+        { "label": "COMMS", "state": "green" },
+        { "label": "DAMAGE CTRL", "state": "green" },
+        { "label": "HULL INTEG", "state": "green" },
+        { "label": "ELECTRICAL", "state": "green" }
+      ],
+      "dataMapping": "system.statusBoard"
+    }
+  ],
+
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "spacing": 4, "opacity": 0.04, "animate": false },
+    "vignette": { "enabled": true, "strength": 0.55, "radius": 0.8, "softness": 0.35 },
+    "grain": { "enabled": true, "intensity": 0.035, "speed": 1.2 },
+    "bloom": { "enabled": true, "threshold": 0.75, "intensity": 0.2, "radius": 6 },
+    "redShift": { "enabled": true, "intensity": 0.08 },
+    "ambientHum": { "visualFrequency": 0.5, "amplitudeFlicker": 0.015 },
+    "condensation": { "enabled": true, "dropletCount": 8, "opacity": 0.03, "driftSpeed": 0.1 }
+  },
+
+  "animations": [
+    { "target": "sonar-waterfall", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "speed": 1.0 },
+    { "target": "sonar-bearing", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "speed": 0.8 },
+    { "target": "compass-rose", "property": "contacts", "type": "drift", "frameRange": [0, 300], "bearingDriftMax": 5, "rangeDriftMax": 1.5 },
+    { "target": "compass-rose", "property": "sweepLine", "type": "rotate", "frameRange": [0, 300], "speed": 3.0, "easing": "linear" },
+    { "target": "depth-gauge", "property": "value", "type": "oscillate", "frameRange": [0, 300], "min": 175, "max": 185, "period": 200, "easing": "easeInOutSine" },
+    { "target": "ballast-tanks", "property": "fill", "type": "oscillate", "frameRange": [0, 300], "amplitude": 0.03, "period": 150 },
+    { "target": "torpedo-solution", "property": "solutionQuality", "type": "increment", "frameRange": [0, 200], "rate": 0.15 },
+    { "target": "navlog", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "newLineEvery": 45 },
+    { "target": "comms-log", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "newLineEvery": 50 },
+    { "target": "contact-classification", "property": "T-003", "type": "flash", "frameRange": [100, 200], "color": "#ffcc00", "hz": 1.5 },
+    { "target": "engine-telegraph", "property": "pointer", "type": "sweep", "frameRange": [180, 210], "from": "HALF", "to": "FULL", "easing": "easeInOutQuad" }
+  ],
+
+  "dataMapping": {
+    "source": "c9-operator WebSocket stream",
+    "metaphorMapping": {
+      "sonarContacts": "agent subprocess activity",
+      "bearing": "agent task direction / focus area",
+      "range": "estimated time to task completion",
+      "depth": "resource utilization depth",
+      "torpedoSolution": "task readiness / dispatch confidence",
+      "ballastTanks": "memory pool segments",
+      "hullIntegrity": "system health score",
+      "speed": "dispatch throughput rate",
+      "alertStatus": "system operational mode"
+    },
+    "refreshRate": "per-frame for sonar/radar, 1s for readouts",
+    "fallback": "static sample values shown in element definitions"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "wireframeId": "nuclear-scada",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "reactor-cross-section core glow", "bloomRadius": 40, "intensity": 0.4, "trigger": "always", "note": "Reactor core is THE light source of this composition. Amber bloom should contaminate the pressure vessel walls and spill onto adjacent panels" },
+      { "element": "reactor-power-readout seven-segment digits", "bloomRadius": 12, "intensity": 0.35, "trigger": "always", "note": "Seven-segment displays always bleed light — green glow around each digit segment" },
+      { "element": "scram-panel button", "bloomRadius": 20, "intensity": 0.3, "trigger": "always", "note": "Red SCRAM button should have a menacing glow even when inactive — it is a Chekhov's gun" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0, "note": "None needed — this is not a lens-based display. The aesthetic is physical instruments viewed directly" },
+    "filmGrain": { "note": "0.025 is present. Make it warm-tinted — grain should be slightly amber (#ffaa2208) to simulate cheap Soviet-era CCTV security camera footage" },
+    "instrumentGlare": { "note": "0.08 at top-left is specified but needs expansion: each round gauge should have its own specular highlight — a small white-to-transparent gradient at 10 o'clock position on the glass face, opacity 0.06" },
+    "reflectionGlare": [
+      { "type": "brushed-metal-sheen", "position": "panel surfaces", "opacity": 0.015, "angle": 5, "note": "Very subtle directional sheen across brushed metal panels — suggests overhead strip lighting reflecting off control room panels" }
+    ],
+    "heatDistortion": { "element": "reactor-cross-section core area", "amplitude": 0.5, "frequency": 2, "radius": 80, "note": "Subtle heat shimmer emanating from the reactor core center — radial displacement filter, barely perceptible" },
+    "dustMotes": { "note": "15 dust motes specified at 0.06 opacity. Good. Add 3 that pass close to the camera as large, blurred bokeh circles (8-12px) — depth perception" },
+    "particleEffects": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 0.5, "amplitudeY": 0.3, "period": 400, "easing": "perlinNoise", "note": "Very minimal drift — this is a fixed control room camera, but the building vibrates from the turbines. Use low-frequency rumble movement" },
+    "rackFocus": [],
+    "dramaticReveals": [
+      { "element": "alarm-status-bar A5 (RAD LEVEL)", "frameRange": [0, 10], "type": "cold-start-flicker", "note": "On composition start, the alarm annunciator panel should flicker on with a brief white flash — like fluorescent tubes igniting" },
+      { "element": "all gauge needles", "frameRange": [0, 30], "type": "swing-from-zero", "easing": "easeOutElastic", "overshoot": 1.1, "note": "On start, ALL gauge needles should swing from zero/resting to their current position — as if the panel just powered on" }
+    ],
+    "breathingAnimations": [
+      { "element": "reactor-cross-section core", "note": "Pulse at period 90 is specified. Add a secondary faster oscillation at period 15 with amplitude 0.02 — the reactor has a fast heartbeat underneath the slow breathing" },
+      { "element": "coolant flow arrows", "type": "speed-variation", "period": 120, "amplitude": 0.15, "note": "Flow speed should subtly vary — pumps are not perfectly constant" }
+    ],
+    "microInteractions": [
+      { "element": "temperature-gauges needles", "note": "Jitter at amplitude 0.8 is specified. Add occasional larger jumps (amplitude 2.0) every 80-120 frames on random gauges — mechanical backlash" },
+      { "element": "control-rod-bank rods", "type": "individual-jitter", "note": "Each rod should jitter independently with different phases — they are not mechanically linked" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [148, 155], "description": "Radiation monitor Agent Bay flashes amber — at this moment, coolant-loop-3 outlet temp readout should briefly pulse brighter, and the event recorder should receive a new CAUTION-level entry" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "gap between temperature-gauges and pressure gauges (x:1058, y:488-504)", "fix": "Add a thin 'DIFFERENTIAL PRESSURE' readout: delta-P across core = 0.042 MPa" },
+    { "element": "event-recorder", "fix": "Add millisecond precision timestamps and sequence numbers (SEQ 0001, 0002...) for forensic log feel" },
+    { "element": "scram-panel", "fix": "Add SCRAM count display: 'SCRAMS THIS CYCLE: 0' and 'DAYS SINCE LAST SCRAM: 847'" },
+    { "element": "turbine-generator", "fix": "Add GRID SYNCHRONIZATION indicator lamp and FREQUENCY DEVIATION readout (+0.001 Hz)" },
+    { "background": true, "fix": "Add engraved panel labels — small metal nameplates above each instrument cluster with stamped text like 'PANEL 4C-12 // ZONE TEMPERATURES'. Use #3a3a3a background with #555 text, 1px inset border" },
+    { "region": "top-right of alarm-status-bar", "fix": "Add UNIT 1 identifier badge and plant license number" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Desaturated institutional gray with warm amber core — grade like Chernobyl HBO (cinematographer Jakob Ihre). Lift shadows to #1e2022, never pure black. Midtones should have a slight green-gray cast — Soviet-era fluorescent lighting",
+    "keyMoments": [
+      { "trigger": "alarm A5 RAD LEVEL flash", "shift": "Amber wash over the entire right panel area — alarm indicator lamp color bleeds into surrounding surfaces, opacity 0.04" },
+      { "trigger": "if SCRAM were to activate", "shift": "Entire composition shifts to red-dominant: background becomes #1a0808, all green text shifts to white, red elements intensify 2x" }
+    ],
+    "accentUsage": "Amber and green are well balanced. The coolant blue (#3388cc) is underused as an accent — add blue tint to the coolant flow lines and pipe borders",
+    "backgroundAtmosphere": "Brushed metal texture is specified. Add subtle warm gradient from center (reactor glow contamination): center #1e1c18, edges #1a1c1e — the reactor IS a light source in the room"
+  },
+
+  "typographyNotes": {
+    "fonts": "JetBrains Mono is a good modern choice but consider Roboto Mono for a more industrial feel, or better: B612 Mono — designed for aircraft cockpit readability, perfect for SCADA",
+    "engravedLabels": "The engraved style at 8px with letter-spacing 2 is excellent. Use text-shadow: 0 1px 0 #555 for the stamped metal plate emboss effect",
+    "displayFont": "Seven-segment readouts should use DSEG7 Classic font for authentic digital display rendering",
+    "sizeHierarchy": "The alarm text at 20px is appropriately prominent. Readout at 16px is good. Label at 9px is too small — bump to 10px. Add a 'nameplate' tier at 7-8px for engraved panel identifiers"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "reactor-cross-section core glow", "sound": "Deep 50Hz power hum — the reactor is always audible, felt more than heard" },
+      { "element": "coolant flow arrows", "sound": "Rushing water/coolant sound, pitched proportional to flow rate — Loop-3 at 4650 is audibly slower than Loop-1 at 4820" },
+      { "element": "turbine-generator", "sound": "High-pitched mechanical whine at exactly 50Hz — turbine spin tone" }
+    ],
+    "eventSounds": [
+      { "element": "alarm-status-bar A5 flash", "sound": "Sharp buzzer — two short pulses (BRRT-BRRT) on each flash cycle" },
+      { "element": "gauge needle jumps", "sound": "Soft mechanical tick — like a wristwatch movement" },
+      { "element": "event-recorder new entry", "sound": "Dot-matrix printer strike — rapid-fire clicks for each character" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [145, 150], "description": "Momentary dip in ambient hum before the radiation monitor flash — the reactor 'breathes in' before the anomaly" }
+    ]
+  }
+}

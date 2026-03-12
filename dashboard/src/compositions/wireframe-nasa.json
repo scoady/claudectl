@@ -1,0 +1,364 @@
+{
+  "id": "nasa-mission-control",
+  "title": "NASA Mission Control",
+  "subtitle": "c9-operator Telemetry & Flight Dynamics",
+  "inspiration": "Apollo 13 MOCR / First Man mission control aesthetics",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+
+  "colorGrading": {
+    "background": "#0a0f0a",
+    "phosphorGreen": "#33ff66",
+    "phosphorDim": "#1a7a33",
+    "phosphorGhost": "#0d3d1a",
+    "amberWarm": "#ffaa33",
+    "alertRed": "#ff3333",
+    "alertYellow": "#ffcc00",
+    "panelBorder": "#1a3d1a",
+    "panelFill": "#0d1a0d",
+    "crtOverlay": "rgba(51,255,102,0.03)",
+    "textPrimary": "#33ff66",
+    "textSecondary": "#1aaa44",
+    "gridLine": "rgba(51,255,102,0.08)",
+    "goStatus": "#33ff66",
+    "nogoStatus": "#ff3333",
+    "cautionStatus": "#ffcc00"
+  },
+
+  "typography": {
+    "primary": { "fontFamily": "IBM Plex Mono", "weight": 400 },
+    "header": { "fontFamily": "IBM Plex Mono", "weight": 700, "size": 18 },
+    "readout": { "fontFamily": "IBM Plex Mono", "weight": 600, "size": 14 },
+    "label": { "fontFamily": "IBM Plex Mono", "weight": 400, "size": 10 },
+    "clock": { "fontFamily": "IBM Plex Mono", "weight": 700, "size": 36 },
+    "title": { "fontFamily": "IBM Plex Mono", "weight": 700, "size": 24 },
+    "capcom": { "fontFamily": "IBM Plex Mono", "weight": 400, "size": 11 }
+  },
+
+  "backgroundTexture": {
+    "type": "crt-phosphor",
+    "scanLineSpacing": 3,
+    "scanLineOpacity": 0.06,
+    "noiseIntensity": 0.04,
+    "vignetteStrength": 0.45,
+    "barrelDistortion": 0.012
+  },
+
+  "layout": {
+    "topBar": { "x": 0, "y": 0, "w": 1920, "h": 48 },
+    "leftColumn": { "x": 16, "y": 56, "w": 460, "h": 1008 },
+    "centerMain": { "x": 492, "y": 56, "w": 720, "h": 640 },
+    "centerBottom": { "x": 492, "y": 704, "w": 720, "h": 360 },
+    "rightColumn": { "x": 1228, "y": 56, "w": 676, "h": 1008 }
+  },
+
+  "elements": [
+    {
+      "id": "mission-elapsed-time",
+      "label": "MISSION ELAPSED TIME",
+      "type": "digital-clock",
+      "position": { "x": 660, "y": 4, "w": 600, "h": 40 },
+      "format": "DDD:HH:MM:SS.ss",
+      "initialValue": "003:14:27:33.08",
+      "dataMapping": "system.uptime",
+      "style": "phosphorGreen",
+      "flickerHz": 0
+    },
+    {
+      "id": "mission-phase-label",
+      "label": "PHASE",
+      "type": "text-readout",
+      "position": { "x": 24, "y": 8, "w": 300, "h": 32 },
+      "value": "ORCHESTRATION NOMINAL",
+      "dataMapping": "c9operator.phase",
+      "style": "amberWarm"
+    },
+    {
+      "id": "gmt-clock",
+      "label": "GMT",
+      "type": "digital-clock",
+      "position": { "x": 1700, "y": 4, "w": 200, "h": 40 },
+      "format": "HH:MM:SS UTC",
+      "dataMapping": "system.utcTime"
+    },
+    {
+      "id": "orbital-trajectory",
+      "label": "SYSTEM TOPOLOGY — ORBITAL VIEW",
+      "type": "orbital-plot",
+      "position": { "x": 502, "y": 66, "w": 700, "h": 500 },
+      "description": "Central 2D orbital trajectory plot. c9-operator at center as a bright node. Broker, Hub, API Gateway orbit in inner ring (r=120px). Agents alpha/beta/gamma/delta orbit in outer ring (r=220px). Projects and Dashboard at fixed positions. Orbital paths drawn as dotted ellipses with phosphor glow. Each node is a labeled dot with a trailing ghost afterimage.",
+      "nodes": [
+        { "id": "c9-operator", "label": "c9-OPERATOR", "ring": "center", "color": "#33ff66", "size": 14 },
+        { "id": "broker", "label": "BROKER", "ring": "inner", "angle": 0, "color": "#33ff66", "size": 10 },
+        { "id": "hub", "label": "HUB", "ring": "inner", "angle": 120, "color": "#33ff66", "size": 10 },
+        { "id": "api-gateway", "label": "API GW", "ring": "inner", "angle": 240, "color": "#ffaa33", "size": 10 },
+        { "id": "agent-alpha", "label": "AGENT-\u03b1", "ring": "outer", "angle": 15, "color": "#33ff66", "size": 8 },
+        { "id": "agent-beta", "label": "AGENT-\u03b2", "ring": "outer", "angle": 105, "color": "#33ff66", "size": 8 },
+        { "id": "agent-gamma", "label": "AGENT-\u03b3", "ring": "outer", "angle": 195, "color": "#ffcc00", "size": 8 },
+        { "id": "agent-delta", "label": "AGENT-\u03b4", "ring": "outer", "angle": 285, "color": "#33ff66", "size": 8 }
+      ],
+      "gridType": "polar",
+      "gridRings": 5,
+      "gridRadials": 12
+    },
+    {
+      "id": "trajectory-data",
+      "label": "TRAJECTORY PARAMETERS",
+      "type": "readout-grid",
+      "position": { "x": 502, "y": 574, "w": 700, "h": 120 },
+      "rows": 2,
+      "cols": 4,
+      "fields": [
+        { "label": "MSG/SEC", "value": "2,847.3", "unit": "msg/s", "dataMapping": "hub.messagesPerSec" },
+        { "label": "SESSIONS", "value": "4", "unit": "active", "dataMapping": "broker.activeSessions" },
+        { "label": "QUEUE DEPTH", "value": "12", "unit": "tasks", "dataMapping": "c9operator.queueDepth" },
+        { "label": "THROUGHPUT", "value": "98.7", "unit": "%", "dataMapping": "system.throughput" },
+        { "label": "LATENCY P99", "value": "142", "unit": "ms", "dataMapping": "apiGateway.p99Latency" },
+        { "label": "WS CONNS", "value": "23", "unit": "open", "dataMapping": "hub.wsConnections" },
+        { "label": "MEM ALLOC", "value": "2.41", "unit": "GiB", "dataMapping": "system.memoryGiB" },
+        { "label": "CPU LOAD", "value": "34.2", "unit": "%", "dataMapping": "system.cpuPercent" }
+      ]
+    },
+    {
+      "id": "go-nogo-board",
+      "label": "GO / NO-GO STATUS BOARD",
+      "type": "status-board",
+      "position": { "x": 1238, "y": 66, "w": 656, "h": 280 },
+      "description": "Vertical list of system components, each with a GO (green) or NO-GO (red) indicator lamp. Lamps are small circles that glow with phosphor bloom.",
+      "items": [
+        { "label": "c9-OPERATOR", "status": "GO", "dataMapping": "c9operator.healthy" },
+        { "label": "BROKER", "status": "GO", "dataMapping": "broker.healthy" },
+        { "label": "HUB", "status": "GO", "dataMapping": "hub.healthy" },
+        { "label": "API GATEWAY", "status": "GO", "dataMapping": "apiGateway.healthy" },
+        { "label": "AGENT-\u03b1 (Betelgeuse)", "status": "GO", "dataMapping": "agents.alpha.healthy" },
+        { "label": "AGENT-\u03b2 (Sirius)", "status": "GO", "dataMapping": "agents.beta.healthy" },
+        { "label": "AGENT-\u03b3 (Vega)", "status": "CAUTION", "dataMapping": "agents.gamma.healthy" },
+        { "label": "AGENT-\u03b4 (Rigel)", "status": "GO", "dataMapping": "agents.delta.healthy" },
+        { "label": "PROJECT STORE", "status": "GO", "dataMapping": "projects.healthy" },
+        { "label": "DASHBOARD", "status": "GO", "dataMapping": "dashboard.healthy" }
+      ]
+    },
+    {
+      "id": "capcom-log",
+      "label": "CAPCOM — EVENT LOG",
+      "type": "scrolling-text",
+      "position": { "x": 24, "y": 66, "w": 450, "h": 380 },
+      "description": "Scrolling terminal log styled as CAPCOM voice transcript. Each line timestamped. New lines appear at bottom, old lines scroll up with phosphor fade. Shows agent milestones, spawn events, completions.",
+      "maxLines": 24,
+      "scrollSpeed": "1 line per 40 frames",
+      "sampleEntries": [
+        "003:14:27:01 BROKER   > Session s-7a2f spawned for AGENT-\u03b1",
+        "003:14:27:03 AGENT-\u03b1 > Milestone: Read PROJECT.md",
+        "003:14:27:08 HUB      > Broadcasting agent_milestone to 23 clients",
+        "003:14:27:12 AGENT-\u03b2 > Milestone: Bash git status",
+        "003:14:27:15 GATEWAY  > POST /api/projects/stellar 200 14ms",
+        "003:14:27:19 AGENT-\u03b3 > WARNING: token budget 82% consumed",
+        "003:14:27:22 c9-OP    > Task queue rebalance: 3 pending",
+        "003:14:27:28 AGENT-\u03b1 > Milestone: Write src/main.py"
+      ],
+      "dataMapping": "system.eventLog"
+    },
+    {
+      "id": "capsule-schematic",
+      "label": "SYSTEM SCHEMATIC",
+      "type": "block-diagram",
+      "position": { "x": 24, "y": 460, "w": 450, "h": 320 },
+      "description": "Simplified block diagram of the c9-operator system. Rectangular blocks connected by lines with directional arrows. Each block has a small status indicator LED. Lines pulse with data flow animation (traveling dots). Layout: API Gateway at top, c9-operator center, Broker left, Hub right, Agents below.",
+      "dataMapping": "system.topology"
+    },
+    {
+      "id": "comm-waveform",
+      "label": "WEBSOCKET SIGNAL",
+      "type": "waveform",
+      "position": { "x": 24, "y": 794, "w": 450, "h": 120 },
+      "description": "Oscilloscope-style waveform showing WebSocket message frequency over time. Green phosphor line on dark background with slight afterglow trail. X-axis: 60 seconds. Y-axis: 0-500 msg/s. Grid lines at 10s and 100msg/s intervals.",
+      "dataMapping": "hub.waveform",
+      "color": "#33ff66",
+      "gridColor": "rgba(51,255,102,0.12)",
+      "trailLength": 5,
+      "sampleRate": "1 sample per frame"
+    },
+    {
+      "id": "agent-telemetry-alpha",
+      "label": "AGENT-\u03b1 TELEMETRY",
+      "type": "mini-readout",
+      "position": { "x": 24, "y": 926, "w": 215, "h": 80 },
+      "fields": [
+        { "label": "TOKENS", "value": "14,207 / 200K", "dataMapping": "agents.alpha.tokens" },
+        { "label": "TOOLS", "value": "47 calls", "dataMapping": "agents.alpha.toolCalls" },
+        { "label": "UPTIME", "value": "00:12:33", "dataMapping": "agents.alpha.uptime" }
+      ]
+    },
+    {
+      "id": "agent-telemetry-beta",
+      "label": "AGENT-\u03b2 TELEMETRY",
+      "type": "mini-readout",
+      "position": { "x": 249, "y": 926, "w": 215, "h": 80 },
+      "fields": [
+        { "label": "TOKENS", "value": "8,934 / 200K", "dataMapping": "agents.beta.tokens" },
+        { "label": "TOOLS", "value": "31 calls", "dataMapping": "agents.beta.toolCalls" },
+        { "label": "UPTIME", "value": "00:08:17", "dataMapping": "agents.beta.uptime" }
+      ]
+    },
+    {
+      "id": "velocity-gauge",
+      "label": "DISPATCH VELOCITY",
+      "type": "analog-gauge",
+      "position": { "x": 1238, "y": 360, "w": 210, "h": 180 },
+      "description": "Semicircular analog gauge with needle. Scale 0-100 tasks/min. Green zone 0-60, yellow 60-80, red 80-100. Current needle position at 34. Tick marks every 10 units. Phosphor-green needle with glow.",
+      "min": 0,
+      "max": 100,
+      "value": 34,
+      "unit": "tasks/min",
+      "dataMapping": "c9operator.dispatchVelocity",
+      "zones": [
+        { "from": 0, "to": 60, "color": "#33ff66" },
+        { "from": 60, "to": 80, "color": "#ffcc00" },
+        { "from": 80, "to": 100, "color": "#ff3333" }
+      ]
+    },
+    {
+      "id": "altitude-readout",
+      "label": "SESSION ALTITUDE",
+      "type": "vertical-bar",
+      "position": { "x": 1462, "y": 360, "w": 100, "h": 180 },
+      "description": "Vertical bar meter showing active session count. Scale 0-20. Current fill at 4. Graduated markings every 2. Bar fill is phosphor green with glow.",
+      "min": 0,
+      "max": 20,
+      "value": 4,
+      "unit": "sessions",
+      "dataMapping": "broker.activeSessions"
+    },
+    {
+      "id": "attitude-indicator",
+      "label": "SYSTEM ATTITUDE",
+      "type": "attitude-ball",
+      "position": { "x": 1576, "y": 360, "w": 160, "h": 180 },
+      "description": "Artificial horizon indicator. Pitch = error rate (0 = nominal). Roll = load balance across agents. Currently level (nominal). Green horizon line, amber pitch ladder markings at 5-degree intervals.",
+      "pitch": 2.3,
+      "roll": -1.1,
+      "dataMapping": { "pitch": "system.errorRate", "roll": "system.loadBalance" }
+    },
+    {
+      "id": "strip-chart-cpu",
+      "label": "CPU UTILIZATION — 5 MIN",
+      "type": "strip-chart",
+      "position": { "x": 1238, "y": 554, "w": 320, "h": 140 },
+      "description": "Rolling strip chart (graph paper style). X: 5 minutes, Y: 0-100%. Line traces CPU usage. Grid every 1 min / 20%. Phosphor green line with afterglow.",
+      "dataMapping": "system.cpuHistory",
+      "yMin": 0,
+      "yMax": 100,
+      "yUnit": "%",
+      "xDuration": "5m"
+    },
+    {
+      "id": "strip-chart-memory",
+      "label": "MEMORY PRESSURE — 5 MIN",
+      "type": "strip-chart",
+      "position": { "x": 1572, "y": 554, "w": 320, "h": 140 },
+      "description": "Rolling strip chart for memory. X: 5 minutes, Y: 0-8 GiB. Current trace around 2.4 GiB. Warning threshold line at 6 GiB (amber dashed).",
+      "dataMapping": "system.memoryHistory",
+      "yMin": 0,
+      "yMax": 8,
+      "yUnit": "GiB",
+      "xDuration": "5m",
+      "thresholds": [{ "value": 6, "color": "#ffcc00", "style": "dashed" }]
+    },
+    {
+      "id": "project-inventory",
+      "label": "PROJECT INVENTORY",
+      "type": "data-table",
+      "position": { "x": 1238, "y": 708, "w": 656, "h": 180 },
+      "columns": ["PROJECT", "AGENTS", "TASKS", "STATUS", "LAST ACTIVITY"],
+      "rows": [
+        ["stellar-engine", "2", "14/18", "ACTIVE", "003:14:27:28"],
+        ["agent-reports", "1", "7/7", "COMPLETE", "003:13:55:02"],
+        ["helm-platform", "1", "3/9", "ACTIVE", "003:14:26:44"],
+        ["kind-infra", "0", "0/4", "QUEUED", "--:--:--:--"]
+      ],
+      "dataMapping": "projects.inventory"
+    },
+    {
+      "id": "comm-signal-strength",
+      "label": "API SIGNAL STRENGTH",
+      "type": "bar-meter-horizontal",
+      "position": { "x": 1238, "y": 902, "w": 320, "h": 40 },
+      "segments": 20,
+      "filled": 17,
+      "color": "#33ff66",
+      "dataMapping": "apiGateway.signalStrength"
+    },
+    {
+      "id": "error-rate-counter",
+      "label": "ERRORS / 1000 REQ",
+      "type": "digital-counter",
+      "position": { "x": 1572, "y": 902, "w": 320, "h": 40 },
+      "value": "0.34",
+      "precision": 2,
+      "unit": "err/Kreq",
+      "dataMapping": "system.errorRate",
+      "warningThreshold": 5.0,
+      "criticalThreshold": 20.0
+    },
+    {
+      "id": "flight-director-status",
+      "label": "FLIGHT DIRECTOR",
+      "type": "text-banner",
+      "position": { "x": 502, "y": 708, "w": 700, "h": 48 },
+      "value": "c9-OPERATOR: ALL SYSTEMS NOMINAL — FLIGHT IS GO FOR CONTINUED ORCHESTRATION",
+      "dataMapping": "c9operator.statusMessage",
+      "style": "phosphorGreen",
+      "blinkOnChange": true
+    },
+    {
+      "id": "task-burndown",
+      "label": "TASK BURNDOWN — MISSION TIMELINE",
+      "type": "area-chart",
+      "position": { "x": 502, "y": 764, "w": 700, "h": 200 },
+      "description": "Burndown chart showing remaining tasks over mission time. X: 0-72h. Y: 0-40 tasks. Filled area below line in translucent phosphor green. Grid at 12h/10 task intervals. Ideal burn line as amber dashed diagonal.",
+      "dataMapping": "c9operator.burndown",
+      "xLabel": "MISSION HOURS",
+      "yLabel": "REMAINING TASKS"
+    },
+    {
+      "id": "heartbeat-indicators",
+      "label": "HEARTBEAT",
+      "type": "led-row",
+      "position": { "x": 1238, "y": 952, "w": 656, "h": 56 },
+      "description": "Row of 10 blinking LED indicators (one per component). Each blinks at its own heartbeat rate. Healthy = green blink every 1s. Warning = amber blink every 2s. Critical = red fast blink.",
+      "dataMapping": "system.heartbeats"
+    }
+  ],
+
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "spacing": 3, "opacity": 0.06, "animate": false },
+    "vignette": { "enabled": true, "strength": 0.45, "radius": 0.85, "softness": 0.4 },
+    "grain": { "enabled": true, "intensity": 0.04, "speed": 1.0 },
+    "bloom": { "enabled": true, "threshold": 0.7, "intensity": 0.3, "radius": 8 },
+    "barrelDistortion": { "enabled": true, "amount": 0.012 },
+    "phosphorPersistence": { "enabled": true, "decay": 0.92, "color": "#33ff66" },
+    "crtFlicker": { "enabled": true, "frequency": 0.5, "amplitude": 0.02 }
+  },
+
+  "animations": [
+    { "target": "mission-elapsed-time", "property": "value", "type": "increment", "frameRange": [0, 300], "rate": "realtime" },
+    { "target": "orbital-trajectory", "property": "nodeAngles", "type": "rotate", "frameRange": [0, 300], "speed": 0.3, "easing": "linear" },
+    { "target": "capcom-log", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "newLineEvery": 40 },
+    { "target": "comm-waveform", "property": "data", "type": "shiftLeft", "frameRange": [0, 300], "easing": "linear" },
+    { "target": "velocity-gauge", "property": "needle", "type": "oscillate", "frameRange": [0, 300], "min": 28, "max": 42, "easing": "easeInOutSine" },
+    { "target": "strip-chart-cpu", "property": "trace", "type": "shiftLeft", "frameRange": [0, 300] },
+    { "target": "strip-chart-memory", "property": "trace", "type": "shiftLeft", "frameRange": [0, 300] },
+    { "target": "capsule-schematic", "property": "flowDots", "type": "travel", "frameRange": [0, 300], "speed": 2.0 },
+    { "target": "heartbeat-indicators", "property": "blink", "type": "pulse", "frameRange": [0, 300], "intervalFrames": 30 },
+    { "target": "go-nogo-board", "property": "agent-gamma", "type": "flash", "frameRange": [120, 180], "color": "#ffcc00", "hz": 2 },
+    { "target": "task-burndown", "property": "fill", "type": "growLeft", "frameRange": [0, 120], "easing": "easeOutCubic" }
+  ],
+
+  "dataMapping": {
+    "source": "c9-operator WebSocket stream",
+    "events": ["agent_spawned", "agent_milestone", "agent_done", "stats_update", "agent_stream"],
+    "refreshRate": "per-frame for animations, 1s for data fields",
+    "fallback": "static sample values shown in element definitions"
+  }
+}

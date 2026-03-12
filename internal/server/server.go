@@ -109,6 +109,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /ws", s.Hub.HandleWS)
 
 	// Projects (implemented)
+	s.mux.HandleFunc("POST /api/projects", s.handleCreateProject)
 	s.mux.HandleFunc("GET /api/projects", s.handleListProjects)
 	s.mux.HandleFunc("GET /api/projects/{name}", s.handleGetProject)
 	s.mux.HandleFunc("POST /api/projects/{name}/dispatch", s.handleDispatch)

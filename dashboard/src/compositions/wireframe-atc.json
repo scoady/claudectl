@@ -1,0 +1,510 @@
+{
+  "id": "atc-radar",
+  "title": "Air Traffic Control Radar",
+  "subtitle": "c9-operator Airspace Management",
+  "inspiration": "TRACON approach control / NATS Swanwick Centre — primary surveillance radar with flight strips and conflict detection",
+  "resolution": { "width": 1920, "height": 1080 },
+  "fps": 30,
+  "durationFrames": 300,
+
+  "colorGrading": {
+    "background": "#0a100a",
+    "radarGreen": "#22cc44",
+    "radarDim": "#116622",
+    "radarGhost": "#0a3311",
+    "radarSweep": "rgba(34,204,68,0.3)",
+    "radarSweepTrail": "rgba(34,204,68,0.08)",
+    "targetBright": "#44ff66",
+    "targetDim": "#22aa44",
+    "targetConflict": "#ff3333",
+    "targetSelected": "#ffcc00",
+    "stripBackground": "#1a1a22",
+    "stripBorder": "#2a2a3a",
+    "stripTextActive": "#ccddcc",
+    "stripTextDim": "#667766",
+    "weatherYellow": "#aaaa22",
+    "weatherOrange": "#cc6622",
+    "weatherRed": "#cc2222",
+    "runwayGreen": "#22aa44",
+    "runwayAmber": "#ccaa22",
+    "runwayRed": "#cc2222",
+    "gridLine": "rgba(34,204,68,0.06)",
+    "rangeRing": "rgba(34,204,68,0.1)",
+    "textPrimary": "#22cc44",
+    "textSecondary": "#117733",
+    "conflictAlert": "#ff2222",
+    "panelBorder": "#1a3a1a"
+  },
+
+  "typography": {
+    "primary": { "fontFamily": "Fira Code", "weight": 400 },
+    "header": { "fontFamily": "Fira Code", "weight": 700, "size": 13 },
+    "readout": { "fontFamily": "Fira Code", "weight": 600, "size": 14 },
+    "label": { "fontFamily": "Fira Code", "weight": 400, "size": 9 },
+    "radarTag": { "fontFamily": "Fira Code", "weight": 500, "size": 10 },
+    "stripText": { "fontFamily": "Fira Code", "weight": 400, "size": 10 },
+    "title": { "fontFamily": "Fira Code", "weight": 700, "size": 16 },
+    "clock": { "fontFamily": "Fira Code", "weight": 700, "size": 24 },
+    "altitudeFilter": { "fontFamily": "Fira Code", "weight": 600, "size": 11 }
+  },
+
+  "backgroundTexture": {
+    "type": "radar-scope",
+    "baseColor": "#0a100a",
+    "phosphorGlow": true,
+    "glowColor": "rgba(34,204,68,0.02)",
+    "noiseIntensity": 0.02,
+    "scanLineSpacing": 4,
+    "scanLineOpacity": 0.03
+  },
+
+  "layout": {
+    "approachLadder": { "x": 16, "y": 16, "w": 280, "h": 800 },
+    "radarScope": { "x": 312, "y": 16, "w": 820, "h": 820 },
+    "flightStrips": { "x": 1148, "y": 16, "w": 380, "h": 620 },
+    "conflictPanel": { "x": 1148, "y": 650, "w": 380, "h": 166 },
+    "statusBar": { "x": 1544, "y": 16, "w": 360, "h": 800 },
+    "bottomBar": { "x": 16, "y": 832, "w": 1888, "h": 232 }
+  },
+
+  "elements": [
+    {
+      "id": "primary-radar",
+      "label": "PRIMARY SURVEILLANCE RADAR",
+      "type": "ppi-radar-scope",
+      "position": { "x": 322, "y": 26, "w": 800, "h": 800 },
+      "description": "Circular Plan Position Indicator (PPI) radar display. Center = radar antenna (c9-operator). Rotating sweep line (clockwise, 6 RPM = one full rotation per 300 frames). Range rings at 10nm, 20nm, 30nm, 40nm, 50nm. Radial bearing lines every 30 degrees with degree labels. Targets appear as bright blips that fade after sweep passes. Each target has a data tag: callsign, altitude, speed. History dots (4 previous positions) trail each target. Weather overlay as colored patches (precipitation). Airport symbol at center.",
+      "rangeScale": 50,
+      "rangeUnit": "nm",
+      "rangeRings": [10, 20, 30, 40, 50],
+      "bearingMarks": 30,
+      "sweepSpeed": "360 degrees per 300 frames",
+      "sweepColor": "rgba(34,204,68,0.3)",
+      "sweepTrailDegrees": 30,
+      "targetFadeFrames": 280,
+      "historyDots": 4,
+      "targets": [
+        {
+          "callsign": "C9A001",
+          "type": "agent",
+          "agent": "\u03b1",
+          "squawk": "4201",
+          "altitude": "FL350",
+          "speed": 480,
+          "bearing": 42,
+          "range": 18,
+          "heading": 220,
+          "tag": "C9A001\nFL350 480kt",
+          "dataMapping": "agents.alpha"
+        },
+        {
+          "callsign": "C9B002",
+          "type": "agent",
+          "agent": "\u03b2",
+          "squawk": "4202",
+          "altitude": "FL280",
+          "speed": 420,
+          "bearing": 138,
+          "range": 32,
+          "heading": 310,
+          "tag": "C9B002\nFL280 420kt",
+          "dataMapping": "agents.beta"
+        },
+        {
+          "callsign": "C9G003",
+          "type": "agent",
+          "agent": "\u03b3",
+          "squawk": "7600",
+          "altitude": "FL310",
+          "speed": 510,
+          "bearing": 225,
+          "range": 12,
+          "heading": 045,
+          "tag": "C9G003\nFL310 510kt",
+          "conflict": true,
+          "dataMapping": "agents.gamma"
+        },
+        {
+          "callsign": "C9D004",
+          "type": "agent",
+          "agent": "\u03b4",
+          "squawk": "4204",
+          "altitude": "FL240",
+          "speed": 380,
+          "bearing": 315,
+          "range": 42,
+          "heading": 135,
+          "tag": "C9D004\nFL240 380kt",
+          "dataMapping": "agents.delta"
+        },
+        {
+          "callsign": "BRK100",
+          "type": "service",
+          "squawk": "4210",
+          "altitude": "FL400",
+          "speed": 0,
+          "bearing": 180,
+          "range": 5,
+          "heading": 0,
+          "tag": "BRK100\nFL400 HOLD",
+          "dataMapping": "broker"
+        },
+        {
+          "callsign": "HUB200",
+          "type": "service",
+          "squawk": "4220",
+          "altitude": "FL400",
+          "speed": 0,
+          "bearing": 90,
+          "range": 7,
+          "heading": 0,
+          "tag": "HUB200\nFL400 HOLD",
+          "dataMapping": "hub"
+        }
+      ],
+      "dataMapping": "system.radarScope"
+    },
+    {
+      "id": "weather-overlay",
+      "label": "WEATHER OVERLAY",
+      "type": "weather-contours",
+      "position": { "x": 322, "y": 26, "w": 800, "h": 800 },
+      "description": "Overlaid on radar scope. Precipitation contour patches in 3 intensity levels: light (green-yellow), moderate (orange), heavy (red). Positioned at bearings 180-240, range 25-40nm. Slowly drifts northeast over animation duration.",
+      "patches": [
+        { "centerBearing": 210, "centerRange": 32, "radiusNm": 8, "intensity": "light", "color": "rgba(170,170,34,0.15)" },
+        { "centerBearing": 215, "centerRange": 30, "radiusNm": 4, "intensity": "moderate", "color": "rgba(204,102,34,0.2)" },
+        { "centerBearing": 218, "centerRange": 29, "radiusNm": 2, "intensity": "heavy", "color": "rgba(204,34,34,0.25)" }
+      ],
+      "driftBearing": 30,
+      "driftSpeed": "0.5 nm per 300 frames"
+    },
+    {
+      "id": "approach-sequence",
+      "label": "APPROACH SEQUENCE LADDER",
+      "type": "sequence-ladder",
+      "position": { "x": 24, "y": 32, "w": 264, "h": 780 },
+      "description": "Vertical sequence ladder showing agents in landing order (task completion order). Each entry is a horizontal strip with: callsign, assigned runway, distance to threshold, ETA. Entries slide upward as agents complete tasks. Top entry = next to complete. Distance bar shrinks as agent approaches completion. Active entry highlighted.",
+      "entries": [
+        { "callsign": "C9G003", "agent": "\u03b3", "runway": "27L", "distance": "6.4 nm", "eta": "00:04:12", "status": "on-approach", "dataMapping": "agents.gamma.approach" },
+        { "callsign": "C9A001", "agent": "\u03b1", "runway": "27L", "distance": "18.0 nm", "eta": "00:12:33", "status": "descending", "dataMapping": "agents.alpha.approach" },
+        { "callsign": "C9B002", "agent": "\u03b2", "runway": "27R", "distance": "32.0 nm", "eta": "00:28:17", "status": "enroute", "dataMapping": "agents.beta.approach" },
+        { "callsign": "C9D004", "agent": "\u03b4", "runway": "27R", "distance": "42.0 nm", "eta": "00:41:55", "status": "enroute", "dataMapping": "agents.delta.approach" }
+      ]
+    },
+    {
+      "id": "flight-strips",
+      "label": "FLIGHT DATA STRIPS",
+      "type": "flight-strip-bay",
+      "position": { "x": 1156, "y": 32, "w": 364, "h": 600 },
+      "description": "Stack of paper-style flight data strips (one per target). Each strip is a small card with structured data fields: callsign (bold), squawk code, aircraft type, departure/destination, altitude, assigned heading, speed, remarks. Strips have subtle drop shadow. Active strips have green left border. Conflict strips have red border. Agent strips show task name as route.",
+      "strips": [
+        {
+          "callsign": "C9A001",
+          "squawk": "4201",
+          "type": "AGENT/\u03b1",
+          "route": "implement-api-endpoint",
+          "altitude": "FL350",
+          "heading": "220",
+          "speed": "480",
+          "remarks": "ON TASK — 14K TOKENS",
+          "borderColor": "#22cc44"
+        },
+        {
+          "callsign": "C9B002",
+          "squawk": "4202",
+          "type": "AGENT/\u03b2",
+          "route": "refactor-test-suite",
+          "altitude": "FL280",
+          "heading": "310",
+          "speed": "420",
+          "remarks": "ON TASK — 9K TOKENS",
+          "borderColor": "#22cc44"
+        },
+        {
+          "callsign": "C9G003",
+          "squawk": "7600",
+          "type": "AGENT/\u03b3",
+          "route": "fix-memory-leak",
+          "altitude": "FL310",
+          "heading": "045",
+          "speed": "510",
+          "remarks": "CONFLICT — 82% TOKEN BUDGET",
+          "borderColor": "#ff3333"
+        },
+        {
+          "callsign": "C9D004",
+          "squawk": "4204",
+          "type": "AGENT/\u03b4",
+          "route": "update-docs",
+          "altitude": "FL240",
+          "heading": "135",
+          "speed": "380",
+          "remarks": "ON TASK — 5K TOKENS",
+          "borderColor": "#22cc44"
+        },
+        {
+          "callsign": "BRK100",
+          "squawk": "4210",
+          "type": "BROKER",
+          "route": "session-management",
+          "altitude": "FL400",
+          "heading": "---",
+          "speed": "---",
+          "remarks": "4 ACTIVE SESSIONS",
+          "borderColor": "#22cc44"
+        },
+        {
+          "callsign": "HUB200",
+          "squawk": "4220",
+          "type": "HUB",
+          "route": "ws-broadcast",
+          "altitude": "FL400",
+          "heading": "---",
+          "speed": "---",
+          "remarks": "23 WS CONNECTIONS",
+          "borderColor": "#22cc44"
+        }
+      ],
+      "dataMapping": "system.flightStrips"
+    },
+    {
+      "id": "conflict-alert",
+      "label": "CONFLICT ALERT PANEL",
+      "type": "alert-panel",
+      "position": { "x": 1156, "y": 658, "w": 364, "h": 150 },
+      "description": "Red-bordered panel showing active conflict alerts. Each alert: pair of callsigns, minimum separation, time to conflict, vertical separation. Flashes when active. Currently showing one conflict: C9G003 approaching token limit creates risk of mid-task termination.",
+      "alerts": [
+        {
+          "type": "LOSS OF SEPARATION",
+          "pair": ["C9G003", "TOKEN-LIMIT"],
+          "horizontalSep": "2.1 nm",
+          "verticalSep": "0 ft",
+          "timeToConflict": "00:04:12",
+          "severity": "critical",
+          "dataMapping": "agents.gamma.conflict"
+        }
+      ],
+      "flashWhenActive": true,
+      "borderColor": "#ff3333"
+    },
+    {
+      "id": "utc-clock",
+      "label": "UTC",
+      "type": "digital-clock",
+      "position": { "x": 1552, "y": 24, "w": 344, "h": 48 },
+      "format": "HH:MM:SS UTC",
+      "value": "14:27:33",
+      "dataMapping": "system.utcTime"
+    },
+    {
+      "id": "altimeter-qnh",
+      "label": "QNH",
+      "type": "pressure-readout",
+      "position": { "x": 1552, "y": 84, "w": 168, "h": 60 },
+      "value": "1013.2",
+      "unit": "hPa",
+      "dataMapping": "system.qnh",
+      "description": "Altimeter pressure setting. Standard is 1013.25 hPa. Maps to system baseline configuration pressure."
+    },
+    {
+      "id": "transition-level",
+      "label": "TRANS LVL",
+      "type": "text-readout",
+      "position": { "x": 1728, "y": 84, "w": 168, "h": 60 },
+      "value": "FL060",
+      "dataMapping": "system.transitionLevel"
+    },
+    {
+      "id": "wind-indicator",
+      "label": "WIND",
+      "type": "wind-barb",
+      "position": { "x": 1552, "y": 156, "w": 168, "h": 120 },
+      "description": "Wind direction arrow with speed barbs. Arrow points in wind direction. Barbs indicate speed in knots. Current: 270/15kt. Maps to system throughput direction and velocity.",
+      "direction": 270,
+      "speed": 15,
+      "unit": "kt",
+      "gustSpeed": 22,
+      "dataMapping": "system.windData"
+    },
+    {
+      "id": "visibility",
+      "label": "VISIBILITY",
+      "type": "text-readout",
+      "position": { "x": 1728, "y": 156, "w": 168, "h": 60 },
+      "value": "9999m",
+      "dataMapping": "system.visibility"
+    },
+    {
+      "id": "ceiling",
+      "label": "CEILING",
+      "type": "text-readout",
+      "position": { "x": 1728, "y": 228, "w": 168, "h": 60 },
+      "value": "SCT040",
+      "dataMapping": "system.ceiling"
+    },
+    {
+      "id": "runway-status",
+      "label": "RUNWAY STATUS",
+      "type": "runway-indicators",
+      "position": { "x": 1552, "y": 300, "w": 344, "h": 140 },
+      "description": "Runway status indicators showing active runways. Each runway: name, status (ACTIVE/CLOSED), ILS status, current traffic count. Two runways: 27L and 27R. Green = active, red = closed. Maps to project deployment targets.",
+      "runways": [
+        { "name": "RWY 27L", "status": "ACTIVE", "ils": "CAT IIIA", "traffic": 2, "color": "#22cc44", "dataMapping": "projects.project1" },
+        { "name": "RWY 27R", "status": "ACTIVE", "ils": "CAT II", "traffic": 2, "color": "#22cc44", "dataMapping": "projects.project2" }
+      ]
+    },
+    {
+      "id": "altitude-filter",
+      "label": "ALTITUDE FILTER",
+      "type": "range-slider",
+      "position": { "x": 1552, "y": 456, "w": 344, "h": 80 },
+      "description": "Dual-range altitude filter. Shows min/max altitude displayed on scope. Current: FL100-FL450. Bar with highlighted active range. Labels at ends. Maps to token budget filter range.",
+      "min": 0,
+      "max": 500,
+      "currentMin": 100,
+      "currentMax": 450,
+      "unit": "FL",
+      "dataMapping": "system.altitudeFilter"
+    },
+    {
+      "id": "sector-info",
+      "label": "SECTOR INFORMATION",
+      "type": "info-panel",
+      "position": { "x": 1552, "y": 548, "w": 344, "h": 120 },
+      "fields": [
+        { "label": "SECTOR", "value": "C9-EAST" },
+        { "label": "FREQUENCY", "value": "134.425 MHz", "dataMapping": "hub.frequency" },
+        { "label": "CAPACITY", "value": "6 / 12 ACFT", "dataMapping": "system.sectorCapacity" },
+        { "label": "WORKLOAD", "value": "MODERATE", "color": "#ccaa22", "dataMapping": "c9operator.workload" }
+      ]
+    },
+    {
+      "id": "handoff-panel",
+      "label": "HANDOFF STATUS",
+      "type": "handoff-indicators",
+      "position": { "x": 1552, "y": 680, "w": 344, "h": 128 },
+      "description": "Shows pending handoffs between sectors (task transfers between projects). Each entry: callsign, receiving sector, handoff initiated/accepted status. Maps to agent task reassignment.",
+      "handoffs": [
+        { "callsign": "C9B002", "to": "C9-WEST", "status": "INITIATED", "dataMapping": "agents.beta.handoff" },
+        { "callsign": "C9D004", "to": "C9-NORTH", "status": "PENDING", "dataMapping": "agents.delta.handoff" }
+      ]
+    },
+    {
+      "id": "comms-log",
+      "label": "COMMUNICATIONS LOG",
+      "type": "scrolling-text",
+      "position": { "x": 24, "y": 844, "w": 620, "h": 220 },
+      "maxLines": 12,
+      "sampleEntries": [
+        "14:27:01 C9A001 > c9-EAST, C9A001, FL350, heading 220, request direct",
+        "14:27:03 c9-EAST > C9A001, roger, proceed direct, maintain FL350",
+        "14:27:08 C9G003 > c9-EAST, C9G003, request descent FL250, fuel concern",
+        "14:27:12 c9-EAST > C9G003, descend FL250, report reaching, traffic 12 o'clock",
+        "14:27:15 c9-EAST > ALL STATIONS, weather advisory SW sector, deviation approved",
+        "14:27:19 C9B002 > c9-EAST, C9B002, ready for handoff C9-WEST"
+      ],
+      "dataMapping": "system.commsLog"
+    },
+    {
+      "id": "traffic-flow",
+      "label": "TRAFFIC FLOW — 1H",
+      "type": "bar-chart",
+      "position": { "x": 660, "y": 844, "w": 470, "h": 110 },
+      "description": "Horizontal bar chart showing traffic flow over last hour in 5-minute bins. Y-axis: 0-10 aircraft. X-axis: time bins. Green bars. Shows agent spawn/completion rate over time.",
+      "bins": 12,
+      "binWidth": "5 min",
+      "sampleData": [3, 4, 2, 5, 4, 6, 3, 4, 5, 4, 3, 4],
+      "color": "#22cc44",
+      "dataMapping": "c9operator.trafficFlow"
+    },
+    {
+      "id": "separation-monitor",
+      "label": "MINIMUM SEPARATION",
+      "type": "gauge-readout",
+      "position": { "x": 660, "y": 966, "w": 230, "h": 90 },
+      "value": "5.2",
+      "unit": "nm",
+      "minimum": 3.0,
+      "warningBelow": 5.0,
+      "criticalBelow": 3.0,
+      "dataMapping": "system.minSeparation"
+    },
+    {
+      "id": "atis-info",
+      "label": "ATIS INFORMATION BRAVO",
+      "type": "text-block",
+      "position": { "x": 900, "y": 966, "w": 460, "h": 90 },
+      "value": "C9-OPERATOR ATIS INFO BRAVO 1427Z. RWY 27L/27R IN USE. WIND 270/15 G22. VIS 9999. FEW025 SCT040. TEMP 18/12. QNH 1013. EXPECT ILS APPROACH. ADVISE ON INITIAL CONTACT YOU HAVE INFO BRAVO.",
+      "dataMapping": "system.atis",
+      "style": "stripTextActive",
+      "wordWrap": true
+    },
+    {
+      "id": "metar",
+      "label": "METAR",
+      "type": "text-readout",
+      "position": { "x": 1376, "y": 844, "w": 528, "h": 50 },
+      "value": "C9OP 061427Z 27015G22KT 9999 FEW025 SCT040 18/12 Q1013 NOSIG",
+      "dataMapping": "system.metar"
+    },
+    {
+      "id": "delay-info",
+      "label": "DELAYS",
+      "type": "readout-panel",
+      "position": { "x": 1376, "y": 906, "w": 528, "h": 150 },
+      "fields": [
+        { "label": "AVG DELAY", "value": "2.3 min", "dataMapping": "c9operator.avgDelay" },
+        { "label": "MAX DELAY", "value": "8.1 min", "dataMapping": "c9operator.maxDelay" },
+        { "label": "GROUND STOP", "value": "NONE", "color": "#22cc44" },
+        { "label": "FLOW RATE", "value": "34 tasks/hr", "dataMapping": "c9operator.flowRate" },
+        { "label": "DEPARTURES", "value": "7 completed", "dataMapping": "c9operator.completed" },
+        { "label": "IN PROGRESS", "value": "4 active", "dataMapping": "c9operator.active" }
+      ]
+    }
+  ],
+
+  "cinematicEffects": {
+    "scanLines": { "enabled": true, "spacing": 4, "opacity": 0.03, "animate": false },
+    "vignette": { "enabled": true, "strength": 0.4, "radius": 0.85, "softness": 0.4 },
+    "grain": { "enabled": true, "intensity": 0.02, "speed": 0.8 },
+    "bloom": { "enabled": true, "threshold": 0.7, "intensity": 0.25, "radius": 8 },
+    "phosphorPersistence": { "enabled": true, "decay": 0.94, "color": "#22cc44" },
+    "radarGlare": { "enabled": true, "centerBrightness": 0.05, "falloff": "radial" },
+    "ambientDim": { "enabled": true, "fluctuation": 0.01, "frequency": 0.2 }
+  },
+
+  "animations": [
+    { "target": "primary-radar", "property": "sweepAngle", "type": "rotate", "frameRange": [0, 300], "speed": 1.2, "easing": "linear", "note": "Full rotation = 300 frames (6 RPM)" },
+    { "target": "primary-radar", "property": "targetFade", "type": "phosphorDecay", "frameRange": [0, 300], "decayRate": 0.94 },
+    { "target": "primary-radar", "property": "targets", "type": "drift", "frameRange": [0, 300], "bearingDrift": 2, "rangeDrift": 1 },
+    { "target": "approach-sequence", "property": "distances", "type": "decrement", "frameRange": [0, 300], "rate": "proportional to speed" },
+    { "target": "weather-overlay", "property": "position", "type": "drift", "frameRange": [0, 300], "bearingShift": 3, "rangeShift": -2 },
+    { "target": "comms-log", "property": "scroll", "type": "scrollDown", "frameRange": [0, 300], "newLineEvery": 45 },
+    { "target": "conflict-alert", "property": "border", "type": "flash", "frameRange": [0, 300], "color": "#ff3333", "hz": 2 },
+    { "target": "flight-strips", "property": "C9G003", "type": "flash", "frameRange": [0, 300], "color": "#ff3333", "hz": 1 },
+    { "target": "traffic-flow", "property": "bars", "type": "shiftLeft", "frameRange": [250, 300], "easing": "easeInOutQuad" },
+    { "target": "wind-indicator", "property": "direction", "type": "oscillate", "frameRange": [0, 300], "min": 265, "max": 275, "period": 200 },
+    { "target": "approach-sequence", "property": "entry0", "type": "slideUp", "frameRange": [240, 270], "easing": "easeOutCubic", "note": "C9G003 completes approach" }
+  ],
+
+  "dataMapping": {
+    "source": "c9-operator WebSocket stream",
+    "metaphorMapping": {
+      "aircraft": "agent subprocesses",
+      "altitude": "token budget remaining (FL = tokens/1000)",
+      "speed": "tokens per second processing rate",
+      "heading": "task focus direction",
+      "range": "estimated time to task completion",
+      "bearing": "task category sector",
+      "runway": "project deployment target",
+      "weather": "system impediments (resource contention, errors)",
+      "conflictAlert": "resource collision (token exhaustion, memory pressure)",
+      "ATIS": "system status broadcast",
+      "flightStrip": "task metadata card",
+      "approachSequence": "task completion queue",
+      "handoff": "task reassignment between projects"
+    },
+    "refreshRate": "per-frame for radar sweep, 1s for data fields",
+    "fallback": "static sample values shown in element definitions"
+  }
+}

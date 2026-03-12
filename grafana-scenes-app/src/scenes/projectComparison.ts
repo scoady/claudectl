@@ -60,7 +60,7 @@ function projectMetricsQuery(projectVar: string): SceneQueryRunner {
     queries: [
       infinityJsonQuery({
         refId: `metrics_${projectVar}`,
-        url: `http://localhost:4040/api/metrics/projects/\${${projectVar}}`,
+        url: `/api/metrics/projects/\${${projectVar}}`,
         columns: [
           { selector: 'agent_count', text: 'Agent Count', type: 'number' },
           { selector: 'active_agents', text: 'Active Agents', type: 'number' },
@@ -80,7 +80,7 @@ function projectTimeseriesQuery(projectVar: string): SceneQueryRunner {
     queries: [
       infinityTimeSeriesQuery({
         refId: `timeseries_${projectVar}`,
-        url: `http://localhost:4040/api/metrics/projects/\${${projectVar}}/timeseries`,
+        url: `/api/metrics/projects/\${${projectVar}}/timeseries`,
         columns: [
           { selector: 'timestamp', text: 'Time', type: 'timestamp' },
           { selector: 'agent_count', text: 'Agents', type: 'number' },

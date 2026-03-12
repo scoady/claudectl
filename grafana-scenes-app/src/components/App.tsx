@@ -10,12 +10,14 @@ import { getMissionControlScene } from '../scenes/missionControlScene';
 import { getProjectBrowserScene } from '../scenes/projectBrowserScene';
 import { getWidgetStudioScene } from '../scenes/widgetStudioScene';
 import { getLayoutStudioScene } from '../scenes/layoutStudioScene';
+import { getTraceExplorerScene } from '../scenes/traceExplorerScene';
+import { getAgentTracesScene } from '../scenes/agentTracesScene';
 
 // ---------------------------------------------------------------------------
 // Tab definitions
 // ---------------------------------------------------------------------------
 
-type TabId = 'mission-control' | 'projects' | 'widget-studio' | 'layout-studio';
+type TabId = 'mission-control' | 'projects' | 'observability' | 'agent-traces' | 'widget-studio' | 'layout-studio';
 
 interface TabDef {
   id: TabId;
@@ -27,6 +29,8 @@ interface TabDef {
 const tabs: TabDef[] = [
   { id: 'mission-control', label: 'Mission Control',  getScene: getMissionControlScene },
   { id: 'projects',        label: 'Projects',         getScene: getProjectBrowserScene },
+  { id: 'observability',   label: 'Observability',    getScene: getTraceExplorerScene },
+  { id: 'agent-traces',    label: 'Agent Traces',     getScene: getAgentTracesScene },
   { id: 'widget-studio',   label: 'Widget Studio',    getScene: getWidgetStudioScene },
   { id: 'layout-studio',   label: 'Layout Studio',    getScene: getLayoutStudioScene },
 ];

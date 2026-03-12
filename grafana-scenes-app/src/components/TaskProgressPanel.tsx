@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../services/api';
 
 interface ProgressItem {
   label: string;
@@ -6,8 +7,6 @@ interface ProgressItem {
   max: number;
   color: string;
 }
-
-const API_BASE = 'http://localhost:4040';
 
 function getColorForPct(pct: number): string {
   if (pct >= 90) return '#4ade80';

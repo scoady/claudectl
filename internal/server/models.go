@@ -97,6 +97,13 @@ type InjectRequest struct {
 	Message string `json:"message"`
 }
 
+// CreateProjectRequest is the body for POST /api/projects.
+type CreateProjectRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Model       string `json:"model,omitempty"`
+}
+
 // AddTaskRequest is the body for POST /api/projects/{name}/tasks.
 type AddTaskRequest struct {
 	Text string `json:"text"`

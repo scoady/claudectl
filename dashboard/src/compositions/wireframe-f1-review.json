@@ -1,0 +1,83 @@
+{
+  "wireframeId": "wireframe-f1",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "session_banner (red bar)", "bloomRadius": 8, "intensity": 0.3, "trigger": "always", "note": "The Ferrari-red top banner should bleed light downward onto the telemetry strips below — like stadium floodlights hitting the pit wall monitors" },
+      { "element": "fastest_lap_bar (purple)", "bloomRadius": 14, "intensity": 0.5, "trigger": "pulseGlow frames 180-210", "note": "Purple fastest lap glow should be DRAMATIC — bloom spreads 14px and shifts the entire bottom-right ambient color to purple momentarily" },
+      { "element": "drs_indicator active", "bloomRadius": 10, "intensity": 0.6, "note": "DRS lamps at #00FF88 should bloom aggressively — these are LED indicators at close range" }
+    ],
+    "lensFlare": [
+      { "position": "race_director_flags when green", "type": "subtle-horizontal-streak", "intensity": 0.1, "color": "#00FF66", "note": "Green flag has a short horizontal lens streak — like camera capturing LED signage" }
+    ],
+    "chromaticAberration": { "offset": 0.8, "note": "Edges-only is specified. Good. But during the intro_wipe (frames 0-45), temporarily increase to 2.5px across the full frame — broadcast camera zoom-in motion artifact" },
+    "filmGrain": { "note": "0.02 at 15fps is specified. Add broadcast interlace artifact: every other frame, offset all scan lines 0.5px downward — simulates deinterlaced broadcast footage" },
+    "motionBlur": [
+      { "element": "track_position_map dots", "blur": 4, "direction": "tangent-to-path", "note": "Dots racing around the track need directional motion blur along their travel direction — they represent 300+ km/h objects" },
+      { "element": "pnl_ticker scroll", "blur": 2, "direction": "horizontal", "note": "Scrolling P&L ticker text should have subtle horizontal motion blur — broadcast crawl effect" }
+    ],
+    "reflectionGlare": [
+      { "type": "monitor-glass", "position": "fullscreen", "opacity": 0.02, "gradient": "top-right-to-center", "note": "Pit wall monitors are outdoor LCD screens — faint sun reflection from the paddock" }
+    ],
+    "particleEffects": { "type": "carbon-fiber-shimmer", "count": 0, "note": "No particles needed — this is a clean broadcast environment. Instead, add subtle moiré pattern on the carbon-fiber background texture that shifts with camera drift" }
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 1.0, "amplitudeY": 0.5, "period": 180, "note": "Minimal drift — broadcast cameras are stabilized. But add very occasional micro-vibration (2 frames, 1px) when the pit crew runs past — mechanical floor vibration" },
+    "rackFocus": [],
+    "dramaticReveals": [
+      { "element": "gap_timer_board intervals", "type": "countUp-from-zero", "frameRange": [45, 70], "easing": "easeOutQuart", "note": "Gap times should rapidly count up from +0.000 to their actual values — like the timing tower populating after a sector split" },
+      { "element": "sector_times_grid", "note": "Staggered fade-in at frames 90-120 is specified. Add color flash: each cell briefly flashes white before revealing its final color (purple/green/yellow) — the split just came in" }
+    ],
+    "breathingAnimations": [
+      { "element": "telemetry speed graphs", "type": "baseline-noise", "amplitude": 2, "note": "Speed trace lines should have continuous micro-variation even when data is static — real telemetry is never perfectly smooth" },
+      { "element": "rpm_bar_a segments", "type": "shimmer", "period": 4, "amplitude": 0.05, "note": "RPM bar segments should shimmer rapidly — they represent an engine screaming at 15,000 RPM" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [118, 155], "description": "Pit stop sequence — pit_strategy_timeline marker drops with bounce, speed graph for one agent flatlines momentarily (pit entry), gap timer flashes as intervals change, radio transcript gets 'BOX BOX BOX' message" },
+      { "frameRange": [178, 215], "description": "Fastest lap moment — purple banner pulses with bloom, sector times for Alpha all flash purple simultaneously, gap_timer bestLap value updates with white flash, track dot for Alpha briefly trails purple sparks" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "region": "bottomTicker (x:0-1920, y:648-1080)", "fix": "This is 432px of reserved space with only constructor_points using 48px. Fill with: LAP-BY-LAP delta chart (mini sparklines per agent), TIRE AGE counter per agent, and WEATHER FORECAST timeline showing rain probability over next 10 laps" },
+    { "element": "telemetry strips", "fix": "Add G-FORCE readout (lateral + longitudinal) per agent, and a mini speed comparison overlay — ghost trace of the leader's speed on each agent's graph" },
+    { "element": "track_position_map", "fix": "Add DRS detection zone activation indicator (flashing green segment when gap < 1s), and mini sector time text at each sector marker" },
+    { "element": "weather_radar", "fix": "Add TRACK EVOLUTION indicator: rubber on racing line % (grip level) and track temperature trend arrow" },
+    { "element": "gap_timer_board", "fix": "Add TIRE COMPOUND icon (colored circle) and PIT STOPS count column" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "High-contrast broadcast look — deep blacks (#050508), punchy accent colors. Grade like the official F1 broadcast with slightly crushed blacks and lifted highlights. The carbon-fiber background should have a very subtle blue sheen (#0A0A14)",
+    "keyMoments": [
+      { "trigger": "fastest lap (frames 178-215)", "shift": "Purple color wash across the entire bottom third of the frame — #A020F0 at 5% opacity overlay. This is the signature F1 purple moment" },
+      { "trigger": "yellow flag / safety car", "shift": "Entire frame shifts warm — background becomes #12120A, all non-essential elements dim 20%, yellow banner dominates" }
+    ],
+    "accentUsage": "Four agent colors are distinct and well-chosen. But the tire compound colors (HARD white, MEDIUM yellow, SOFT red) need more prominence — they should appear as colored dots/badges throughout, not just in the pit strategy timeline",
+    "backgroundAtmosphere": "Carbon-fiber weave texture is excellent. Add very subtle vignette with a warm lower edge — monitor desk reflection from below"
+  },
+
+  "typographyNotes": {
+    "fonts": "Titillium Web is the actual F1 typeface family — perfect choice. 'F1 Wide' for the primary is authentic but needs a fallback that matches the extreme width",
+    "monospaceReadout": "JetBrains Mono for data is good but consider using Titillium Web Semibold with tabular figures for gap times — keeps the visual unity",
+    "displayFont": "The hero timer at 72px is appropriately large. But LAP counter at 28px could be bigger (36px) — it is critical race information",
+    "sizeHierarchy": "11px data labels are borderline. The 9px chart axis labels should be 10px. Add more visual separation between panel titles (14px) and data labels (11px) — they are too close in size"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "telemetry speed graphs", "sound": "V6 turbo-hybrid engine tone modulated by speed trace — higher pitch at higher values, lower in braking zones. Four engines audible, slightly offset" },
+      { "element": "background", "sound": "Crowd roar as ambient bed — rises and falls with on-track action" }
+    ],
+    "eventSounds": [
+      { "element": "fastest_lap_bar pulse", "sound": "Three ascending electronic tones (C5-E5-G5) — the F1 timing jingle" },
+      { "element": "radio_transcript new message", "sound": "Radio squelch + team radio voice — compressed, slightly distorted as in real broadcasts" },
+      { "element": "gap_flash (overtake)", "sound": "Sharp whoosh + crowd surge — the iconic DRS overtake sound moment" },
+      { "element": "pit_stop_anim marker drop", "sound": "Impact wrench staccato burst (BRRRRT) — 2-second pit stop audio" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [60, 63], "description": "Brief audio dip before the overtake gap flash — the director cuts to onboard, wind noise drops, then the overtake happens with full audio surge" }
+    ]
+  }
+}

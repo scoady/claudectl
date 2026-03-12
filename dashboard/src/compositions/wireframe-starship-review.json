@@ -1,0 +1,89 @@
+{
+  "wireframeId": "wireframe-starship",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "drive_core_diagnostics coreSchematic", "bloomRadius": 28, "intensity": 0.6, "trigger": "pulse-peak", "note": "Warp core pulse is THE hero light source — at each pulse peak (period 45), bloom should aggressively spill blue light onto adjacent panels and even tint the right edge of the comms log" },
+      { "element": "shield_harmonics waveform peaks", "bloomRadius": 10, "intensity": 0.4, "note": "Shield oscilloscope waveform peaks should bloom with cyan glow on each cycle — pulsing energy visualization" },
+      { "element": "lcars_frame_top segments", "bloomRadius": 6, "intensity": 0.25, "note": "LCARS colored bars should have subtle bloom — they are backlit panels, not flat paint" },
+      { "element": "alert_condition border (yellow alert)", "bloomRadius": 16, "intensity": 0.4, "trigger": "pulse-peak", "note": "Yellow alert pulsing border should bloom outward, casting yellow light onto adjacent panels" }
+    ],
+    "lensFlare": [
+      { "position": "drive_core_diagnostics center", "type": "anamorphic-streak", "intensity": 0.3, "color": "#3366FF", "length": 300, "triggerFrames": "every 45 frames on pulse peak", "note": "JJ Abrams-style lens flare on warp core pulse — horizontal streak with hexagonal elements. This is Trek, lean into it" },
+      { "position": "shield_harmonics panel", "type": "subtle-hex-flare", "intensity": 0.08, "color": "#00FFEE", "note": "Shield energy occasionally catches a lens flare — 2-3 instances during the composition" }
+    ],
+    "chromaticAberration": { "offset": 1.2, "note": "Present, edges-only. Good. During the hull_damage_flash (frames 200-220), spike to 4px full-frame for 3 frames — the bridge shakes from an impact" },
+    "filmGrain": { "note": "0.015 at 24fps. Add ANAMORPHIC grain: stretch grain particles horizontally by 1.5x — Trek is shot anamorphic. This subtly changes the film texture" },
+    "starfieldParallax": { "note": "Specified as background texture but not detailed. Implement 3 star layers: distant (tiny, slow drift), mid (medium, moderate drift), near (bright, fast drift). Stars should have color temperature variation — blue-white, yellow, red giants. 5 very bright stars should have 4-point diffraction spikes" },
+    "motionBlur": [
+      { "element": "tactical_display sweepLine", "blur": 8, "direction": "tangent", "note": "Sweep line needs radial motion blur along its rotation direction — it moves fast" }
+    ],
+    "reflectionGlare": [
+      { "type": "viewscreen-glass", "position": "tactical_display", "opacity": 0.03, "note": "The tactical display is on a large viewscreen. Add very faint reflections of bridge console lights (orange/blue dots) reflected in the glass" }
+    ],
+    "particleEffects": { "type": "warp-field-particles", "count": 20, "direction": "aft-to-fore", "speed": 3, "note": "Subtle blue streaks moving from right to left across the background — the ship is at warp 6.2, stars should streak very slightly" }
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 1.5, "amplitudeY": 1.0, "period": 180, "note": "Bridge camera should have noticeable sway — the ship vibrates at warp, inertial dampers are at 98%, slight motion gets through" },
+    "rackFocus": [
+      { "from": "tactical_display", "to": "alert_condition", "frameRange": [55, 65], "blurRadius": 3, "note": "When yellow alert triggers, focus shifts from tactical to the alert banner — the captain looks up at the status board" }
+    ],
+    "dramaticReveals": [
+      { "element": "intro_reveal", "note": "Staggered fade-in center-outward is specified. Enhance: add LCARS boot sequence — panels should draw their borders first (line animation), then fill with data. Classic Trek computer startup aesthetic" },
+      { "element": "alert_condition transition to yellow", "type": "klaxon-flash", "note": "When yellow alert triggers, the entire composition should flash yellow for 1 frame (0.1 opacity) then settle into the pulsing border — the klaxon fires" }
+    ],
+    "breathingAnimations": [
+      { "element": "engineering_readouts bars", "type": "micro-fluctuation", "amplitude": 0.5, "period": 60, "note": "Engineering subsystem bars should fluctuate slightly — power grid is dynamic, not static" },
+      { "element": "warp_field_geometry field layers", "type": "pulse-expansion", "period": 45, "amplitude": 2, "note": "Warp field layers should pulse outward in sync with the warp core — the field breathes with the engine" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [55, 70], "description": "Yellow alert activation — alert banner transitions, klaxon flash, border pulsing begins, ambient lighting shifts warm-yellow, crew status all show AT STATION, weapons begin charging. The bridge comes alive with purpose" },
+      { "frameRange": [195, 225], "description": "Hull impact moment — port nacelle flashes yellow, camera shake (3px for 5 frames), chromatic aberration spikes, shield oscilloscope waveform distorts briefly, damage report entry in comms log. Brief system flicker (all panels dim 20% for 2 frames then recover)" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "element": "tactical_display", "fix": "Add weapons range circles — phaser effective range (4000km) as orange dashed ring, torpedo range (8000km) as red dashed ring. Add a bearing-to-target readout for the active lock" },
+    { "element": "star_chart", "fix": "Add ETA readout per waypoint, fuel consumption projection, and a 'DETOUR REQUIRED IF...' advisory zone near the neutral zone" },
+    { "element": "crew_status", "fix": "Add DUTY SHIFT indicator (Alpha/Beta/Gamma shift), hours into shift, and RELIEF ETA" },
+    { "region": "gap below status_bar (y:848-1080)", "fix": "232px of unused space. Add SHIP'S LOG entries panel — scrolling captain's log entries mapped to project milestone summaries" },
+    { "element": "weapons_banks", "fix": "Add FIRING SOLUTION quality percentage per bank and COOLDOWN timer for recently fired banks" },
+    "{ \"background\": true, \"fix\": \"Add starfield that slowly shifts parallax as if the ship is turning slightly during the composition — sells the sensation of travel\" }"
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "LCARS warm-cool balance — orange and purple frame elements create a warm envelope around cool blue-green tactical data. Grade like Discovery S2 bridge scenes: deep navy backgrounds (#060612 is correct), warm amber instrument panels, cool blue data overlays. Shadows should have purple tint (#0C0818)",
+    "keyMoments": [
+      { "trigger": "yellow alert activation", "shift": "Background shifts from #060612 to #0C0C08 — warmer. Panel borders gain subtle yellow tint. Grid lines brighten 30%. The whole bridge warms up with alertness" },
+      { "trigger": "hull impact (frames 200-220)", "shift": "Flash white for 1 frame, then orange emergency lighting for 10 frames — background shifts to #120A06. Shield panel border flickers red for 3 frames" }
+    ],
+    "accentUsage": "LCARS palette is well-executed with orange/blue/teal/red/yellow/purple. But the purple (#CC77FF) is underused — it should appear in more decorative LCARS frame elements and as a secondary accent in the star chart",
+    "backgroundAtmosphere": "Add subtle nebula wisps in the starfield background — very low opacity (0.02) purple and blue gas clouds. The ship is traveling through space, not against a flat void"
+  },
+
+  "typographyNotes": {
+    "fonts": "Orbitron for headers is perfect Trek-modern. Rajdhani for body text is clean. Share Tech Mono for data readouts bridges the sci-fi and technical aesthetics",
+    "monospaceReadout": "Share Tech Mono is great for tactical data. For the LCARS panels, consider using Michroma or Exo 2 — fonts that feel more integrated with the LCARS design language",
+    "displayFont": "Alert condition text at 48px Orbitron 700 is appropriately commanding. The stardate at 28px readoutValue is good. Add glow effect (text-shadow: 0 0 12px currentColor) to alert text",
+    "sizeHierarchy": "9px star chart labels will be too small. Bump to 10px. Tactical bearing labels at 11px are acceptable. Status bar segments could use more size differentiation — ship name at 14px vs mission at 12px"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "drive_core_diagnostics pulse", "sound": "Deep thrumming warp core pulse — low frequency (40-60Hz) rhythmic throb every 1.5 seconds. THE sound of Trek. Felt in the chest" },
+      { "element": "tactical_display sweep", "sound": "Soft electronic sweep tone — rising pitch on each rotation cycle" },
+      { "element": "background", "sound": "Ship ambient — constant low hum of EPS conduits, life support air circulation, distant machinery" }
+    ],
+    "eventSounds": [
+      { "element": "alert_condition yellow activation", "sound": "Klaxon — two-tone alert horn (A4-E4) at 1Hz repeat. The boatswain's whistle precedes it" },
+      { "element": "subspace_comms new entry", "sound": "Comm chirp (classic Trek bo-weep) followed by voice message" },
+      { "element": "weapons_banks charge complete", "sound": "Rising electronic whine reaching a satisfying 'locked' tone — phaser banks capacitor charge" },
+      { "element": "hull damage flash", "sound": "Deep impact boom + structural groaning + brief sparking (high frequency crackle)" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [50, 55], "description": "Tense pause before yellow alert — the unknown contact bearing 170 is identified as potentially hostile. The bridge goes quiet. Then the klaxon" }
+    ]
+  }
+}

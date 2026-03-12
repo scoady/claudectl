@@ -17,7 +17,7 @@ import type {
   LayoutPreset,
 } from '../types';
 
-const API_BASE = 'http://localhost:4040';
+const API_BASE = 'http://claude-manager.localhost';
 
 // ── Low-level helpers ────────────────────────────────────────────────────────
 

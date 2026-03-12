@@ -1,0 +1,85 @@
+{
+  "wireframeId": "wireframe-drone",
+  "reviewer": "VFX Supervisor — Cinematic Review",
+
+  "missingCinematicDetails": {
+    "lightBloom": [
+      { "element": "classification_bar RED banner", "bloomRadius": 10, "intensity": 0.3, "trigger": "always", "note": "SECRET classification banner at top and bottom should bleed red light into adjacent content — it dominates the real GCS visual space" },
+      { "element": "uav_feed_alpha crosshair center", "bloomRadius": 6, "intensity": 0.3, "note": "Crosshair center point should have a small green bloom — the reticle emits light on a dark feed" },
+      { "element": "kill_chain_bar active phase (TRACK)", "bloomRadius": 8, "intensity": 0.4, "note": "The active TRACK phase should glow yellow, bleeding into adjacent phase bars — it is the current focus" }
+    ],
+    "lensFlare": [],
+    "chromaticAberration": { "offset": 0, "note": "None on the UI panels. But the UAV feeds themselves should have significant chromatic aberration (2-3px) — satellite-relayed video has compression artifacts" },
+    "filmGrain": { "note": "0.04 at 30fps is specified globally. The UAV video feeds need MUCH heavier noise — 0.12 intensity with analog-static type. IR feeds (alpha/gamma) should have distinct IR sensor noise (banded horizontal lines at random intervals)" },
+    "feedNoise": { "note": "0.08 analog-static is specified. Good but needs periodic DROPOUTS — every 60-90 frames, one random feed should have 2-3 frames of heavy static (0.4 intensity) then recover. This is satellite link degradation" },
+    "crtCurvature": { "note": "0.02 is present. Apply ONLY to the UAV feeds, not the UI panels — real GCS uses flat-panel monitors for UI but older displays for video feeds" },
+    "scanLines": { "note": "Spacing 2 at 0.06. Good for the overall UI. But UAV feeds should have interlace artifacts — alternating-line combing effect at 0.08 opacity, especially during motion" },
+    "reflectionGlare": [
+      { "type": "gcs-room-lighting", "position": "fullscreen", "opacity": 0.015, "gradient": "top-to-bottom", "note": "GCS rooms have dim overhead lighting — faint warm gradient wash from top" }
+    ],
+    "irSimulation": { "note": "IR white hot is specified for alpha/gamma. Add thermal bloom around hot objects (target bounding box area) — IR sensors bloom on heat sources. The compound should glow slightly brighter than surroundings" },
+    "particleEffects": null
+  },
+
+  "animationEnhancements": {
+    "cameraDrift": { "amplitudeX": 0.2, "amplitudeY": 0.1, "period": 600, "note": "Near-zero — GCS is a ground station, rock-solid. Only imperceptible HVAC vibration" },
+    "rackFocus": [],
+    "dramaticReveals": [
+      { "element": "intro_boot", "note": "Terminal boot with step easing is specified. Enhance: boot should show actual GCS initialization text — 'INITIALIZING SATCOM LINK... OK', 'CRYPTO LOADED... KEYED', 'GCS SOFTWARE v4.2.1... READY', then feeds connect one by one with static-to-clear transition" },
+      { "element": "roe_sidebar JA_APPROVED status change (frames 240-260)", "type": "dramatic-status-flip", "note": "When JA approval comes in, the checkbox should flash green three times, the word 'APPROVED' should scale up 110% briefly then settle, and the CMD AUTH below should immediately cascade to approved too. This is the moment that changes everything" }
+    ],
+    "breathingAnimations": [
+      { "element": "uav_feed crosshairs", "type": "stabilization-drift", "amplitude": 3, "period": 120, "note": "Crosshairs should have slow circular drift (gimbal stabilization imperfection) — the sensor ball is constantly correcting. This is what real sensor feeds look like" },
+      { "element": "satellite_map uav_positions", "type": "orbit-path", "note": "UAV orbit is specified. The orbit trail should be visible — a dotted circle showing the racetrack pattern behind each UAV" }
+    ],
+    "microInteractions": [
+      { "element": "datalink_meters REAPER-3 signal bar", "type": "jitter", "amplitude": 3, "speed": 2, "note": "Degraded datalink should visibly fluctuate — the bar jitters rapidly between values. Occasionally dips to near-zero for 1-2 frames" },
+      { "element": "uav_feed_alpha target bounding box", "type": "size-jitter", "amplitude": 4, "speed": 1, "note": "Tracking bounding box should slightly resize as the tracker adjusts — it is not a perfect lock, the algorithm is recalculating" }
+    ],
+    "transitionMoments": [
+      { "frameRange": [148, 172], "description": "Kill chain advance from TRACK to TARGET — TRACK phase fills completely with green, TARGET phase begins filling with yellow pulse, crosshair on feed_alpha tightens (zooms from x12 to x16), tracking quality upgrades from FIRM to LOCK, 9-line brief auto-populates. The mood intensifies" },
+      { "frameRange": [238, 265], "description": "Legal approval cascade — JA APPROVED flips green, CMD AUTH follows 5 frames later, ROE indicator shifts but remains WEAPONS TIGHT, comms transcript shows OVERLORD: 'Cleared hot when ready'. All feeds sharpen (noise decreases 20%). The system focuses" }
+    ]
+  },
+
+  "dataDensityGaps": [
+    { "element": "uav_feeds", "fix": "Add MAGNETIC HEADING vs TRUE HEADING indicator, WIND ARROW overlay on each feed (small arrow showing local wind at altitude), and RECORDING indicator (red dot + 'REC' + elapsed time)" },
+    { "element": "satellite_map", "fix": "Add MGRS grid overlay at 100m resolution, elevation contour lines at 50m intervals, and ILLUMINATION ANGLE indicator for the current sun position" },
+    { "element": "weapon_status", "fix": "Add WEAPON FUZE setting (PROX/CONTACT/DELAY), TIME OF FLIGHT estimate per weapon, and COLLATERAL DAMAGE ESTIMATE radius circles on the map" },
+    { "region": "gap between timeOnStation and missionClock", "fix": "Add SUNRISE/SUNSET indicator — critical for ISR operations. Format: 'SR: 05:42L / SS: 18:15L / NVG: 19:02L'" },
+    { "element": "bda_panel", "fix": "Add before/after imagery comparison — split view showing pre-strike vs post-strike satellite image thumbnail" }
+  ],
+
+  "colorGradingNotes": {
+    "overallLook": "Desaturated military gray-green with high-contrast data overlays — grade like Eye in the Sky (Gavin Hood). The color palette should feel COLD and clinical. Shadows at #050607 (slightly blue), highlights never pure white (cap at #D0D0D0). The RED classification banners are the only saturated color in a sea of muted tones — they should SCREAM",
+    "keyMoments": [
+      { "trigger": "kill chain advance to TARGET phase", "shift": "Subtle overall warmth increase — tension building. Background shifts from #0A0D0F to #0C0D0F (barely perceptible red addition)" },
+      { "trigger": "weapons release (if shown)", "shift": "Flash white for 1 frame (weapon launch), then warm orange wash for 5 frames (rocket motor), then settle to cool blue-gray (assessment begins)" }
+    ],
+    "accentUsage": "UAV colors (green/cyan/orange/red) are well differentiated. But the kill chain PENDING color (#3A4450) is too similar to background — darken to #2A2E38 and add a 1px border to each pending phase box",
+    "backgroundAtmosphere": "Military panel matte is correct. Add very subtle directional lighting — a warm wash from the upper-left quadrant simulating a desk lamp that the sensor operator uses for their paper checklist"
+  },
+
+  "typographyNotes": {
+    "fonts": "Roboto Condensed is perfect for military UI — it is literally used in real defense applications. Source Code Pro for mono data is an excellent pairing",
+    "monospaceReadout": "Source Code Pro at weight 500 for data is clean. For HUD overlay text on video feeds, use weight 700 with 1px dark outline (text-stroke) for readability against variable video backgrounds",
+    "displayFont": "Feed labels at 16px Roboto Condensed 700 are appropriately visible. The classification banner should be ALL CAPS with letter-spacing: 6px for emphasis",
+    "sizeHierarchy": "9px data labels are standard for military dense displays. Acceptable. But PIR checklist at secondary font weight 400 should be weight 500 — intelligence requirements must be easily scannable"
+  },
+
+  "soundDesignImplied": {
+    "continuousAmbience": [
+      { "element": "uav_feeds", "sound": "Constant white noise floor — satellite link static, barely audible but always present. Occasional digital chirps from the datalink modem" },
+      { "element": "background", "sound": "GCS room tone — air conditioning hum, distant keyboard clicks from the pilot station, occasional muffled radio chatter from adjacent workstations" }
+    ],
+    "eventSounds": [
+      { "element": "kill_chain_bar phase advance", "sound": "Short confirmatory tone — military system acknowledgment beep" },
+      { "element": "comms_transcript new message", "sound": "Radio squelch + voice — different tone per net (COMMAND is deeper, ISR is clearer, FIRES has urgency buzz)" },
+      { "element": "roe_sidebar JA_APPROVED", "sound": "Decisive double-beep (high tone) — the legal checkpoint cleared. The room shifts" },
+      { "element": "datalink_meters REAPER-3 degradation", "sound": "Intermittent digital crackling — link quality audible in the headset" }
+    ],
+    "silenceMoments": [
+      { "frameRange": [155, 160], "description": "After the kill chain advances to TARGET — the room pauses. The decision weight is tangible. 5 frames of near-silence before the next comms message breaks the tension" }
+    ]
+  }
+}

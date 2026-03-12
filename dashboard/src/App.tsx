@@ -10,6 +10,8 @@ import Projects from './pages/Projects';
 import Targets from './pages/Targets';
 import System from './pages/System';
 import Architecture from './pages/Architecture';
+import Operator from './pages/Operator';
+import Studio from './pages/Studio';
 import ConstellationBg from './components/ConstellationBg';
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -55,6 +57,8 @@ function AppContent() {
             <Route path="/targets" element={<PageWrapper><Targets /></PageWrapper>} />
             <Route path="/system" element={<PageWrapper><System /></PageWrapper>} />
             <Route path="/architecture" element={<PageWrapper><Architecture /></PageWrapper>} />
+            <Route path="/operator" element={<PageWrapper><Operator /></PageWrapper>} />
+            <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
           </Routes>
         </AnimatePresence>
       </div>
