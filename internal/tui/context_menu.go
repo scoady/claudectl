@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // MenuItem represents a single action in a context menu.
@@ -31,6 +33,7 @@ type ContextMenuModel struct {
 	title    string
 	items    []MenuItem
 	selected int
+	hovered  int
 	active   bool
 	anchorX  int
 	anchorY  int
@@ -52,6 +55,7 @@ func NewContextMenuModel(msg ShowContextMenuMsg) ContextMenuModel {
 		title:    msg.Title,
 		items:    msg.Items,
 		selected: sel,
+		hovered:  -1,
 		active:   true,
 		anchorX:  msg.AnchorX,
 		anchorY:  msg.AnchorY,
@@ -113,9 +117,37 @@ func (m ContextMenuModel) Update(msg tea.Msg) (ContextMenuModel, tea.Cmd) {
 				}
 			}
 		}
+
+	case tea.MouseMsg:
+		hovered := m.itemIndexAt(msg)
+		m.hovered = hovered
+		if hovered >= 0 && !m.items[hovered].Disabled {
+			m.selected = hovered
+		}
+		if msg.Action == tea.MouseActionPress {
+			if hovered >= 0 {
+				item := m.items[hovered]
+				if !item.Disabled && item.Action != nil {
+					m.active = false
+					return m, func() tea.Msg { return item.Action() }
+				}
+				return m, nil
+			}
+			m.active = false
+			return m, nil
+		}
 	}
 
 	return m, nil
+}
+
+func (m ContextMenuModel) itemIndexAt(msg tea.MouseMsg) int {
+	for i := range m.items {
+		if zoneInBounds(contextMenuItemZoneID(i), msg) {
+			return i
+		}
+	}
+	return -1
 }
 
 func (m *ContextMenuModel) moveSelection(delta int) {
@@ -155,6 +187,11 @@ func (m ContextMenuModel) View() string {
 	itemStyle := Class("palette-result")
 
 	selectedItemStyle := Class("palette-selected")
+
+	hoveredItemStyle := lipgloss.NewStyle().
+		Foreground(White).
+		Background(lipgloss.Color("#151e2a")).
+		Padding(0, 2)
 
 	disabledStyle := lipgloss.NewStyle().
 		Foreground(Muted).
@@ -207,6 +244,10 @@ func (m ContextMenuModel) View() string {
 		if padding < 1 {
 			padding = 1
 		}
+		gap := padding - 2
+		if gap < 0 {
+			gap = 0
+		}
 
 		var row string
 		if item.Disabled {
@@ -215,15 +256,19 @@ func (m ContextMenuModel) View() string {
 			)
 		} else if i == m.selected {
 			row = selectedItemStyle.Width(innerWidth).Render(
-				"▸ " + icon + " " + item.Label + strings.Repeat(" ", padding-2) + hint,
+				"▸ " + icon + " " + item.Label + strings.Repeat(" ", gap) + hint,
+			)
+		} else if m.hovered == i {
+			row = hoveredItemStyle.Width(innerWidth).Render(
+				"  " + label + strings.Repeat(" ", gap) + hint,
 			)
 		} else {
 			row = itemStyle.Width(innerWidth).Render(
-				"  " + label + strings.Repeat(" ", padding-2) + hint,
+				"  " + label + strings.Repeat(" ", gap) + hint,
 			)
 		}
 
-		b.WriteString(row)
+		b.WriteString(zone.Mark(contextMenuItemZoneID(i), row))
 		if i < len(m.items)-1 {
 			b.WriteString("\n")
 		}
@@ -236,5 +281,9 @@ func (m ContextMenuModel) View() string {
 		menu = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, menu)
 	}
 
-	return menu
+	return zone.Scan(menu)
+}
+
+func contextMenuItemZoneID(index int) string {
+	return fmt.Sprintf("context-menu:item:%d", index)
 }

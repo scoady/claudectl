@@ -141,6 +141,13 @@ type WorkspaceCopyTranscriptMsg struct {
 	Err error
 }
 
+type ClipboardWriteMsg struct {
+	Label string
+	Err   error
+}
+
+type WorkspaceBlinkMsg struct{}
+
 // ── Command helpers ─────────────────────────────────────────────────────────
 
 // DispatchCmd dispatches a task to the API.

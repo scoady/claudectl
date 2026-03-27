@@ -12,9 +12,8 @@ import (
 )
 
 var (
-	apiURL      string
-	workspaceUI bool
-	client      *api.Client
+	apiURL string
+	client *api.Client
 )
 
 func main() {
@@ -38,14 +37,12 @@ func main() {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// No subcommand — launch interactive TUI
-			return tui.Run(apiURL, tui.AppOptions{WorkspaceUI: true})
+			return tui.Run(apiURL, tui.AppOptions{})
 		},
 		SilenceUsage: true,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api", "http://localhost:4040", "Backend API URL")
-	rootCmd.PersistentFlags().BoolVar(&workspaceUI, "workspace-ui", false, "Launch the experimental workspace-centric terminal UI")
 
 	rootCmd.AddCommand(
 		authCmd(),

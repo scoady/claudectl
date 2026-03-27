@@ -25,6 +25,39 @@ When validating local TUI or API changes in this repo, treat backend availabilit
 - if a fix changes runtime behavior, TUI rendering, or launch flow, build the local `c9s` binary before handoff so the updated executable is ready to run
 - plain `c9s` now auto-starts a local backend target such as `http://localhost:4040` when needed, but remote `--api` targets are not started automatically
 
+## Code Organization
+
+This repo should stay aggressively modular.
+
+- prefer small source files with one clear responsibility
+- do not keep piling behavior into `app.go` or one large screen file when a screen-specific file already exists
+- shared view models, layout structs, hitboxes, and presenter helpers should be declared once and reused
+- do not re-declare the same model or helper in multiple files
+- when a capability already exists, extend or extract it into a reusable module instead of building a second parallel structure that solves the same problem
+- prefer reusable abstractions over local one-off implementations when the behavior is likely to appear in more than one place
+- favor cohesive object-oriented design: encapsulated domain models, clear interfaces, composition, and dependency injection over global state or singleton-heavy wiring
+- keep ownership boundaries explicit so each component or type has a small, understandable surface area
+- separate state mutation, rendering, layout math, and backend command wiring into distinct files
+- when a feature grows beyond a few helpers, split it into `component_or_domain_src_file.go` style files
+- move superseded code into `internal/tui/dump/` temporarily instead of leaving dead paths mixed into active files
+
+The goal is to avoid future “mega file” cleanup passes by keeping structure clean as features land.
+
+Practical guardrails:
+
+- split files before they become the obvious dumping ground for every new feature
+- reuse and extend existing abstractions before inventing a second parallel implementation
+- prefer composition, explicit ownership, and dependency injection over global/singleton-heavy coordination
+- avoid stringly typed feature plumbing when a typed model or action would make the code safer
+- treat refactorability as a shipping requirement, not an optional cleanup task
+
+Minimum testing expectations:
+
+- nontrivial feature work should add or update at least one focused automated test
+- bug fixes should add a regression test when the behavior can be isolated
+- state reconciliation, ordering, selection, hitbox math, and similar logic should be tested directly instead of relying only on manual UI checks
+- run `go build ./...` and `go test ./...` before release or handoff
+
 ## Interactive TUI
 
 Launch the interactive terminal UI (no arguments):

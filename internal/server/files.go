@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sort"
 	"strings"
 )
@@ -24,6 +25,13 @@ type FileEntry struct {
 func (s *Server) handleListFiles(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	relPath := r.URL.Query().Get("path")
+	recursive := r.URL.Query().Get("recursive") == "1" || strings.EqualFold(r.URL.Query().Get("recursive"), "true")
+	depth := 0
+	if raw := strings.TrimSpace(r.URL.Query().Get("depth")); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			depth = parsed
+		}
+	}
 
 	projRoot := filepath.Join(s.ProjectsDir, name)
 	if _, err := os.Stat(projRoot); err != nil {
@@ -44,68 +52,136 @@ func (s *Server) handleListFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get gitignored files
-	ignored := getGitIgnored(projRoot, targetDir)
+	ignored := getGitIgnored(projRoot, projRoot)
 
+	var files []FileEntry
+	if recursive {
+		maxDepth := depth
+		if maxDepth <= 0 {
+			maxDepth = 4
+		}
+		files = listFilesRecursive(targetDir, relPath, ignored, 0, maxDepth)
+	} else {
+		var err error
+		files, err = listFilesFlat(targetDir, relPath, ignored)
+		if err != nil {
+			httpError(w, http.StatusNotFound, "directory not found")
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusOK, files)
+}
+
+func listFilesFlat(targetDir, relPath string, ignored map[string]bool) ([]FileEntry, error) {
 	entries, err := os.ReadDir(targetDir)
 	if err != nil {
-		httpError(w, http.StatusNotFound, "directory not found")
-		return
+		return nil, err
 	}
 
 	var files []FileEntry
 	for _, e := range entries {
-		entryName := e.Name()
-
-		// Skip hidden files, common noise directories
-		if strings.HasPrefix(entryName, ".") {
+		entry, ok := buildFileEntry(e, relPath, ignored)
+		if !ok {
 			continue
 		}
-		if isNoiseDir(entryName) && e.IsDir() {
-			continue
-		}
-
-		entryPath := entryName
-		if relPath != "" {
-			entryPath = relPath + "/" + entryName
-		}
-
-		// Skip gitignored
-		if ignored[entryPath] || ignored[entryName] {
-			continue
-		}
-
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-
-		ftype := "file"
-		switch {
-		case e.Type()&os.ModeSymlink != 0:
-			ftype = "symlink"
-		case e.IsDir():
-			ftype = "directory"
-		}
-
-		files = append(files, FileEntry{
-			Name:  entryName,
-			Path:  entryPath,
-			Type:  ftype,
-			Size:  info.Size(),
-			Mtime: info.ModTime().UTC().Format("2006-01-02T15:04:05Z"),
-		})
+		files = append(files, entry)
 	}
 
-	// Sort: directories first, then alphabetically
 	sort.Slice(files, func(i, j int) bool {
 		if files[i].Type != files[j].Type {
 			return files[i].Type == "directory"
 		}
 		return files[i].Name < files[j].Name
 	})
+	return files, nil
+}
 
-	writeJSON(w, http.StatusOK, files)
+func listFilesRecursive(targetDir, relPath string, ignored map[string]bool, depth, maxDepth int) []FileEntry {
+	entries, err := os.ReadDir(targetDir)
+	if err != nil {
+		return nil
+	}
+
+	var dirs []os.DirEntry
+	var files []os.DirEntry
+	for _, e := range entries {
+		if e.IsDir() {
+			dirs = append(dirs, e)
+		} else {
+			files = append(files, e)
+		}
+	}
+	sort.Slice(dirs, func(i, j int) bool { return strings.ToLower(dirs[i].Name()) < strings.ToLower(dirs[j].Name()) })
+	sort.Slice(files, func(i, j int) bool { return strings.ToLower(files[i].Name()) < strings.ToLower(files[j].Name()) })
+
+	out := make([]FileEntry, 0, len(entries))
+	for _, group := range [][]os.DirEntry{dirs, files} {
+		for _, e := range group {
+			entry, ok := buildFileEntry(e, relPath, ignored)
+			if !ok {
+				continue
+			}
+			out = append(out, entry)
+			if entry.Type == "directory" && depth+1 < maxDepth {
+				childDir := filepath.Join(targetDir, e.Name())
+				childRel := entry.Path
+				out = append(out, listFilesRecursive(childDir, childRel, ignored, depth+1, maxDepth)...)
+			}
+		}
+	}
+	return out
+}
+
+func buildFileEntry(e os.DirEntry, relPath string, ignored map[string]bool) (FileEntry, bool) {
+	entryName := e.Name()
+	if strings.HasPrefix(entryName, ".") {
+		return FileEntry{}, false
+	}
+	if isNoiseDir(entryName) && e.IsDir() {
+		return FileEntry{}, false
+	}
+
+	entryPath := entryName
+	if relPath != "" {
+		entryPath = relPath + "/" + entryName
+	}
+	if shouldIgnorePath(entryPath, ignored) || ignored[entryName] {
+		return FileEntry{}, false
+	}
+
+	info, err := e.Info()
+	if err != nil {
+		return FileEntry{}, false
+	}
+
+	ftype := "file"
+	switch {
+	case e.Type()&os.ModeSymlink != 0:
+		ftype = "symlink"
+	case e.IsDir():
+		ftype = "directory"
+	}
+
+	return FileEntry{
+		Name:  entryName,
+		Path:  entryPath,
+		Type:  ftype,
+		Size:  info.Size(),
+		Mtime: info.ModTime().UTC().Format("2006-01-02T15:04:05Z"),
+	}, true
+}
+
+func shouldIgnorePath(path string, ignored map[string]bool) bool {
+	if ignored[path] {
+		return true
+	}
+	for candidate := range ignored {
+		if candidate != "" && strings.HasPrefix(path, strings.TrimSuffix(candidate, "/")+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) handleReadFile(w http.ResponseWriter, r *http.Request) {
