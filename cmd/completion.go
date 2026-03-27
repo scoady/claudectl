@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 	"github.com/spf13/cobra"
 )
 
@@ -86,12 +86,12 @@ func completeWidgets(project, toComplete string) ([]string, cobra.ShellCompDirec
 	return results, cobra.ShellCompDirectiveNoFileComp
 }
 
-// completeModels returns known Claude model names.
+// completeModels returns known Codex/OpenAI model names.
 func completeModels(toComplete string) ([]string, cobra.ShellCompDirective) {
 	models := []string{
-		"claude-opus-4-6",
-		"claude-sonnet-4-6",
-		"claude-haiku-4-5-20251001",
+		"gpt-5-codex",
+		"gpt-5",
+		"codex-mini-latest",
 	}
 	var results []string
 	for _, m := range models {

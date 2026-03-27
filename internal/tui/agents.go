@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // AgentsModel is the all-agents list screen.

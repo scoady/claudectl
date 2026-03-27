@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// Instruments holds all OTel metric instruments for claudectl.
+// Instruments holds all OTel metric instruments for codexctl.
 type Instruments struct {
 	ActiveAgents    metric.Int64UpDownCounter
 	SpawnedTotal    metric.Int64Counter
@@ -20,21 +20,21 @@ type Instruments struct {
 
 // NewInstruments creates all OTel metric instruments from the given meter.
 func NewInstruments(m metric.Meter) (*Instruments, error) {
-	activeAgents, err := m.Int64UpDownCounter("claudectl.agents.active",
+	activeAgents, err := m.Int64UpDownCounter("codexctl.agents.active",
 		metric.WithDescription("Number of currently active agents"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	spawnedTotal, err := m.Int64Counter("claudectl.agents.spawned_total",
+	spawnedTotal, err := m.Int64Counter("codexctl.agents.spawned_total",
 		metric.WithDescription("Total agents spawned"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	taskDuration, err := m.Float64Histogram("claudectl.task.duration_seconds",
+	taskDuration, err := m.Float64Histogram("codexctl.task.duration_seconds",
 		metric.WithDescription("Duration of agent tasks in seconds"),
 		metric.WithExplicitBucketBoundaries(1, 5, 10, 30, 60, 120, 300, 600, 1800),
 	)
@@ -42,28 +42,28 @@ func NewInstruments(m metric.Meter) (*Instruments, error) {
 		return nil, err
 	}
 
-	tokensTotal, err := m.Int64Counter("claudectl.tokens.estimated_total",
+	tokensTotal, err := m.Int64Counter("codexctl.tokens.estimated_total",
 		metric.WithDescription("Estimated total tokens (input or output)"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	costTotal, err := m.Float64Counter("claudectl.cost.estimated_total_usd",
+	costTotal, err := m.Float64Counter("codexctl.cost.estimated_total_usd",
 		metric.WithDescription("Estimated cumulative cost in USD"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	turnsTotal, err := m.Int64Counter("claudectl.turns.total",
+	turnsTotal, err := m.Int64Counter("codexctl.turns.total",
 		metric.WithDescription("Total conversation turns"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	toolInvocations, err := m.Int64Counter("claudectl.tools.invocations_total",
+	toolInvocations, err := m.Int64Counter("codexctl.tools.invocations_total",
 		metric.WithDescription("Total tool invocations"),
 	)
 	if err != nil {

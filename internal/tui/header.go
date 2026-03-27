@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // RenderHeader renders the top bar with logo, status, and stats.
 func RenderHeader(width int, health *api.HealthResponse, stats *api.StatsResponse, screen string) string {
 	// ── Logo ──
-	logo := Class("logo").Render("  c9s") + Class("logo-accent").Render(" ") + Class("dim").Render("claudectl")
+	logo := Class("logo").Render("  c9s") + Class("logo-accent").Render(" ") + Class("dim").Render("codexctl")
 
 	// ── Connection status dot ──
 	var statusDot string

@@ -1,0 +1,48 @@
+{
+  "name": "gitlab-auth",
+  "description": "Core auth provider for GitLab-backed catalog discovery, private repo installs, and GitLab-aware tools.",
+  "kind": "auth-provider",
+  "tags": ["core", "auth", "gitlab"],
+  "repo_url": "core://gitlab-auth",
+  "skills_dir": "external_skills",
+  "provides": [
+    "gitlab.api_token"
+  ],
+  "configure": {
+    "inputs": [
+      {
+        "name": "gitlab_token",
+        "label": "GitLab Personal Access Token",
+        "type": "secret",
+        "env": "GITLAB_TOKEN",
+        "description": "Used for GitLab API-backed catalog and repo operations."
+      },
+      {
+        "name": "gitlab_host",
+        "label": "GitLab Host",
+        "type": "text",
+        "env": "GITLAB_HOST",
+        "description": "Optional alternate GitLab host."
+      },
+      {
+        "name": "git_ssh_key",
+        "label": "Git SSH Key",
+        "type": "path",
+        "env": "GIT_SSH_KEY",
+        "description": "Optional SSH key path for private clone workflows."
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "gitlab api token",
+      "type": "capability",
+      "capability": "gitlab.api_token"
+    }
+  ],
+  "install": {
+    "type": "noop",
+    "token_env": "GITLAB_TOKEN",
+    "base_url_env": "GITLAB_HOST"
+  }
+}

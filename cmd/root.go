@@ -2,42 +2,53 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/scoady/claudectl/internal/api"
-	"github.com/scoady/claudectl/internal/tui"
-	"github.com/scoady/claudectl/internal/ui"
+	"github.com/scoady/codexctl/internal/api"
+	"github.com/scoady/codexctl/internal/tui"
+	"github.com/scoady/codexctl/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 var (
-	apiURL string
-	client *api.Client
+	apiURL      string
+	workspaceUI bool
+	client      *api.Client
 )
 
 func main() {
-	rootCmd := &cobra.Command{
+	var rootCmd *cobra.Command
+	rootCmd = &cobra.Command{
 		Use:   "c9s",
-		Short: "c9s — interactive TUI for Claude Agent Manager",
+		Short: "c9s — interactive TUI for Codex Agent Manager",
 		Long: ui.Banner() + "\n\n" +
-			"A k9s-style interactive terminal interface for the Claude Agent Manager.\n" +
+			"A k9s-style interactive terminal interface for the Codex Agent Manager.\n" +
 			"Run with no subcommands for the interactive TUI, or use subcommands for CLI mode.",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if envURL := os.Getenv("CM_API_URL"); envURL != "" && apiURL == "http://localhost:4040" {
 				apiURL = envURL
 			}
+			if cmd == rootCmd {
+				if err := ensureLocalBackendForTUI(apiURL); err != nil {
+					return err
+				}
+			}
 			client = api.NewClient(apiURL)
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// No subcommand — launch interactive TUI
-			return tui.Run(apiURL)
+			return tui.Run(apiURL, tui.AppOptions{WorkspaceUI: true})
 		},
 		SilenceUsage: true,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api", "http://localhost:4040", "Backend API URL")
+	rootCmd.PersistentFlags().BoolVar(&workspaceUI, "workspace-ui", false, "Launch the experimental workspace-centric terminal UI")
 
 	rootCmd.AddCommand(
+		authCmd(),
 		healthCmd(),
 		statusCmd(),
 		projectsCmd(),
@@ -51,10 +62,12 @@ func main() {
 		filesCmd(),
 		milestonesCmd(),
 		metricsCmd(),
+		toolsCmd(),
 		serveCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

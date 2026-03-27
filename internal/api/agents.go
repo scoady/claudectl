@@ -58,8 +58,12 @@ func (a Agent) ElapsedString() string {
 
 // Message represents a single agent message.
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content,omitempty"`
+	Role      string         `json:"role"`
+	Type      string         `json:"type,omitempty"`
+	Content   string         `json:"content,omitempty"`
+	Timestamp string         `json:"timestamp,omitempty"`
+	ToolName  string         `json:"tool_name,omitempty"`
+	ToolInput map[string]any `json:"tool_input,omitempty"`
 }
 
 // GetAgents lists all active agents.

@@ -7,15 +7,15 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // Available models for cycling
 var availableModels = []string{
 	"",
-	"claude-sonnet-4-20250514",
-	"claude-opus-4-20250514",
-	"claude-haiku-3-5-20241022",
+	"gpt-5-codex",
+	"gpt-5",
+	"codex-mini-latest",
 }
 
 // DispatchModel is a modal dialog for dispatching tasks to a project.

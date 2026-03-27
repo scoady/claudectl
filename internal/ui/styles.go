@@ -1,4 +1,4 @@
-// Package ui provides terminal styling for the claude-manager CLI.
+// Package ui provides terminal styling for the codex-manager CLI.
 package ui
 
 import (
@@ -171,7 +171,7 @@ func Truncate(s string, max int) string {
 	return s[:max-3] + "..."
 }
 
-// Banner renders the CM header banner.
+// Banner renders the c9s header banner.
 func Banner() string {
 	logo := lipgloss.NewStyle().
 		Bold(true).
@@ -180,7 +180,7 @@ func Banner() string {
 	accent := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ColorPurple).
-		Render(" Claude Manager")
+		Render(" Codex Manager")
 	return logo + accent
 }
 

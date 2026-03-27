@@ -12,9 +12,9 @@ import (
 //   - Output: ~800 tokens/turn
 //
 // Model pricing (per million tokens):
-//   - claude-sonnet-4:  $3 input / $15 output
-//   - claude-opus-4:    $15 input / $75 output
-//   - claude-haiku-3.5: $0.80 input / $4 output
+//   - gpt-5-codex:      $1.25 input / $10 output
+//   - gpt-5:            $1.25 input / $10 output
+//   - codex-mini:       $1.50 input / $6 output
 
 const (
 	avgInputTokensPerTurn  = 2000
@@ -27,19 +27,14 @@ type modelPricing struct {
 }
 
 var pricingTable = map[string]modelPricing{
-	"sonnet":           {3.0, 15.0},
-	"claude-sonnet-4":  {3.0, 15.0},
-	"claude-sonnet":    {3.0, 15.0},
-	"opus":             {15.0, 75.0},
-	"claude-opus-4":    {15.0, 75.0},
-	"claude-opus":      {15.0, 75.0},
-	"haiku":            {0.80, 4.0},
-	"claude-haiku-3.5": {0.80, 4.0},
-	"claude-haiku":     {0.80, 4.0},
+	"gpt-5-codex":       {1.25, 10.0},
+	"gpt-5":             {1.25, 10.0},
+	"codex-mini":        {1.50, 6.0},
+	"codex-mini-latest": {1.50, 6.0},
 }
 
-// defaultPricing is used when the model is unknown (assume sonnet).
-var defaultPricing = modelPricing{3.0, 15.0}
+// defaultPricing is used when the model is unknown (assume gpt-5-codex).
+var defaultPricing = modelPricing{1.25, 10.0}
 
 // lookupPricing finds the best matching pricing for a model string.
 func lookupPricing(model string) modelPricing {
@@ -61,11 +56,11 @@ func lookupPricing(model string) modelPricing {
 	}
 
 	// Check for known keywords
-	if strings.Contains(m, "opus") {
-		return pricingTable["opus"]
+	if strings.Contains(m, "codex-mini") {
+		return pricingTable["codex-mini"]
 	}
-	if strings.Contains(m, "haiku") {
-		return pricingTable["haiku"]
+	if strings.Contains(m, "gpt-5") {
+		return pricingTable["gpt-5"]
 	}
 
 	return defaultPricing

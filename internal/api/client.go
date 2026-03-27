@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Client talks to the claude-manager backend API.
+// Client talks to the codex-manager backend API.
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client

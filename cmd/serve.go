@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/scoady/claudectl/internal/server"
-	"github.com/scoady/claudectl/internal/telemetry"
+	"github.com/scoady/codexctl/internal/server"
+	"github.com/scoady/codexctl/internal/telemetry"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 )
@@ -40,7 +40,7 @@ func serveCmd() *cobra.Command {
 
 			// Wire OTel instruments if telemetry initialized
 			if tel != nil {
-				meter := otel.GetMeterProvider().Meter("claudectl")
+				meter := otel.GetMeterProvider().Meter("codexctl")
 				instruments, err := telemetry.NewInstruments(meter)
 				if err != nil {
 					log.Printf("[telemetry] instruments error: %v", err)

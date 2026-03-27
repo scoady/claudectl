@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -157,7 +158,7 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create project directory structure
-	if err := os.MkdirAll(filepath.Join(projPath, ".claude"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(projPath, ".codex"), 0o755); err != nil {
 		httpError(w, http.StatusInternalServerError, "failed to create project: "+err.Error())
 		return
 	}
@@ -169,14 +170,26 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write settings.local.json with permissive tool access
-	settings := `{"permissions":{"allow":["Bash(*)","Read(*)","Write(*)","Edit(*)","Glob(*)","Grep(*)"]}}`
-	os.WriteFile(filepath.Join(projPath, ".claude", "settings.local.json"), []byte(settings), 0o644)
-
 	// Write model config if specified
 	if req.Model != "" {
 		cfg := fmt.Sprintf(`{"parallelism":1,"model":"%s"}`, req.Model)
-		os.WriteFile(filepath.Join(projPath, ".claude", "manager.json"), []byte(cfg), 0o644)
+		os.WriteFile(filepath.Join(projPath, ".codex", "manager.json"), []byte(cfg), 0o644)
+	}
+
+	if _, err := s.ensureCanvasProjectSpace(req.Name); err != nil {
+		httpError(w, http.StatusInternalServerError, "failed to initialize canvas space: "+err.Error())
+		return
+	}
+
+	gitInit := exec.Command("git", "init", "-b", "main")
+	gitInit.Dir = projPath
+	if err := gitInit.Run(); err != nil {
+		gitInit = exec.Command("git", "init")
+		gitInit.Dir = projPath
+		if err := gitInit.Run(); err != nil {
+			httpError(w, http.StatusInternalServerError, "failed to initialize git repo: "+err.Error())
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]string{

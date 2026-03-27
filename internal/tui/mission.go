@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Mission pane styles ─────────────────────────────────────────────────────
@@ -31,8 +31,8 @@ type MissionPane struct {
 
 	// Content buffer — ring buffer of lines
 	lines    []string
-	lineHead int // next write position (for ring)
-	lineLen  int // number of valid lines
+	lineHead int             // next write position (for ring)
+	lineLen  int             // number of valid lines
 	rawTail  strings.Builder // partial line accumulator
 
 	// Tool badges

@@ -44,7 +44,7 @@ func (c *Client) CreateProject(name, description, model string) (*Project, error
 		body["model"] = model
 	}
 	var out Project
-	err := c.post("/api/projects/"+url.PathEscape(name), body, &out)
+	err := c.post("/api/projects", body, &out)
 	return &out, err
 }
 

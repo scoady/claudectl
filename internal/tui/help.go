@@ -24,6 +24,8 @@ func RenderHelp(width, height int) string {
 	}{
 		{"Ctrl+P / Ctrl+K", "Command palette"},
 		{"Ctrl+D", "Dispatch new task"},
+		{"W", "Workspace Studio"},
+		{"u", "Tools / Plugins"},
 		{"t", "Agent Timeline"},
 		{"m", "Mission Control (multi-agent)"},
 		{"T", "Targets (health status)"},
@@ -44,6 +46,7 @@ func RenderHelp(width, height int) string {
 		{":projects", "Show project list"},
 		{":timeline", "Agent Timeline"},
 		{":mission", "Mission Control"},
+		{":tools", "Tool / plugin manager"},
 		{":targets", "Targets health screen"},
 		{":settings", "Theme settings"},
 		{":q / :quit", "Quit"},
@@ -78,7 +81,7 @@ func RenderHelp(width, height int) string {
 	}
 
 	// Version info
-	content += "\n" + Class("dim").Render("c9s claudectl  |  ? to dismiss")
+	content += "\n" + Class("dim").Render("c9s codexctl  |  ? to dismiss")
 
 	box := Class("help-overlay").Render(content)
 

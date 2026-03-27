@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/scoady/claudectl/internal/api"
-	"github.com/scoady/claudectl/internal/ui"
+	"github.com/scoady/codexctl/internal/api"
+	"github.com/scoady/codexctl/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -162,7 +162,14 @@ func agentsCmd() *cobra.Command {
 				} else if m.Role == "user" {
 					role = ui.Bold.Render("user")
 				}
-				fmt.Printf("  %s  %s\n", role, m.Content)
+				content := m.Content
+				if m.Type == "tool_use" {
+					content = m.ToolName
+					if cmd, ok := m.ToolInput["command"].(string); ok && cmd != "" {
+						content += " · " + truncateStr(cmd, 80)
+					}
+				}
+				fmt.Printf("  %s  %s\n", role, content)
 			}
 			fmt.Println()
 			return nil

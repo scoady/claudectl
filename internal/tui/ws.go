@@ -17,6 +17,7 @@ type WSClient struct {
 	conn *websocket.Conn
 	mu   sync.Mutex
 	done chan struct{}
+	once sync.Once
 }
 
 // NewWSClient creates a new WebSocket client for the given API base URL.
@@ -113,7 +114,9 @@ func (ws *WSClient) Connect(program *tea.Program, sessionFilter string) tea.Cmd 
 
 // Close shuts down the WebSocket connection.
 func (ws *WSClient) Close() {
-	close(ws.done)
+	ws.once.Do(func() {
+		close(ws.done)
+	})
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 	if ws.conn != nil {

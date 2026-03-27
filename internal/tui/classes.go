@@ -101,14 +101,14 @@ func rebuildClasses() {
 		"footer-bar":          lipgloss.NewStyle().Background(Surface1),
 		"footer-sep":          lipgloss.NewStyle().Foreground(Muted),
 		"section-title":       lipgloss.NewStyle().Bold(true).Foreground(Purple),
-		"selection-indicator":  lipgloss.NewStyle().Foreground(Cyan).Bold(true),
+		"selection-indicator": lipgloss.NewStyle().Foreground(Cyan).Bold(true),
 
 		// ── Help overlay ─────────────────────────────────────────────────
-		"help-overlay":  lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(Purple).Padding(1, 3).Background(Surface0),
-		"help-key":      lipgloss.NewStyle().Foreground(Cyan).Bold(true).Width(16),
-		"help-desc":     lipgloss.NewStyle().Foreground(SubText),
-		"help-title":    lipgloss.NewStyle().Foreground(Purple).Bold(true).MarginBottom(1),
-		"help-section":  lipgloss.NewStyle().Foreground(Amber).Bold(true).MarginTop(1).MarginBottom(0),
+		"help-overlay": lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(Purple).Padding(1, 3).Background(Surface0),
+		"help-key":     lipgloss.NewStyle().Foreground(Cyan).Bold(true).Width(16),
+		"help-desc":    lipgloss.NewStyle().Foreground(SubText),
+		"help-title":   lipgloss.NewStyle().Foreground(Purple).Bold(true).MarginBottom(1),
+		"help-section": lipgloss.NewStyle().Foreground(Amber).Bold(true).MarginTop(1).MarginBottom(0),
 
 		// ── Watch view ───────────────────────────────────────────────────
 		"watch-header":     lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(BorderColor).Padding(0, 1).Background(Surface0),

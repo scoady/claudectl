@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scoady/claudectl/internal/metrics"
-	"github.com/scoady/claudectl/internal/telemetry"
+	"github.com/scoady/codexctl/internal/metrics"
+	"github.com/scoady/codexctl/internal/telemetry"
 )
 
 // Config holds server configuration options.
@@ -39,8 +39,9 @@ func New(cfg Config) *Server {
 	projectsDir := cfg.ProjectsDir
 	if projectsDir == "" {
 		home, _ := os.UserHomeDir()
-		projectsDir = filepath.Join(home, "git", "claude-managed-projects")
+		projectsDir = filepath.Join(home, "codex-managed-git-projects")
 	}
+	_ = os.MkdirAll(projectsDir, 0o755)
 
 	hub := NewHub()
 	broker := NewBroker(hub, "")
@@ -127,6 +128,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /api/projects/{name}/files", s.handleListFiles)
 	s.mux.HandleFunc("GET /api/projects/{name}/files/content", s.handleReadFile)
 	s.mux.HandleFunc("PUT /api/projects/{name}/files/content", s.handleWriteFile)
+	s.mux.HandleFunc("POST /api/projects/{name}/files/mkdir", s.handleMakeDir)
+	s.mux.HandleFunc("POST /api/projects/{name}/exec", s.handleExecCommand)
 	s.mux.HandleFunc("GET /api/projects/{name}/files/status", s.handleGitStatus)
 	s.mux.HandleFunc("GET /api/projects/{name}/files/branch", s.handleGitBranch)
 
@@ -149,24 +152,24 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /api/metrics/health", s.handleMetricsHealth)
 	s.mux.HandleFunc("GET /api/metrics/summary", s.handleMetricsSummary)
 
-	// Canvas (stubs)
-	s.mux.HandleFunc("GET /api/canvas/{project}", s.stub)
-	s.mux.HandleFunc("DELETE /api/canvas/{project}", s.stub)
-	s.mux.HandleFunc("POST /api/canvas/{project}/widgets", s.stub)
-	s.mux.HandleFunc("PUT /api/canvas/{project}/widgets/{id}", s.stub)
-	s.mux.HandleFunc("DELETE /api/canvas/{project}/widgets/{id}", s.stub)
-	s.mux.HandleFunc("GET /api/canvas/{project}/tabs", s.stub)
-	s.mux.HandleFunc("PUT /api/canvas/{project}/layout", s.stub)
-	s.mux.HandleFunc("GET /api/canvas/{project}/contract", s.stub)
-	s.mux.HandleFunc("POST /api/canvas/{project}/seed", s.stub)
-	s.mux.HandleFunc("POST /api/canvas/{project}/scene", s.stub)
-	s.mux.HandleFunc("GET /api/canvas/templates", s.stub)
-	s.mux.HandleFunc("POST /api/canvas/templates", s.stub)
+	// Canvas
+	s.mux.HandleFunc("GET /api/canvas/{project}", s.handleGetCanvas)
+	s.mux.HandleFunc("DELETE /api/canvas/{project}", s.handleClearCanvas)
+	s.mux.HandleFunc("POST /api/canvas/{project}/widgets", s.handleCreateCanvasWidget)
+	s.mux.HandleFunc("PUT /api/canvas/{project}/widgets/{id}", s.handleUpdateCanvasWidget)
+	s.mux.HandleFunc("DELETE /api/canvas/{project}/widgets/{id}", s.handleDeleteCanvasWidget)
+	s.mux.HandleFunc("GET /api/canvas/{project}/tabs", s.handleGetCanvasTabs)
+	s.mux.HandleFunc("PUT /api/canvas/{project}/layout", s.handleSaveCanvasLayout)
+	s.mux.HandleFunc("GET /api/canvas/{project}/contract", s.handleGetCanvasContract)
+	s.mux.HandleFunc("POST /api/canvas/{project}/seed", s.handleSeedCanvas)
+	s.mux.HandleFunc("POST /api/canvas/{project}/scene", s.handleReplaceCanvasScene)
+	s.mux.HandleFunc("GET /api/canvas/templates", s.handleGetCanvasTemplates)
+	s.mux.HandleFunc("POST /api/canvas/templates", s.handleSaveCanvasTemplate)
 
-	// Widget catalog (stubs)
-	s.mux.HandleFunc("GET /api/widget-catalog", s.stub)
-	s.mux.HandleFunc("GET /api/widget-catalog/{id}", s.stub)
-	s.mux.HandleFunc("DELETE /api/widget-catalog/{id}", s.stub)
+	// Widget catalog
+	s.mux.HandleFunc("GET /api/widget-catalog", s.handleGetWidgetCatalog)
+	s.mux.HandleFunc("GET /api/widget-catalog/{id}", s.handleGetWidgetCatalogItem)
+	s.mux.HandleFunc("DELETE /api/widget-catalog/{id}", s.handleDeleteWidgetCatalogItem)
 
 	// Static files — serve embedded dashboard at root (if set).
 	s.mux.HandleFunc("GET /", s.handleStatic)

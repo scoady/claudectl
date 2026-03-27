@@ -1,0 +1,105 @@
+{
+  "name": "atlassian-auth",
+  "description": "Core auth provider for Jira and Confluence integrations.",
+  "kind": "auth-provider",
+  "tags": ["core", "auth", "atlassian", "jira", "confluence"],
+  "repo_url": "core://atlassian-auth",
+  "skills_dir": "external_skills",
+  "provides": [
+    "jira.api_token",
+    "jira.base_url",
+    "jira.user_email",
+    "confluence.api_token",
+    "confluence.base_url",
+    "confluence.user_email"
+  ],
+  "configure": {
+    "inputs": [
+      {
+        "name": "atlassian_user_email",
+        "label": "Atlassian User Email",
+        "type": "text",
+        "env": "ATLASSIAN_USER_EMAIL",
+        "required": true
+      },
+      {
+        "name": "jira_api_token",
+        "label": "Jira API Token",
+        "type": "secret",
+        "env": "JIRA_API_TOKEN",
+        "required": true
+      },
+      {
+        "name": "jira_base_url",
+        "label": "Jira Base URL",
+        "type": "url",
+        "env": "JIRA_BASE_URL",
+        "required": true
+      },
+      {
+        "name": "confluence_api_token",
+        "label": "Confluence API Token",
+        "type": "secret",
+        "env": "CONFLUENCE_API_TOKEN",
+        "required": true
+      },
+      {
+        "name": "confluence_base_url",
+        "label": "Confluence Base URL",
+        "type": "url",
+        "env": "CONFLUENCE_BASE_URL",
+        "required": true
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "atlassian user email",
+      "type": "env",
+      "env": "ATLASSIAN_USER_EMAIL"
+    },
+    {
+      "name": "jira api token",
+      "type": "capability",
+      "capability": "jira.api_token"
+    },
+    {
+      "name": "confluence api token",
+      "type": "capability",
+      "capability": "confluence.api_token"
+    }
+  ],
+  "install": {
+    "type": "noop",
+    "capabilities": [
+      {
+        "name": "jira.api_token",
+        "token_env": "JIRA_API_TOKEN",
+        "base_url_env": "JIRA_BASE_URL"
+      },
+      {
+        "name": "jira.base_url",
+        "token_env": "JIRA_BASE_URL",
+        "base_url_env": "JIRA_BASE_URL"
+      },
+      {
+        "name": "jira.user_email",
+        "token_env": "ATLASSIAN_USER_EMAIL"
+      },
+      {
+        "name": "confluence.api_token",
+        "token_env": "CONFLUENCE_API_TOKEN",
+        "base_url_env": "CONFLUENCE_BASE_URL"
+      },
+      {
+        "name": "confluence.base_url",
+        "token_env": "CONFLUENCE_BASE_URL",
+        "base_url_env": "CONFLUENCE_BASE_URL"
+      },
+      {
+        "name": "confluence.user_email",
+        "token_env": "ATLASSIAN_USER_EMAIL"
+      }
+    ]
+  }
+}

@@ -23,11 +23,10 @@ var (
 
 	mdCode = lipgloss.NewStyle().
 		Foreground(Cyan).
-		Background(Surface1)
+		Bold(true)
 
 	mdCodeBlock = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#94a3b8")).
-			Background(Surface1)
+			Foreground(lipgloss.Color("#94a3b8"))
 
 	mdText = lipgloss.NewStyle().
 		Foreground(White)
@@ -36,8 +35,7 @@ var (
 		Foreground(Dim)
 
 	mdCodeFence = lipgloss.NewStyle().
-			Foreground(Dim).
-			Background(Surface1)
+			Foreground(Dim)
 
 	mdBullet = lipgloss.NewStyle().
 			Foreground(Purple).
@@ -166,37 +164,27 @@ func RenderToolBadge(toolName, input string) string {
 	switch strings.ToLower(toolName) {
 	case "read", "glob", "grep":
 		badgeStyle = lipgloss.NewStyle().
-			Background(BadgeCyanBg).
 			Foreground(Cyan).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 	case "bash":
 		badgeStyle = lipgloss.NewStyle().
-			Background(BadgeAmberBg).
 			Foreground(Amber).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 	case "edit", "write":
 		badgeStyle = lipgloss.NewStyle().
-			Background(BadgePurpleBg).
 			Foreground(Purple).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 	case "agent", "toolsearch":
 		badgeStyle = lipgloss.NewStyle().
-			Background(BadgeGreenBg).
 			Foreground(Green).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 	default:
 		badgeStyle = lipgloss.NewStyle().
-			Background(Surface2).
 			Foreground(White).
-			Bold(true).
-			Padding(0, 1)
+			Bold(true)
 	}
 
-	badge := badgeStyle.Render(toolName)
+	badge := badgeStyle.Render("[" + toolName + "]")
 	if input != "" {
 		badge += " " + mdDim.Render(input)
 	}

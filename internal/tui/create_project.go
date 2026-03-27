@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ShowCreateProjectMsg triggers the create project dialog overlay.
@@ -74,6 +74,9 @@ func (m CreateProjectModel) Update(msg tea.Msg) (CreateProjectModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		inputWidth := Clamp(36, Pct(msg.Width, 38), 72)
+		m.nameInput.Width = inputWidth
+		m.descInput.Width = inputWidth
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -143,11 +146,16 @@ func (m CreateProjectModel) View() string {
 	}
 
 	ly := NewLayout(m.width, m.height)
+	dialogWidth := max(ly.DialogWidth, Clamp(56, Pct(ly.Width, 55), 88))
+	inputWidth := Clamp(36, dialogWidth-10, 72)
+	m.nameInput.Width = inputWidth
+	m.descInput.Width = inputWidth
 
 	var content strings.Builder
 
 	// Title bar
 	content.WriteString(Class("dialog-title").Render("  Create Project") + "\n\n")
+	content.WriteString(Class("body").Render("Create a managed workspace project through the configured c9s backend.") + "\n\n")
 
 	// Name field (required)
 	nameLabel := Class("h1").Render("Name")
@@ -161,12 +169,20 @@ func (m CreateProjectModel) View() string {
 	content.WriteString(descLabel + optional + "\n")
 	content.WriteString(m.descInput.View() + "\n")
 
+	if m.apiClient != nil && strings.TrimSpace(m.apiClient.BaseURL) != "" {
+		content.WriteString("\n" + Class("dim").Render("Backend: "+m.apiClient.BaseURL))
+	}
+
 	// Status messages
 	if m.submitting {
 		content.WriteString("\n" + Class("dim").Render("  Creating..."))
 	}
 	if m.err != nil {
-		content.WriteString("\n" + Class("dialog-error").Render(" Error: "+m.err.Error()+" "))
+		content.WriteString("\n\n" + Class("dialog-error").Render(" Create failed "))
+		content.WriteString("\n" + Class("body").Render(m.err.Error()))
+		if m.apiClient != nil && strings.TrimSpace(m.apiClient.BaseURL) != "" {
+			content.WriteString("\n" + Class("dim").Render("Start the backend there or relaunch c9s with `--api` / `CM_API_URL`."))
+		}
 	}
 	if m.result != "" {
 		content.WriteString("\n" + Class("dialog-success").Render("  Created: "+m.result+" "))
@@ -176,7 +192,7 @@ func (m CreateProjectModel) View() string {
 	content.WriteString("\n\n" + Class("dialog-hint").Render("Enter create  |  Tab next field  |  Esc cancel"))
 
 	// Render dialog
-	overlay := Class("dialog").Width(ly.DialogWidth).Render(content.String())
+	overlay := Class("dialog").Width(dialogWidth).Render(content.String())
 
 	if m.width > 0 && m.height > 0 {
 		overlay = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)
@@ -191,6 +207,12 @@ func (m CreateProjectModel) createCmd(name, description string) tea.Cmd {
 			return CreateProjectCompleteMsg{Err: fmt.Errorf("no API client")}
 		}
 		_, err := m.apiClient.CreateProject(name, description, "")
-		return CreateProjectCompleteMsg{ProjectName: name, Err: err}
+		if err != nil {
+			return CreateProjectCompleteMsg{
+				ProjectName: name,
+				Err:         fmt.Errorf("POST %s/api/projects failed: %w", strings.TrimRight(m.apiClient.BaseURL, "/"), err),
+			}
+		}
+		return CreateProjectCompleteMsg{ProjectName: name, Err: nil}
 	}
 }

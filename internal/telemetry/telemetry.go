@@ -63,7 +63,7 @@ func Init() (*Telemetry, error) {
 
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceNameKey.String("claudectl"),
+			semconv.ServiceNameKey.String("codexctl"),
 			semconv.ServiceVersionKey.String(Version),
 		),
 	)

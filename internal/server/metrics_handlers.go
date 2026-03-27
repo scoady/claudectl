@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scoady/claudectl/internal/api"
-	"github.com/scoady/claudectl/internal/tui"
+	"github.com/scoady/codexctl/internal/api"
+	"github.com/scoady/codexctl/internal/tui"
 )
 
 // Metric series names recorded by broker callbacks.

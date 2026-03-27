@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
-	"github.com/scoady/claudectl/internal/ui"
+	"github.com/scoady/codexctl/internal/api"
+	"github.com/scoady/codexctl/internal/ui"
 	"github.com/spf13/cobra"
 )
 

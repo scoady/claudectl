@@ -15,11 +15,11 @@ var (
 	Blue   = lipgloss.Color("#60a5fa")
 
 	// Text tiers
-	White    = lipgloss.Color("#e2e8f0")
-	SubText  = lipgloss.Color("#94a3b8")
-	Dim      = lipgloss.Color("#64748b")
-	Faint    = lipgloss.Color("#475569")
-	Muted    = lipgloss.Color("#334155")
+	White   = lipgloss.Color("#e2e8f0")
+	SubText = lipgloss.Color("#94a3b8")
+	Dim     = lipgloss.Color("#64748b")
+	Faint   = lipgloss.Color("#475569")
+	Muted   = lipgloss.Color("#334155")
 
 	// Surface / depth layers
 	Glass       = lipgloss.Color("#0a0f19") // deepest background
@@ -225,8 +225,8 @@ var (
 			Foreground(Dim)
 
 	// ── Misc ──
-	BoldStyle = lipgloss.NewStyle().Bold(true).Foreground(White)
-	DimStyle  = lipgloss.NewStyle().Foreground(Dim)
+	BoldStyle  = lipgloss.NewStyle().Bold(true).Foreground(White)
+	DimStyle   = lipgloss.NewStyle().Foreground(Dim)
 	FaintStyle = lipgloss.NewStyle().Foreground(Faint)
 	MutedStyle = lipgloss.NewStyle().Foreground(Muted)
 	SubStyle   = lipgloss.NewStyle().Foreground(SubText)

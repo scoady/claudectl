@@ -12,7 +12,7 @@ import (
 	"github.com/NimbleMarkets/ntcharts/sparkline"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Time range presets ──────────────────────────────────────────────────────
@@ -35,11 +35,11 @@ func metricsRangeLabel(d time.Duration) string {
 
 // MetricsModel holds the metrics screen state.
 type MetricsModel struct {
-	RangeIdx    int // index into metricsTimeRanges
-	FocusPanel  int // 0-5 panel cycling
-	Expanded    bool
-	Width       int
-	Height      int
+	RangeIdx   int // index into metricsTimeRanges
+	FocusPanel int // 0-5 panel cycling
+	Expanded   bool
+	Width      int
+	Height     int
 }
 
 // NewMetricsModel creates a fresh metrics model.

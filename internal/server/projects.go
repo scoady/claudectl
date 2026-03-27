@@ -70,11 +70,11 @@ func extractDescription(content string) string {
 	return ""
 }
 
-// loadProjectConfig reads .claude/manager.json from the project directory.
+// loadProjectConfig reads .codex/manager.json from the project directory.
 // Returns a zero-value ProjectConfig if the file doesn't exist or is invalid.
 func loadProjectConfig(projPath string) ProjectConfig {
 	var cfg ProjectConfig
-	data, err := os.ReadFile(filepath.Join(projPath, ".claude", "manager.json"))
+	data, err := os.ReadFile(filepath.Join(projPath, ".codex", "manager.json"))
 	if err != nil {
 		return cfg
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/NimbleMarkets/ntcharts/sparkline"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Health status constants ─────────────────────────────────────────────────
@@ -42,9 +42,9 @@ type TargetGroup struct {
 type TargetsModel struct {
 	Groups   []TargetGroup
 	Agents   []api.Agent
-	Selected int  // flat index across all visible targets
-	GroupIdx int  // which group is selected (for Tab jumping)
-	Expanded int  // flat index of expanded target (-1 = none)
+	Selected int // flat index across all visible targets
+	GroupIdx int // which group is selected (for Tab jumping)
+	Expanded int // flat index of expanded target (-1 = none)
 
 	lastRefresh time.Time
 }
@@ -497,7 +497,7 @@ func renderTargetCard(t *TargetEntry, width int, selected, expanded bool) string
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderFg).
 		Background(bg).
-		Width(width - 2).
+		Width(width-2).
 		Padding(0, 1)
 
 	return "  " + cardStyle.Render(content) + "\n"

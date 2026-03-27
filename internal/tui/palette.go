@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Fuzzy matching ──────────────────────────────────────────────────────────
@@ -92,10 +92,10 @@ func FuzzyScore(input, candidate string) FuzzyMatch {
 
 // PaletteAction represents a single executable action in the palette.
 type PaletteAction struct {
-	Label    string           // Display text
-	Icon     string           // Left icon
-	Category string           // "project", "agent", "nav", "action", "command"
-	Action   func() tea.Msg   // What happens when selected
+	Label    string         // Display text
+	Icon     string         // Left icon
+	Category string         // "project", "agent", "nav", "action", "command"
+	Action   func() tea.Msg // What happens when selected
 }
 
 // categoryOrder defines sort priority per category (lower = higher priority).
@@ -636,6 +636,12 @@ func BuildPaletteActions(projects []api.Project, agents []api.Agent, client *api
 			Action:   func() tea.Msg { return NavigateMsg{Screen: ScreenMission} },
 		},
 		PaletteAction{
+			Label:    "Tools manager",
+			Icon:     "\u25c7",
+			Category: "nav",
+			Action:   func() tea.Msg { return NavigateMsg{Screen: ScreenTools} },
+		},
+		PaletteAction{
 			Label:    "Timeline",
 			Icon:     "\u25cf",
 			Category: "nav",
@@ -682,8 +688,14 @@ func BuildPaletteActions(projects []api.Project, agents []api.Agent, client *api
 		{"projects", "Show project list"},
 		{"dashboard", "Show dashboard"},
 		{"mission", "Mission Control"},
+		{"tools", "Tool / plugin management"},
 		{"timeline", "Agent Timeline"},
 		{"settings", "Theme settings"},
+		{"tools", "Tool / plugin manager"},
+		{"tools.refresh", "Refresh installed tools"},
+		{"tools.install", "Import tool from repo"},
+		{"tools.sync", "Sync exported skills"},
+		{"tools.doctor", "Run tool doctor"},
 		{"create", "Create project"},
 		{"quit", "Quit application"},
 	}

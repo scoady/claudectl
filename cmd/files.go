@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/scoady/claudectl/internal/ui"
+	"github.com/scoady/codexctl/internal/ui"
 	"github.com/spf13/cobra"
 )
 

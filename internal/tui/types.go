@@ -3,8 +3,10 @@
 package tui
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Screen identifiers ──────────────────────────────────────────────────────
@@ -17,7 +19,7 @@ const (
 	ScreenAgents
 	ScreenWatch
 	ScreenHelp
-	ScreenProject   // drill-into single project detail
+	ScreenProject        // drill-into single project detail
 	ScreenSettings       // theme settings screen
 	ScreenCanvas         // canvas management screen
 	ScreenWidgetDetail   // widget detail view
@@ -26,6 +28,8 @@ const (
 	ScreenTimeline       // agent timeline view
 	ScreenMetrics        // Prometheus-style metrics dashboard
 	ScreenTargets        // Prometheus-style targets health screen
+	ScreenWorkspace      // experimental workspace-centric shell
+	ScreenTools          // tool / plugin management screen
 )
 
 // ── Navigation messages ─────────────────────────────────────────────────────
@@ -36,6 +40,11 @@ type NavigateMsg struct {
 	// Optional context for the target screen
 	Agent   *api.Agent
 	Project *api.Project
+}
+
+type MousePoint struct {
+	X int
+	Y int
 }
 
 // ── WebSocket event messages (sent from WS goroutine → bubbletea) ───────────
@@ -101,6 +110,17 @@ type InjectCompleteMsg struct {
 	Err error
 }
 
+type WorkspaceComposeCompleteMsg struct {
+	SessionID string
+	Err       error
+}
+
+type WorkspaceExecCompleteMsg struct {
+	Command string
+	Result  *api.ExecResult
+	Err     error
+}
+
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
 // ShowDispatchMsg triggers the dispatch dialog overlay.
@@ -111,6 +131,14 @@ type ShowDispatchMsg struct {
 // ShowInjectMsg triggers the inject dialog overlay.
 type ShowInjectMsg struct {
 	SessionID string
+}
+
+type WorkspaceSelectProjectMsg struct {
+	ProjectName string
+}
+
+type WorkspaceCopyTranscriptMsg struct {
+	Err error
 }
 
 // ── Command helpers ─────────────────────────────────────────────────────────
@@ -126,5 +154,32 @@ func DispatchCmd(client *api.Client, project, task, model string) tea.Cmd {
 			SessionID: resp.SessionID,
 			AgentIDs:  resp.AgentIDs,
 		}
+	}
+}
+
+func WorkspaceComposeCmd(client *api.Client, project, sessionID, message string) tea.Cmd {
+	return func() tea.Msg {
+		if client == nil {
+			return WorkspaceComposeCompleteMsg{Err: nil}
+		}
+		if sid := strings.TrimSpace(sessionID); sid != "" {
+			err := client.InjectMessage(sid, message)
+			return WorkspaceComposeCompleteMsg{SessionID: sid, Err: err}
+		}
+		resp, err := client.Dispatch(project, message, "")
+		if err != nil {
+			return WorkspaceComposeCompleteMsg{Err: err}
+		}
+		return WorkspaceComposeCompleteMsg{SessionID: resp.SessionID}
+	}
+}
+
+func WorkspaceExecCmd(client *api.Client, project, command string) tea.Cmd {
+	return func() tea.Msg {
+		if client == nil {
+			return WorkspaceExecCompleteMsg{Command: command}
+		}
+		resp, err := client.ExecCommand(project, command)
+		return WorkspaceExecCompleteMsg{Command: command, Result: resp, Err: err}
 	}
 }

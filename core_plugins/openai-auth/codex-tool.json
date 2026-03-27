@@ -1,0 +1,63 @@
+{
+  "name": "openai-auth",
+  "description": "Core auth provider for OpenAI-backed tools, MCP servers, and model integrations.",
+  "kind": "auth-provider",
+  "tags": ["core", "auth", "openai"],
+  "repo_url": "core://openai-auth",
+  "skills_dir": "external_skills",
+  "provides": [
+    "openai.api_key",
+    "openai.base_url",
+    "openai.org_id"
+  ],
+  "configure": {
+    "inputs": [
+      {
+        "name": "openai_api_key",
+        "label": "OpenAI API Key",
+        "type": "secret",
+        "env": "OPENAI_API_KEY",
+        "required": true
+      },
+      {
+        "name": "openai_base_url",
+        "label": "OpenAI Base URL",
+        "type": "url",
+        "env": "OPENAI_BASE_URL",
+        "description": "Optional alternate endpoint."
+      },
+      {
+        "name": "openai_org_id",
+        "label": "OpenAI Org ID",
+        "type": "text",
+        "env": "OPENAI_ORG_ID"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "openai api key",
+      "type": "capability",
+      "capability": "openai.api_key"
+    }
+  ],
+  "install": {
+    "type": "noop",
+    "capabilities": [
+      {
+        "name": "openai.api_key",
+        "token_env": "OPENAI_API_KEY",
+        "base_url_env": "OPENAI_BASE_URL"
+      },
+      {
+        "name": "openai.base_url",
+        "token_env": "OPENAI_BASE_URL",
+        "base_url_env": "OPENAI_BASE_URL"
+      },
+      {
+        "name": "openai.org_id",
+        "token_env": "OPENAI_ORG_ID"
+      }
+    ]
+  }
+}

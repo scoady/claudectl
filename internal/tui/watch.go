@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Watch model ─────────────────────────────────────────────────────────────
@@ -47,6 +47,11 @@ type WatchModel struct {
 	apiClient *api.Client
 }
 
+type WatchHistoryMsg struct {
+	Messages []api.Message
+	Err      error
+}
+
 // NewWatchModel creates a new watch view for the given agent.
 func NewWatchModel(agent api.Agent, wsClient *WSClient, apiClient *api.Client) WatchModel {
 	vp := viewport.New(80, 20)
@@ -60,6 +65,7 @@ func NewWatchModel(agent api.Agent, wsClient *WSClient, apiClient *api.Client) W
 		maxBadge:  8,
 		startTime: time.Now(),
 		phase:     agent.Phase,
+		done:      agent.Status == "idle" || agent.Status == "done",
 		wsClient:  wsClient,
 		apiClient: apiClient,
 	}
@@ -77,7 +83,7 @@ func (m WatchModel) footerHeight() int {
 
 // Init implements tea.Model.
 func (m WatchModel) Init() tea.Cmd {
-	return nil
+	return m.loadHistoryCmd()
 }
 
 // Update implements tea.Model.
@@ -200,6 +206,18 @@ func (m WatchModel) Update(msg tea.Msg) (WatchModel, tea.Cmd) {
 			if m.sessionID == "" {
 				m.sessionID = msg.SessionID
 			}
+		}
+
+	case WatchHistoryMsg:
+		if msg.Err != nil {
+			m.rawBuf.WriteString("\n[history unavailable] " + msg.Err.Error() + "\n")
+			m.refreshContent()
+			break
+		}
+		m.applyHistory(msg.Messages)
+		m.refreshContent()
+		if m.follow {
+			m.viewport.GotoBottom()
 		}
 	}
 
@@ -357,6 +375,63 @@ func renderKeyHints(hints []KeyHint) string {
 		parts += Class("footer-key").Render(h.Key) + Class("footer-desc").Render(" "+h.Desc)
 	}
 	return parts
+}
+
+func (m WatchModel) loadHistoryCmd() tea.Cmd {
+	if m.apiClient == nil || m.sessionID == "" {
+		return nil
+	}
+	sessionID := m.sessionID
+	return func() tea.Msg {
+		messages, err := m.apiClient.GetAgentMessages(sessionID)
+		return WatchHistoryMsg{Messages: messages, Err: err}
+	}
+}
+
+func (m *WatchModel) applyHistory(messages []api.Message) {
+	if len(messages) == 0 {
+		return
+	}
+	var history strings.Builder
+	for _, msg := range messages {
+		switch msg.Type {
+		case "tool_use":
+			badge := RenderToolBadge(coalesce(msg.ToolName, "tool"), watchToolInputSummary(msg.ToolInput))
+			m.badges = append(m.badges, badge)
+		default:
+			content := strings.TrimSpace(msg.Content)
+			if content == "" {
+				continue
+			}
+			if history.Len() > 0 {
+				history.WriteString("\n\n")
+			}
+			history.WriteString(content)
+		}
+	}
+	if len(m.badges) > m.maxBadge {
+		m.badges = m.badges[len(m.badges)-m.maxBadge:]
+	}
+	if history.Len() == 0 {
+		return
+	}
+	if m.rawBuf.Len() > 0 {
+		m.rawBuf.WriteString("\n\n")
+	}
+	m.rawBuf.WriteString(history.String())
+}
+
+func watchToolInputSummary(input map[string]any) string {
+	if len(input) == 0 {
+		return ""
+	}
+	if command, ok := input["command"].(string); ok && command != "" {
+		return command
+	}
+	if status, ok := input["status"].(string); ok && status != "" {
+		return status
+	}
+	return ""
 }
 
 func (m *WatchModel) refreshContent() {

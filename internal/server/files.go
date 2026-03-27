@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"net/http"
 	"os"
 	"os/exec"
@@ -80,7 +81,10 @@ func (s *Server) handleListFiles(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ftype := "file"
-		if e.IsDir() {
+		switch {
+		case e.Type()&os.ModeSymlink != 0:
+			ftype = "symlink"
+		case e.IsDir():
 			ftype = "directory"
 		}
 
@@ -132,11 +136,11 @@ func (s *Server) handleReadFile(w http.ResponseWriter, r *http.Request) {
 	// Size cap: 500KB
 	if info.Size() > 500*1024 {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"content": "",
-			"binary":  false,
+			"content":   "",
+			"binary":    false,
 			"truncated": true,
-			"size":    info.Size(),
-			"message": "File too large to preview (> 500KB)",
+			"size":      info.Size(),
+			"message":   "File too large to preview (> 500KB)",
 		})
 		return
 	}
@@ -209,6 +213,88 @@ func (s *Server) handleWriteFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleMakeDir(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+
+	var req struct {
+		Path string `json:"path"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		httpError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	if req.Path == "" {
+		httpError(w, http.StatusBadRequest, "path is required")
+		return
+	}
+
+	projRoot := filepath.Join(s.ProjectsDir, name)
+	target := filepath.Join(projRoot, req.Path)
+
+	absTarget, _ := filepath.Abs(target)
+	absRoot, _ := filepath.Abs(projRoot)
+	if !strings.HasPrefix(absTarget, absRoot) {
+		httpError(w, http.StatusBadRequest, "path traversal not allowed")
+		return
+	}
+
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		httpError(w, http.StatusInternalServerError, "failed to create directory")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":   true,
+		"path": req.Path,
+	})
+}
+
+func (s *Server) handleExecCommand(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+
+	var req struct {
+		Command string `json:"command"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		httpError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	if strings.TrimSpace(req.Command) == "" {
+		httpError(w, http.StatusBadRequest, "command is required")
+		return
+	}
+
+	projRoot := filepath.Join(s.ProjectsDir, name)
+	if _, err := os.Stat(projRoot); err != nil {
+		httpError(w, http.StatusNotFound, "project not found: "+name)
+		return
+	}
+
+	cmd := exec.Command("/bin/zsh", "-lc", req.Command)
+	cmd.Dir = projRoot
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	exitCode := 0
+	err := cmd.Run()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		} else {
+			httpError(w, http.StatusInternalServerError, "failed to run command: "+err.Error())
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"stdout":    stdout.String(),
+		"stderr":    stderr.String(),
+		"exit_code": exitCode,
+	})
+}
+
 func (s *Server) handleGitStatus(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	projRoot := filepath.Join(s.ProjectsDir, name)
@@ -252,12 +338,50 @@ func (s *Server) handleGitBranch(w http.ResponseWriter, r *http.Request) {
 	cmd.Dir = projRoot
 	output, err := cmd.Output()
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]string{"branch": ""})
+		writeJSON(w, http.StatusOK, map[string]string{"branch": "", "remote": "", "provider": "local"})
 		return
+	}
+	branch := strings.TrimSpace(string(output))
+	remoteName := "local"
+	remoteURL := ""
+
+	remoteCmd := exec.Command("git", "remote")
+	remoteCmd.Dir = projRoot
+	if remotesOut, remoteErr := remoteCmd.Output(); remoteErr == nil {
+		for _, line := range strings.Split(string(remotesOut), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			remoteName = line
+			break
+		}
+	}
+	if remoteName != "local" {
+		urlCmd := exec.Command("git", "remote", "get-url", remoteName)
+		urlCmd.Dir = projRoot
+		if urlOut, urlErr := urlCmd.Output(); urlErr == nil {
+			remoteURL = strings.TrimSpace(string(urlOut))
+		}
+	}
+
+	provider := "local"
+	lowerURL := strings.ToLower(remoteURL)
+	switch {
+	case strings.Contains(lowerURL, "gitlab"):
+		provider = "gitlab"
+	case strings.Contains(lowerURL, "github"):
+		provider = "github"
+	case strings.Contains(lowerURL, "bitbucket"):
+		provider = "bitbucket"
+	case remoteName != "" && remoteName != "local":
+		provider = "git"
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
-		"branch": strings.TrimSpace(string(output)),
+		"branch":   branch,
+		"remote":   remoteName,
+		"provider": provider,
 	})
 }
 

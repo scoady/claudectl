@@ -1,0 +1,70 @@
+{
+  "name": "datadog-auth",
+  "description": "Core auth provider for Datadog-backed observability tools and dashboards.",
+  "kind": "auth-provider",
+  "tags": ["core", "auth", "datadog", "observability"],
+  "repo_url": "core://datadog-auth",
+  "skills_dir": "external_skills",
+  "provides": [
+    "datadog.api_key",
+    "datadog.app_key",
+    "datadog.site"
+  ],
+  "configure": {
+    "inputs": [
+      {
+        "name": "datadog_api_key",
+        "label": "Datadog API Key",
+        "type": "secret",
+        "env": "DD_API_KEY",
+        "required": true
+      },
+      {
+        "name": "datadog_app_key",
+        "label": "Datadog App Key",
+        "type": "secret",
+        "env": "DD_APP_KEY",
+        "required": true
+      },
+      {
+        "name": "datadog_site",
+        "label": "Datadog Site",
+        "type": "text",
+        "env": "DD_SITE",
+        "required": true
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "datadog api key",
+      "type": "capability",
+      "capability": "datadog.api_key"
+    },
+    {
+      "name": "datadog app key",
+      "type": "capability",
+      "capability": "datadog.app_key"
+    }
+  ],
+  "install": {
+    "type": "noop",
+    "capabilities": [
+      {
+        "name": "datadog.api_key",
+        "token_env": "DD_API_KEY",
+        "base_url_env": "DD_SITE"
+      },
+      {
+        "name": "datadog.app_key",
+        "token_env": "DD_APP_KEY",
+        "base_url_env": "DD_SITE"
+      },
+      {
+        "name": "datadog.site",
+        "token_env": "DD_SITE",
+        "base_url_env": "DD_SITE"
+      }
+    ]
+  }
+}

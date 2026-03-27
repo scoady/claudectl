@@ -4,26 +4,32 @@ import "net/url"
 
 // Widget mirrors WidgetState.
 type Widget struct {
-	ID         string `json:"id"`
-	Project    string `json:"project"`
-	Title      string `json:"title"`
-	Tab        string `json:"tab"`
-	TemplateID string `json:"template_id,omitempty"`
-	GSX        *int   `json:"gs_x,omitempty"`
-	GSY        *int   `json:"gs_y,omitempty"`
-	GSW        int    `json:"gs_w"`
-	GSH        int    `json:"gs_h"`
-	CreatedAt  string `json:"created_at,omitempty"`
-	UpdatedAt  string `json:"updated_at,omitempty"`
+	ID         string                 `json:"id"`
+	Project    string                 `json:"project"`
+	Title      string                 `json:"title"`
+	Kind       string                 `json:"kind,omitempty"`
+	Tab        string                 `json:"tab"`
+	TemplateID string                 `json:"template_id,omitempty"`
+	HTML       string                 `json:"html,omitempty"`
+	CSS        string                 `json:"css,omitempty"`
+	JS         string                 `json:"js,omitempty"`
+	Prompt     string                 `json:"prompt,omitempty"`
+	Data       map[string]interface{} `json:"data,omitempty"`
+	GSX        *int                   `json:"gs_x,omitempty"`
+	GSY        *int                   `json:"gs_y,omitempty"`
+	GSW        int                    `json:"gs_w"`
+	GSH        int                    `json:"gs_h"`
+	CreatedAt  string                 `json:"created_at,omitempty"`
+	UpdatedAt  string                 `json:"updated_at,omitempty"`
 }
 
 // LayoutItem represents a widget's position in a layout save request.
 type LayoutItem struct {
-	ID  string `json:"id"`
-	X   int    `json:"x"`
-	Y   int    `json:"y"`
-	W   int    `json:"w"`
-	H   int    `json:"h"`
+	ID string `json:"id"`
+	X  int    `json:"x"`
+	Y  int    `json:"y"`
+	W  int    `json:"w"`
+	H  int    `json:"h"`
 }
 
 // GetWidgets lists canvas widgets for a project.

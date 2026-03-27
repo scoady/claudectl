@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const defaultModel = "claude-opus-4-6"
+const defaultModel = "gpt-5-codex"
 
 // Broker manages all agent sessions and wires their callbacks to Hub broadcasts.
 type Broker struct {
@@ -68,7 +68,7 @@ func (b *Broker) SpawnSession(
 	sessionID := newUUID()
 
 	// Create a dispatch span that becomes the parent of agent.session spans
-	tracer := otel.Tracer("claudectl")
+	tracer := otel.Tracer("codexctl")
 	taskSnippet := task
 	if len(taskSnippet) > 256 {
 		taskSnippet = taskSnippet[:256] + "..."

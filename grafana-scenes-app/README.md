@@ -166,7 +166,7 @@ Login: admin / admin
 
 ## Part of claudectl
 
-This plugin is part of the [claudectl](https://github.com/scoady/claudectl) ecosystem:
+This plugin is part of the [claudectl](https://github.com/scoady/codexctl) ecosystem:
 - **claudectl** — Go binary: API server + embedded web dashboard
 - **c9s** — Terminal UI (bubbletea + lipgloss)
 - **grafana-scenes-app** — This Grafana plugin

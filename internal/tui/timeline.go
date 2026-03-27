@@ -9,7 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scoady/claudectl/internal/api"
+	"github.com/scoady/codexctl/internal/api"
 )
 
 // ── Agent history ring buffer ──────────────────────────────────────────────────
@@ -148,11 +148,11 @@ func zoomLabel(d time.Duration) string {
 
 // TimelineModel manages timeline screen state.
 type TimelineModel struct {
-	ZoomIdx    int // index into zoomLevels
-	CursorCol  int // column position of vertical cursor (0-based)
-	Selected   int // which project row is highlighted
-	Width      int
-	Height     int
+	ZoomIdx   int // index into zoomLevels
+	CursorCol int // column position of vertical cursor (0-based)
+	Selected  int // which project row is highlighted
+	Width     int
+	Height    int
 }
 
 // NewTimelineModel creates a fresh timeline.
@@ -162,8 +162,6 @@ func NewTimelineModel() TimelineModel {
 		CursorCol: -1,
 	}
 }
-
-
 
 // handleTimelineKey processes key input for the timeline screen.
 func (a *App) handleTimelineKey(key string) (tea.Model, tea.Cmd) {

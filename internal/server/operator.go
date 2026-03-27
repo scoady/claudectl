@@ -13,13 +13,13 @@ type EventType string
 
 const (
 	EventTaskDispatched EventType = "task_dispatched"
-	EventAgentSpawned  EventType = "agent_spawned"
-	EventAgentDone     EventType = "agent_done"
-	EventAgentIdle     EventType = "agent_idle"
-	EventAgentError    EventType = "agent_error"
-	EventTaskCompleted EventType = "task_completed"
-	EventInjectRequest EventType = "inject_request"
-	EventSpawnRequest  EventType = "spawn_request" // agent requesting to spawn another agent
+	EventAgentSpawned   EventType = "agent_spawned"
+	EventAgentDone      EventType = "agent_done"
+	EventAgentIdle      EventType = "agent_idle"
+	EventAgentError     EventType = "agent_error"
+	EventTaskCompleted  EventType = "task_completed"
+	EventInjectRequest  EventType = "inject_request"
+	EventSpawnRequest   EventType = "spawn_request" // agent requesting to spawn another agent
 )
 
 // Event is the unit of work flowing through the operator event bus.
@@ -61,11 +61,11 @@ type Operator struct {
 
 // PendingTask tracks a dispatched task through its lifecycle.
 type PendingTask struct {
-	ProjectName string
-	Task        string
-	TaskIndex   *int
-	SessionID   string
-	Status      string // "pending", "running", "done", "error"
+	ProjectName  string
+	Task         string
+	TaskIndex    *int
+	SessionID    string
+	Status       string // "pending", "running", "done", "error"
 	DispatchedAt time.Time
 	CompletedAt  *time.Time
 }
@@ -173,7 +173,7 @@ func (op *Operator) onTaskDispatched(event Event) {
 		projectPath,
 		task,
 		model,
-		false,  // not a controller — it's a worker
+		false, // not a controller — it's a worker
 		event.TaskIndex,
 		"", // MCP config — empty for now, agents inherit from project
 	)
