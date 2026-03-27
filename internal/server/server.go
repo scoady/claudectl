@@ -185,7 +185,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":         "ok",
 		"uptime":         time.Since(s.StartedAt).Seconds(),
-		"version":        "0.1.0",
+		"version":        "2.0.1",
 		"agents":         agentCount,
 		"ws_connections": s.Hub.ClientCount(),
 	})

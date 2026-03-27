@@ -94,11 +94,7 @@ type WorkspaceShellModel struct {
 
 	Entries              []api.FileEntry
 	SelectedEntry        int
-	GitStatus            map[string]string
-	GitBranch            string
-	GitRemote            string
-	GitProvider          string
-	GitReady             bool
+	Git                  workspaceGitContext
 	CanvasWidgets        []api.Widget
 	CanvasTabs           []string
 	ActiveCanvas         string
@@ -272,7 +268,7 @@ func NewWorkspaceShellModel() WorkspaceShellModel {
 	return WorkspaceShellModel{
 		FocusPane:       2,
 		DockMode:        workspaceDockFiles,
-		GitStatus:       map[string]string{},
+		Git:             newWorkspaceGitContext(),
 		TerminalTitle:   "Controller",
 		TerminalStatus:  "Ready",
 		SidebarList:     sidebar,
@@ -301,11 +297,7 @@ func (w *WorkspaceShellModel) Sync() {
 		w.LoadedProject = ""
 		w.LoadedDir = ""
 		w.Entries = nil
-		w.GitStatus = map[string]string{}
-		w.GitBranch = ""
-		w.GitRemote = ""
-		w.GitProvider = ""
-		w.GitReady = false
+		w.Git.Reset()
 		w.resetCanvas()
 		w.SelectedEntry = 0
 		w.SelectedAgent = 0
@@ -360,11 +352,7 @@ func (w *WorkspaceShellModel) Sync() {
 		w.LoadedProject = ""
 		w.LoadedDir = ""
 		w.Entries = nil
-		w.GitStatus = map[string]string{}
-		w.GitBranch = ""
-		w.GitRemote = ""
-		w.GitProvider = ""
-		w.GitReady = false
+		w.Git.Reset()
 		w.resetCanvas()
 		w.SelectedEntry = 0
 		w.SelectedAgent = 0
@@ -432,11 +420,7 @@ func (w *WorkspaceShellModel) CloseProjectTab(name string) bool {
 		w.LoadedProject = ""
 		w.LoadedDir = ""
 		w.Entries = nil
-		w.GitStatus = map[string]string{}
-		w.GitBranch = ""
-		w.GitRemote = ""
-		w.GitProvider = ""
-		w.GitReady = false
+		w.Git.Reset()
 		w.resetCanvas()
 		w.resetTerminal()
 		w.syncProjectPicker()

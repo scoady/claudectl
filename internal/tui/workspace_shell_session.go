@@ -342,30 +342,10 @@ func (w *WorkspaceShellModel) ClearTerminalView() {
 }
 
 func (w *WorkspaceShellModel) TranscriptPlainText() string {
-	lines := make([]string, 0, len(w.TerminalMessages)+len(w.PendingUserMessages)+8)
-	for _, msg := range w.TerminalMessages {
-		switch msg.Type {
-		case "tool_use":
-			lines = append(lines, fmt.Sprintf("%s tool: %s", tsToStamp(msg.Timestamp), workspaceShellToolLabel(msg)))
-		default:
-			text := strings.TrimSpace(msg.Content)
-			if text == "" {
-				continue
-			}
-			lines = append(lines, workspaceShellPlainMessage(msg.Role, text, msg.Timestamp)...)
-		}
-	}
-	for _, pending := range w.PendingUserMessages {
-		lines = append(lines, workspaceShellPlainMessage("user", pending.Content, pending.Timestamp)...)
-	}
-	for _, msg := range w.LocalSystemMessages {
-		lines = append(lines, workspaceShellPlainMessage("system", msg.Content, msg.Timestamp)...)
-	}
-	if w.PendingAssistant {
-		lines = append(lines, fmt.Sprintf("%s %s", tsToStamp(w.PendingAssistantAt), workspaceShellThinkingLabel()))
-	}
-	if stream := strings.TrimSpace(w.TerminalStream); stream != "" {
-		lines = append(lines, workspaceShellPlainMessage("assistant", stream, time.Now().UTC().Format(time.RFC3339))...)
+	rows := w.transcriptRows()
+	lines := make([]string, 0, len(rows)*2)
+	for _, row := range rows {
+		lines = append(lines, row.plainLines()...)
 	}
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
@@ -458,30 +438,15 @@ func (w *WorkspaceShellModel) refreshSessionViewport() {
 	width := max(36, w.SessionViewport.Width-1)
 	follow := w.SessionViewport.AtBottom()
 	offset := w.SessionViewport.YOffset
-	lines := make([]string, 0, len(w.TerminalLines)+len(w.PendingUserMessages)+8)
+	rows := w.transcriptRows()
+	lines := make([]string, 0, len(w.TerminalLines)+len(rows)*2)
 	lines = append(lines, w.TerminalLines...)
-	if len(w.TerminalMessages) > 0 {
-		lines = append(lines, workspaceShellConversationLines(w.TerminalMessages, width, 1200)...)
-	}
-	for _, pending := range w.PendingUserMessages {
-		lines = append(lines, workspaceShellMessageLines("user", pending.Content, pending.Timestamp, width)...)
-	}
-	for _, msg := range w.LocalSystemMessages {
-		lines = append(lines, workspaceShellMessageLines("system", msg.Content, msg.Timestamp, width)...)
-	}
-	if w.PendingAssistant {
-		stamp := w.PendingAssistantAt
-		if strings.TrimSpace(stamp) == "" {
-			stamp = time.Now().UTC().Format(time.RFC3339)
+	for _, row := range rows {
+		if row.Kind == "thinking" {
+			lines = append(lines, workspaceShellMessageLines("assistant", w.ComposerSpinner.View()+" "+row.Content, row.Timestamp, width)...)
+			continue
 		}
-		lines = append(lines, workspaceShellMessageLines("assistant", w.ComposerSpinner.View()+" "+workspaceShellThinkingLabel(), stamp, width)...)
-	}
-	if stream := strings.TrimSpace(w.TerminalStream); stream != "" {
-		streamStamp := w.PendingAssistantAt
-		if strings.TrimSpace(streamStamp) == "" {
-			streamStamp = time.Now().UTC().Format(time.RFC3339)
-		}
-		lines = append(lines, workspaceShellStreamLines(stream, streamStamp, width)...)
+		lines = append(lines, row.renderLines(width)...)
 	}
 	if len(lines) == 0 {
 		lines = []string{lipgloss.NewStyle().Foreground(Dim).Render("No transcript yet.")}
