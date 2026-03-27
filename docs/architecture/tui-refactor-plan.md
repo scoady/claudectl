@@ -12,6 +12,96 @@ This plan is the canonical checklist for:
 - reducing duplicate logic and one-off view state
 - bringing the TUI closer to a clean, testable architecture
 
+Operator-facing references:
+
+- [PROJECT.md](/Users/ayx106492/git/codexctl/PROJECT.md)
+- [TASKS.md](/Users/ayx106492/git/codexctl/TASKS.md)
+
+Detailed subsystem inventory:
+
+- [tui-module-inventory.md](/Users/ayx106492/git/codexctl/docs/architecture/tui-module-inventory.md)
+
+## Frontend Architecture Model
+
+This TUI should follow a terminal-friendly **MVC / MVU hybrid**:
+
+- **Models**
+  - own durable state
+  - own domain data
+  - do not own color/layout decisions
+- **Views**
+  - compose components into screens
+  - render from explicit model or view-model state
+  - stay free of mutation and backend side effects
+- **Controllers**
+  - own user intent handling
+  - translate keys, mouse, and commands into model mutations and backend actions
+  - in Bubble Tea terms, this is primarily the `Update` / command layer
+- **Components**
+  - reusable UI building blocks such as tabs, menus, cards, explorer rows, and terminal panes
+  - expose a small API to screens instead of forcing each screen to rebuild the same behavior
+- **Presenters / View Models**
+  - format raw API data into stable display-ready structures
+  - keep screens from formatting backend data inline
+- **Styles**
+  - semantic tokens and component style builders
+  - never hidden inside business logic
+
+The intent is not to force textbook MVC for its own sake. The intent is:
+
+- stable ownership
+- reusable components
+- predictable render behavior
+- less regression risk
+- easier AI and human maintenance
+
+Rule:
+
+- a screen should compose **views over components**
+- a component should expose a **small interface**
+- a controller should mutate **owned models**
+- renderers should consume **models or view models**, not re-derive business state ad hoc
+
+## Canvas + Blocks Paradigm
+
+The preferred mental model for new UI work is:
+
+- a **Canvas** is a full page or large surface
+- a **Block** is a reusable UI unit placed on a Canvas grid
+- a **Block** owns its own model, view, styling, and interaction contract
+- a **Canvas** owns only composition, placement, and screen-specific wiring
+
+This should feel more like Grafana or a dashboard builder than a pile of bespoke screen code.
+
+Rule:
+
+- do not hand-build a new screen by scattering panel rendering helpers around the screen file
+- do build a new screen by placing reusable Blocks on a Canvas
+- do keep the Block API small enough that another screen can place the same Block with no internal knowledge
+
+Block design requirements:
+
+- explicit placement on a grid
+- explicit sizing behavior
+- reusable styling through semantic style modules
+- hover/click ownership through shared interaction infrastructure
+- no duplicate panel chrome per screen
+
+This is the preferred pattern for:
+
+- telemetry panels
+- milestones/release summaries
+- timeseries charts
+- tool/catalog cards
+- workspace summaries
+- future canvas widgets
+
+Near-term proof points:
+
+- workspace telemetry stats Block
+- milestones Block
+- future generic timeseries Block that can be stamped out multiple times on one Canvas
+
 ## Current State
 
 The workspace shell is already partially decomposed:
@@ -55,9 +145,130 @@ The render path should not contain data fetching, sorting, transcript reconcilia
 
 The TUI should have stable intermediate models that make rendering predictable and testable instead of each screen formatting raw API objects inline.
 
+### 4.5. Define transport contracts at subsystem boundaries
+
+Some subsystems deserve a transport/schema layer in addition to their in-process domain model.
+
+This is especially true for:
+
+- terminal event streams
+- canvas scenes/widgets
+- future plugin or MCP-provided UI resources
+- telemetry/export pipelines
+
+Rule:
+
+- use protobuf or another explicit schema at **process and transport boundaries**
+- keep in-process screen and component state as idiomatic Go domain models
+- never let generated transport structs become the default UI model
+
+Preferred shape:
+
+- `proto/c9s/ui/v1/*.proto`
+- domain models under `internal/tui/components/...` or `internal/tui/workspace/...`
+- adapters between proto transport contracts and Go domain models
+
+This gives us:
+
+- stable event contracts
+- future IPC/plugin boundaries
+- reusable telemetry/export payloads
+- cleaner modularity than stringly event blobs
+
 ### 5. Keep legacy code out of active files
 
 Unused or superseded code should live under `internal/tui/dump/` until it is either recycled or deleted.
+
+### 5.5. Add UI contracts between layout and rendering
+
+We are still missing a thin contract layer between layout budgeting and rendered surfaces.
+
+The recent regression came from breaking implicit assumptions:
+
+- a one-line strip rendered multiple lines
+- tab cells in a one-line header rendered as multi-line blocks
+- a custom explorer renderer diverged from the stable sidebar sizing assumptions
+
+Those rules need to become explicit.
+
+Required surface contracts:
+
+- single-line surfaces
+  - top strip
+  - bottom strip
+  - project tab strip
+  - file tab strip
+  - canvas tab strip
+- bounded panels
+  - sidebar body
+  - transcript body
+  - editor body
+- zone-owned interactive surfaces
+  - rendered surfaces own their hitboxes
+  - hitboxes must not be re-derived with parallel geometry when a zone-based surface already exists
+
+Required tests:
+
+- top strip renders exactly one line
+- bottom strip renders exactly one line
+- each tab strip renders exactly one line
+- full workspace shell render matches requested terminal height
+- no interactive component depends on guessed row math when it already owns a rendered zone
+
+### 6. Prefer stable module boundaries over flat file sprawl
+
+The current `internal/tui/*.go` layout is acceptable as a transition state, but it is not the best long-term shape once major subsystems stabilize.
+
+Rule of thumb:
+
+- split by file first while APIs are still moving quickly
+- introduce subdirectories only when a subsystem has a clear owned model, render path, and event flow
+- do not create a new package just to move files around cosmetically
+- do create a package when it reduces duplicate logic, clarifies ownership, and gives us a small stable API
+
+This repo should prefer a hybrid structure:
+
+- top-level `internal/tui` keeps the root app shell, screen routing, and high-level composition
+- stable subsystems graduate into subpackages such as:
+  - `internal/tui/workspace`
+  - `internal/tui/editor`
+  - `internal/tui/components/tabs`
+  - `internal/tui/components/picker`
+  - `internal/tui/metrics`
+
+Why:
+
+- it is more AI-friendly because context is local to the subsystem directory
+- it reduces the chance of re-implementing similar logic in parallel files
+- it makes ownership clearer than a large flat directory with long file names
+- it avoids premature package churn while designs are still settling
+
+Anti-pattern to avoid:
+
+- creating many tiny packages that force large exported surfaces and introduce import-cycle pressure
+
+Target:
+
+- a directory should represent one concept with a small, explicit API
+- a file inside that directory should represent one concern inside that concept
+
+Preferred naming/shape once stabilized:
+
+- `internal/tui/<thing>/model.go`
+- `internal/tui/<thing>/render.go`
+- `internal/tui/<thing>/update.go`
+- `internal/tui/<thing>/<subthing>.go`
+
+For deeper subsystems:
+
+- `internal/tui/<thing>/<subthing>/model.go`
+- `internal/tui/<thing>/<subthing>/render.go`
+
+This is preferred over endlessly extending flat names like:
+
+- `workspace_shell_<subthing>_<detail>.go`
+
+Use the flat style only as a temporary transition while the subsystem API is still moving.
 
 ## Proposed TUI Shape
 
@@ -81,6 +292,10 @@ Unused or superseded code should live under `internal/tui/dump/` until it is eit
   - owned state and initialization
 - `workspace_shell_session.go`
   - terminal/editor/composer behavior
+- `workspace_shell_activity.go`
+  - activity rail rendering and interaction
+- `workspace_shell_tabs.go`
+  - shared project/file/canvas tab rendering and hitbox semantics
 - `workspace_shell_explorer.go`
   - explorer state and git badge logic
 - `workspace_shell_presenters.go`
@@ -91,10 +306,45 @@ Unused or superseded code should live under `internal/tui/dump/` until it is eit
   - pure rendering
 - `workspace_shell_metrics.go`
   - top strip / bottom strip metrics and context efficiency helpers
+- `workspace_shell_contracts_test.go`
+  - render/layout invariants and regression guards
 - future:
   - `workspace_shell_canvas.go`
-  - `workspace_shell_tabs.go`
   - `workspace_shell_git.go`
+  - `workspace_shell_editor.go`
+  - `workspace_shell_terminals.go`
+
+### Protocol layer
+
+- `proto/c9s/ui/v1/terminal.proto`
+  - normalized terminal event transport contract
+- future:
+  - `proto/c9s/ui/v1/canvas.proto`
+  - `proto/c9s/ui/v1/menu.proto`
+  - `proto/c9s/ui/v1/metrics.proto`
+
+Principle:
+
+- protobuf is the transport contract
+- the TUI component model is the domain contract
+- adapters keep those layers from collapsing into each other
+
+### Shared interaction layer
+
+- `context_menu.go`
+  - shared overlay menu model only
+- future:
+  - `components/menu/model.go`
+  - `components/menu/render.go`
+  - `components/menu/update.go`
+  - `components/menu/items.go`
+
+Principle:
+
+- menu rows, tabs, cards, and picker rows should all use the same zone-owned surface pattern
+- the rendered surface defines the hitbox
+- hover and click behavior should come from the same shared interaction model, not separate guessed geometry
+- screen-specific menus should extend shared app navigation instead of rebuilding `Home`, `Workspace`, `Tools`, and `Quit` independently
 
 ### Shared support layer
 
@@ -180,6 +430,52 @@ Why:
 
 - prepares for multi-widget canvases and richer canvas composition
 
+### `WorkspaceTerminalSurface`
+
+Represents one interactive terminal surface:
+
+- surface kind
+- title
+- session or command lane id
+- scrollback
+- input mode
+- visible state
+
+Why:
+
+- prepares for agent terminal plus system terminal drawer/split behavior
+- keeps IO and rendering ownership explicit
+
+### `EditorBuffer`
+
+Represents editable file state independently of the UI widget:
+
+- text buffer
+- cursor/selection
+- undo history
+- file metadata
+- language id
+
+Why:
+
+- enables syntax highlighting, structured text transforms, and future prompt-driven mutations without coupling them to `textarea`
+
+### `EditorHighlightPipeline`
+
+Represents language-aware highlighting as a composable subsystem:
+
+- language detector
+- highlighter provider
+- render adapter
+- plugin capability hook
+- fallback plain renderer
+
+Why:
+
+- avoids hardcoding per-language highlight logic directly into the workspace editor
+- allows external tools/plugins to contribute highlighting or language services cleanly
+- keeps future transforms, formatting, and semantic editing on the same buffer pipeline
+
 ## Remaining Work
 
 ### Phase 1: Finish the decomposition
@@ -248,6 +544,63 @@ Exit criteria:
 - key workspace behaviors are covered by unit tests
 - refactor safety does not depend on manual screenshots only
 
+### Phase 6: Editor and explorer architecture
+
+- replace the file explorer’s ad hoc row interactions with a dedicated explorer row/view module
+- introduce an `editor` subsystem directory once the current interfaces settle:
+  - `internal/tui/editor/buffer.go`
+  - `internal/tui/editor/detect.go`
+  - `internal/tui/editor/highlight.go`
+  - `internal/tui/editor/render_ansi.go`
+  - `internal/tui/editor/plugins.go`
+- define a plugin-facing capability model for:
+  - syntax highlighting
+  - formatting
+  - diagnostics
+  - code actions / transforms
+- keep the current plain textarea path as fallback while the highlight path matures
+
+Exit criteria:
+
+- file explorer rendering and hitboxes are owned by one focused module
+- editor highlighting is provider-based instead of hardcoded by extension in the workspace shell
+- future editor features can be added through one editor subsystem boundary
+
+### Phase 6: Editor architecture
+
+- replace direct editor rendering with a modular pipeline:
+  - buffer
+  - language detection
+  - syntax highlighter
+  - renderer
+  - editor view
+- prefer a pluggable highlighter implementation instead of hardcoded token rules
+- keep the rendering target abstract so terminal ANSI now and richer HTML later can share the same intermediate model
+- support future prompt-side text transforms and mutations through the same buffer/model layer
+
+Exit criteria:
+
+- syntax highlighting is not hardcoded into the editor view
+- text mutation features can operate on a shared editor buffer
+- file highlighting can be swapped or extended without rewriting editor UI code
+
+### Phase 7: Terminal architecture
+
+- split terminal behavior into dedicated terminal surface modules
+- model agent terminal and system pass-through terminal as separate but composable surfaces
+- support a drawer or split layout where opening the system terminal resizes the main agent terminal instead of replacing it
+- define clear IO ownership for:
+  - user to agent
+  - user to system
+  - system output copied into agent-visible transcript when intended
+- unify transcript, exec output, and future terminal widgets behind shared terminal surface abstractions where practical
+
+Exit criteria:
+
+- pass-through OS calls no longer depend on a small inline toggle
+- dual-terminal layout is cleanly modeled instead of bolted into the composer row
+- agent-visible and system-visible outputs have explicit routing semantics
+
 ## Best-Practice Gaps Still Open
 
 - `app.go` still owns too many responsibilities
@@ -256,6 +609,9 @@ Exit criteria:
 - context menu wiring is still repeated
 - some screen navigation is still command-string driven instead of typed action driven
 - `dump/` exists, but there is not yet a formal deletion policy
+- tabs are still not fully owned by a single shared tab module
+- the editor is still tied to direct `textarea` behavior instead of a proper code-editor pipeline
+- terminal IO semantics are still too coupled to one workspace session surface
 
 ## Anti-Slop Guardrails
 
@@ -302,12 +658,15 @@ Before merging, ask:
 1. keep shrinking `app.go`
 2. introduce `TranscriptRow`
 3. move workspace command routing away from string commands where practical
+4. modularize tabs as one shared subsystem
 
 ### After that
 
 1. introduce `WorkspaceGitContext`
 2. introduce `WorkspaceSelection`
 3. split canvas-specific workspace logic into its own file
+4. design the editor buffer and syntax-highlighting pipeline
+5. design the dual-terminal surface model and drawer/split UX
 
 ### Final cleanup
 

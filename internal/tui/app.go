@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -53,7 +51,6 @@ type DeleteProjectResultMsg struct {
 }
 
 type AppOptions struct {
-	WorkspaceUI bool
 }
 
 // ── App Model ────────────────────────────────────────────────────────────────
@@ -144,10 +141,6 @@ func NewApp(apiURL string, opts AppOptions) *App {
 		workspace:    NewWorkspaceShellModel(),
 		tools:        NewToolsModel(),
 	}
-	if opts.WorkspaceUI {
-		app.screen = ScreenWorkspace
-		app.wsClient = NewWSClient(apiURL)
-	}
 	return app
 }
 
@@ -156,10 +149,8 @@ func (a *App) Init() tea.Cmd {
 	cmds := []tea.Cmd{
 		a.fetchData(),
 		a.tickCmd(),
+		a.workspaceBlinkCmd(),
 		RefreshToolCatalogCmd(),
-	}
-	if a.screen == ScreenWorkspace && a.wsClient != nil {
-		cmds = append(cmds, a.startWSWatch(""), a.workspace.InitCmd(), a.workspaceFilesPollCmd(), FetchHostMetricsCmd(a.hostMetrics))
 	}
 	return tea.Batch(cmds...)
 }
@@ -173,6 +164,12 @@ func (a *App) tickCmd() tea.Cmd {
 func (a *App) workspaceFilesPollCmd() tea.Cmd {
 	return tea.Tick(10*time.Second, func(t time.Time) tea.Msg {
 		return WorkspaceFilesPollMsg(t)
+	})
+}
+
+func (a *App) workspaceBlinkCmd() tea.Cmd {
+	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg {
+		return WorkspaceBlinkMsg{}
 	})
 }
 
@@ -289,6 +286,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ShowContextMenuMsg:
 		a.contextMenu = NewContextMenuModel(msg)
+		a.contextMenu.width = a.width
+		a.contextMenu.height = a.height
 		return a, a.contextMenu.Init()
 
 	case showHelpMsg:
@@ -356,8 +355,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseMsg:
 		a.mousePos = MousePoint{X: msg.X, Y: msg.Y}
+		if model, cmd, handled := a.updateActiveOverlayMouse(msg); handled {
+			return model, cmd
+		}
 		if a.hasBlockingOverlay() {
 			return a, nil
+		}
+		if a.screen == ScreenDashboard {
+			return a.handleHomeMouse(msg)
 		}
 		if a.screen == ScreenWorkspace {
 			return a.handleWorkspaceMouse(msg)
@@ -456,25 +461,15 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return a, tea.Quit
 
 	case "esc":
-		if a.screen != ScreenDashboard {
-			// Canvas sub-screens go back to canvas
-			if a.screen == ScreenWidgetDetail || a.screen == ScreenTemplateBrowse {
-				a.screen = ScreenCanvas
-				return a, nil
-			}
-			// Canvas goes back to project
-			if a.screen == ScreenCanvas {
-				a.screen = ScreenProject
-				return a, nil
-			}
-			if (a.screen == ScreenWatch || a.screen == ScreenMission) && a.wsClient != nil {
-				a.wsClient.Close()
-				a.wsClient = nil
-			}
-			a.screen = ScreenDashboard
+		if a.screen == ScreenWidgetDetail || a.screen == ScreenTemplateBrowse {
+			a.screen = ScreenCanvas
 			return a, nil
 		}
-		return a.showDashboardMenu()
+		if a.screen == ScreenCanvas {
+			a.screen = ScreenProject
+			return a, nil
+		}
+		return a.showEscapeMenu()
 
 	case ":":
 		a.mode = ModeCommand
@@ -585,19 +580,15 @@ func (a *App) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "W":
-		prevScreen := a.screen
-		a.screen = ScreenWorkspace
-		a.workspace.Projects = a.dashboard.Projects
-		a.workspace.Agents = a.dashboard.Agents
-		if prevScreen == ScreenDashboard {
+		projectName := ""
+		if a.screen == ScreenDashboard {
 			if p := a.dashboard.SelectedProject(); p != nil {
-				a.workspace.CurrentProject = p.Name
+				projectName = p.Name
 			}
 		} else if a.projectName != "" {
-			a.workspace.CurrentProject = a.projectName
+			projectName = a.projectName
 		}
-		a.workspace.Sync()
-		return a, tea.Batch(a.workspaceLoadDirCmd(), a.workspaceLoadTerminalCmd())
+		return a.navigateToWorkspaceShell(projectName)
 
 	case "tab":
 		if a.screen == ScreenProject {
@@ -709,17 +700,7 @@ func (a *App) handleToolsKey(key string) (tea.Model, tea.Cmd) {
 }
 
 func copyWorkspaceTranscriptCmd(text string) tea.Cmd {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return func() tea.Msg {
-			return WorkspaceCopyTranscriptMsg{Err: fmt.Errorf("no transcript to copy")}
-		}
-	}
-	return func() tea.Msg {
-		cmd := exec.Command("pbcopy")
-		cmd.Stdin = strings.NewReader(text)
-		return WorkspaceCopyTranscriptMsg{Err: cmd.Run()}
-	}
+	return copyTextToClipboardCmd("Transcript copied", text)
 }
 
 func (a *App) handleToolsMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
@@ -793,7 +774,19 @@ func toolsListIndexAt(m *ToolsModel, y, h int) int {
 	return -1
 }
 
-func nextWorkspacePane(current int) int {
+func nextWorkspacePane(current int, withDrawer bool) int {
+	if withDrawer {
+		switch current {
+		case 0:
+			return 1
+		case 1:
+			return 2
+		case 2:
+			return 3
+		default:
+			return 0
+		}
+	}
 	switch current {
 	case 0:
 		return 1
@@ -804,7 +797,19 @@ func nextWorkspacePane(current int) int {
 	}
 }
 
-func prevWorkspacePane(current int) int {
+func prevWorkspacePane(current int, withDrawer bool) int {
+	if withDrawer {
+		switch current {
+		case 3:
+			return 2
+		case 2:
+			return 1
+		case 1:
+			return 0
+		default:
+			return 3
+		}
+	}
 	switch current {
 	case 2:
 		return 1
@@ -1073,200 +1078,6 @@ func (a *App) handleEnter() (tea.Model, tea.Cmd) {
 	return a, nil
 }
 
-// ── Context menu builders ────────────────────────────────────────────────────
-
-func (a *App) showDashboardMenu() (tea.Model, tea.Cmd) {
-	p := a.dashboard.SelectedProject()
-	title := "Home"
-	items := []MenuItem{
-		{Label: "Create Project", Key: "c", Icon: "+", Action: func() tea.Msg {
-			return ShowCreateProjectMsg{}
-		}},
-		{Label: "Tools", Key: "u", Icon: "⬢", Action: func() tea.Msg {
-			return NavigateMsg{Screen: ScreenTools}
-		}},
-		{Label: "Metrics", Key: "g", Icon: "◈", Action: func() tea.Msg {
-			return NavigateMsg{Screen: ScreenMetrics}
-		}},
-		{Label: "Targets", Key: "T", Icon: "◎", Action: func() tea.Msg {
-			return NavigateMsg{Screen: ScreenTargets}
-		}},
-		{Label: "Settings", Key: "s", Icon: "⚙", Action: func() tea.Msg {
-			return NavigateMsg{Screen: ScreenSettings}
-		}},
-	}
-	if p != nil {
-		projectName := p.Name
-		title = projectName
-		items = append([]MenuItem{
-			{Label: "Open", Key: "o", Icon: "▸", Action: func() tea.Msg {
-				return NavigateMsg{Screen: ScreenProject, Project: &api.Project{Name: projectName}}
-			}},
-			{Label: "Dispatch Task", Key: "d", Icon: "⚡", Action: func() tea.Msg {
-				return ShowDispatchMsg{ProjectName: projectName}
-			}},
-			{Label: "View Agents", Key: "a", Icon: "●", Action: func() tea.Msg {
-				return NavigateMsg{Screen: ScreenAgents}
-			}},
-			{Label: "Delete Project", Key: "x", Icon: "✗",
-				Style: lipgloss.NewStyle().Foreground(Rose),
-				Action: func() tea.Msg {
-					return ShowConfirmMsg{
-						Title:       "Delete Project",
-						Description: "Delete \"" + projectName + "\"?\nThis cannot be undone.",
-						Destructive: true,
-						OnConfirm: func() tea.Msg {
-							err := a.client.DeleteProject(projectName)
-							return DeleteProjectResultMsg{ProjectName: projectName, Err: err}
-						},
-					}
-				}},
-		}, items...)
-	}
-	items = append(items, MenuItem{
-		Label: "Quit",
-		Key:   "q",
-		Icon:  "⏻",
-		Style: lipgloss.NewStyle().Foreground(Rose),
-		Action: func() tea.Msg {
-			return tea.Quit()
-		},
-	})
-	return a, func() tea.Msg {
-		return ShowContextMenuMsg{
-			Title: title,
-			Items: items,
-		}
-	}
-}
-
-func (a *App) showProjectMenu() (tea.Model, tea.Cmd) {
-	switch a.project.Panel {
-	case 0: // Agents panel
-		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Agents) {
-			ag := a.project.Agents[a.project.Selected]
-			sid := ag.SessionID
-			return a, func() tea.Msg {
-				return ShowContextMenuMsg{
-					Title: "Agent " + truncate(sid, 16),
-					Items: []MenuItem{
-						{Label: "Watch Logs", Key: "l", Icon: "◉", Action: func() tea.Msg {
-							return NavigateMsg{Screen: ScreenWatch, Agent: &ag}
-						}},
-						{Label: "Inject Message", Key: "i", Icon: "▹", Action: func() tea.Msg {
-							return ShowInjectMsg{SessionID: sid}
-						}},
-						{Label: "Kill Agent", Key: "K", Icon: "✗",
-							Style: lipgloss.NewStyle().Foreground(Rose),
-							Action: func() tea.Msg {
-								return ShowConfirmMsg{
-									Title:       "Kill Agent",
-									Description: "Kill agent " + truncate(sid, 20) + "?",
-									Destructive: true,
-									OnConfirm: func() tea.Msg {
-										err := a.client.KillAgent(sid)
-										return KillResultMsg{SessionID: sid, Err: err}
-									},
-								}
-							}},
-					},
-				}
-			}
-		}
-	case 1: // Tasks panel
-		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Tasks) {
-			task := a.project.Tasks[a.project.Selected]
-			idx := a.project.Selected
-			projectName := a.projectName
-			isDone := strings.EqualFold(task.Status, "done") || strings.EqualFold(task.Status, "complete") || strings.EqualFold(task.Status, "completed")
-			isRunning := strings.EqualFold(task.Status, "in_progress") || strings.EqualFold(task.Status, "in-progress") || strings.EqualFold(task.Status, "running")
-			return a, func() tea.Msg {
-				return ShowContextMenuMsg{
-					Title: "Task #" + fmt.Sprintf("%d", idx),
-					Items: []MenuItem{
-						{Label: "Start Task", Key: "s", Icon: "▶",
-							Disabled: isRunning || isDone,
-							Action: func() tea.Msg {
-								_ = a.client.StartTask(projectName, idx)
-								return TickMsg{}
-							}},
-						{Label: "Complete Task", Key: "c", Icon: "✓",
-							Disabled: isDone,
-							Action: func() tea.Msg {
-								_ = a.client.CompleteTask(projectName, idx, "")
-								return TickMsg{}
-							}},
-						{Label: "Delete Task", Key: "x", Icon: "✗",
-							Style: lipgloss.NewStyle().Foreground(Rose),
-							Action: func() tea.Msg {
-								_ = a.client.DeleteTask(projectName, idx)
-								return TickMsg{}
-							}},
-					},
-				}
-			}
-		}
-	case 2: // Widgets panel
-		if a.project.Selected >= 0 && a.project.Selected < len(a.project.Widgets) {
-			widget := a.project.Widgets[a.project.Selected]
-			widgetID := widget.ID
-			projectName := a.projectName
-			return a, func() tea.Msg {
-				return ShowContextMenuMsg{
-					Title: widget.Title,
-					Items: []MenuItem{
-						{Label: "Delete Widget", Key: "x", Icon: "✗",
-							Style: lipgloss.NewStyle().Foreground(Rose),
-							Action: func() tea.Msg {
-								_ = a.client.DeleteWidget(projectName, widgetID)
-								return TickMsg{}
-							}},
-					},
-				}
-			}
-		}
-	}
-	return a, nil
-}
-
-func (a *App) showAgentsMenu() (tea.Model, tea.Cmd) {
-	ag := a.agents.SelectedAgent()
-	if ag == nil {
-		return a, nil
-	}
-	sid := ag.SessionID
-	projectName := ag.ProjectName
-	return a, func() tea.Msg {
-		return ShowContextMenuMsg{
-			Title: "Agent " + truncate(sid, 16),
-			Items: []MenuItem{
-				{Label: "Watch Logs", Key: "l", Icon: "◉", Action: func() tea.Msg {
-					return NavigateMsg{Screen: ScreenWatch, Agent: ag}
-				}},
-				{Label: "Inject Message", Key: "i", Icon: "▹", Action: func() tea.Msg {
-					return ShowInjectMsg{SessionID: sid}
-				}},
-				{Label: "Open Project", Key: "p", Icon: "▸", Action: func() tea.Msg {
-					return NavigateMsg{Screen: ScreenProject, Project: &api.Project{Name: projectName}}
-				}},
-				{Label: "Kill Agent", Key: "K", Icon: "✗",
-					Style: lipgloss.NewStyle().Foreground(Rose),
-					Action: func() tea.Msg {
-						return ShowConfirmMsg{
-							Title:       "Kill Agent",
-							Description: "Kill agent " + truncate(sid, 20) + "?",
-							Destructive: true,
-							OnConfirm: func() tea.Msg {
-								err := a.client.KillAgent(sid)
-								return KillResultMsg{SessionID: sid, Err: err}
-							},
-						}
-					}},
-			},
-		}
-	}
-}
-
 func (a *App) handleDetail() (tea.Model, tea.Cmd) {
 	switch a.screen {
 	case ScreenDashboard:
@@ -1380,190 +1191,6 @@ func (a *App) navigateToCanvas(projectName string) (tea.Model, tea.Cmd) {
 	)
 }
 
-func (a *App) showCanvasMenu() (tea.Model, tea.Cmd) {
-	projectName := a.canvas.ProjectName
-	switch a.canvas.Panel {
-	case 0: // Widgets panel
-		w := a.canvas.SelectedWidget()
-		if w == nil {
-			return a, nil
-		}
-		widget := *w
-		widgetID := widget.ID
-		return a, func() tea.Msg {
-			return ShowContextMenuMsg{
-				Title: widget.Title,
-				Items: []MenuItem{
-					{Label: "View Details", Key: "d", Icon: "◉", Action: func() tea.Msg {
-						return NavigateMsg{Screen: ScreenWidgetDetail}
-					}},
-					{Label: "Delete Widget", Key: "x", Icon: "✗",
-						Style: lipgloss.NewStyle().Foreground(Rose),
-						Action: func() tea.Msg {
-							return ShowConfirmMsg{
-								Title:       "Delete Widget",
-								Description: "Delete widget \"" + widget.Title + "\"?",
-								Destructive: true,
-								OnConfirm: func() tea.Msg {
-									err := a.client.DeleteWidget(projectName, widgetID)
-									if err != nil {
-										return CanvasActionResultMsg{Err: err}
-									}
-									return CanvasActionResultMsg{Message: "Widget deleted: " + widgetID}
-								},
-							}
-						}},
-				},
-			}
-		}
-	case 1: // Templates panel
-		t := a.canvas.SelectedTemplate()
-		if t == nil {
-			return a, nil
-		}
-		tmpl := *t
-		return a, func() tea.Msg {
-			return ShowContextMenuMsg{
-				Title: tmpl.Title,
-				Items: []MenuItem{
-					{Label: "Deploy to Canvas", Key: "d", Icon: "▸", Action: func() tea.Msg {
-						body := map[string]interface{}{
-							"template_id": tmpl.Filename,
-						}
-						_, err := a.client.CreateWidget(projectName, body)
-						if err != nil {
-							return CanvasActionResultMsg{Err: err}
-						}
-						return CanvasActionResultMsg{Message: "Template deployed: " + tmpl.Filename}
-					}},
-				},
-			}
-		}
-	case 2: // Catalog panel
-		ct := a.canvas.SelectedCatalogItem()
-		if ct == nil {
-			return a, nil
-		}
-		catItem := *ct
-		return a, func() tea.Msg {
-			return ShowContextMenuMsg{
-				Title: catItem.Title,
-				Items: []MenuItem{
-					{Label: "View Details", Key: "d", Icon: "◉", Action: func() tea.Msg {
-						return NavigateMsg{Screen: ScreenTemplateBrowse}
-					}},
-					{Label: "Deploy to Canvas", Key: "p", Icon: "▸", Action: func() tea.Msg {
-						body := map[string]interface{}{
-							"template_id": catItem.TemplateID,
-						}
-						_, err := a.client.CreateWidget(projectName, body)
-						if err != nil {
-							return CanvasActionResultMsg{Err: err}
-						}
-						return CanvasActionResultMsg{Message: "Catalog template deployed: " + catItem.TemplateID}
-					}},
-					{Label: "Delete from Catalog", Key: "x", Icon: "✗",
-						Style: lipgloss.NewStyle().Foreground(Rose),
-						Action: func() tea.Msg {
-							return ShowConfirmMsg{
-								Title:       "Delete Catalog Template",
-								Description: "Delete \"" + catItem.Title + "\" from catalog?",
-								Destructive: true,
-								OnConfirm: func() tea.Msg {
-									err := a.client.DeleteCatalogTemplate(catItem.TemplateID)
-									if err != nil {
-										return CanvasActionResultMsg{Err: err}
-									}
-									return CanvasActionResultMsg{Message: "Catalog template deleted: " + catItem.TemplateID}
-								},
-							}
-						}},
-				},
-			}
-		}
-	case 3: // Layout panel — no context menu
-		return a, nil
-	}
-	return a, nil
-}
-
-func (a *App) showToolsMenu() (tea.Model, tea.Cmd) {
-	rec := a.tools.SelectedRecord()
-	catalog := a.tools.CurrentCatalog()
-	canOperate := rec != nil
-	return a, func() tea.Msg {
-		importAction := func() tea.Msg {
-			source := defaultToolSource
-			if catalog != nil {
-				source = toolCatalogSource(*catalog)
-			}
-			return ShowToolInstallMsg{Source: source}
-		}
-		return ShowContextMenuMsg{
-			Title: "Tool Dock",
-			Items: []MenuItem{
-				{
-					Label:  "Import Tool From Repo",
-					Key:    "i",
-					Icon:   "⇪",
-					Action: importAction,
-				},
-				{
-					Label:    "Configure plugin",
-					Key:      "c",
-					Icon:     "⚙",
-					Disabled: !canOperate,
-					Action: func() tea.Msg {
-						if rec == nil {
-							return nil
-						}
-						return executeCommandMsg{Command: "tools.configure"}
-					},
-				},
-				{
-					Label:    "Sync exported skills",
-					Key:      "s",
-					Icon:     "↺",
-					Disabled: !canOperate,
-					Action: func() tea.Msg {
-						if rec == nil {
-							return nil
-						}
-						return executeCommandMsg{Command: "tools.sync"}
-					},
-				},
-				{
-					Label:    "Run doctor",
-					Key:      "d",
-					Icon:     "◉",
-					Disabled: !canOperate,
-					Action: func() tea.Msg {
-						if rec == nil {
-							return nil
-						}
-						return executeCommandMsg{Command: "tools.doctor"}
-					},
-				},
-				{
-					Label: "Refresh registry",
-					Key:   "r",
-					Icon:  "⟳",
-					Action: func() tea.Msg {
-						return executeCommandMsg{Command: "tools.refresh"}
-					},
-				},
-				{
-					Label: "Back to Dashboard",
-					Icon:  "←",
-					Action: func() tea.Msg {
-						return NavigateMsg{Screen: ScreenDashboard}
-					},
-				},
-			},
-		}
-	}
-}
-
 func toolCatalogSource(catalog tools.CatalogEntry) string {
 	source := strings.TrimSpace(catalog.RepoURL)
 	if source == "" {
@@ -1653,15 +1280,11 @@ func (a *App) handleNavigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case ScreenWorkspace:
-		if a.wsClient != nil {
-			a.wsClient.Close()
+		projectName := ""
+		if msg.Project != nil {
+			projectName = msg.Project.Name
 		}
-		a.screen = ScreenWorkspace
-		a.wsClient = NewWSClient(a.client.BaseURL)
-		a.workspace.Projects = a.dashboard.Projects
-		a.workspace.Agents = a.dashboard.Agents
-		a.workspace.Sync()
-		return a, tea.Batch(a.workspaceLoadDirCmd(), a.workspaceLoadTerminalCmd(), a.startWSWatch(""))
+		return a.navigateToWorkspaceShell(projectName)
 
 	case ScreenTools:
 		return a.navigateToTools()
@@ -1826,7 +1449,7 @@ func (a *App) View() string {
 		var content string
 		switch a.screen {
 		case ScreenDashboard:
-			content = RenderDashboard(&a.dashboard, a.width, contentHeight)
+			content = RenderDashboard(&a.dashboard, MousePoint{X: a.mousePos.X, Y: a.mousePos.Y - 3}, a.width, contentHeight)
 		case ScreenProject:
 			content = RenderProject(&a.project, a.width, contentHeight)
 		case ScreenAgents:
@@ -1839,7 +1462,16 @@ func (a *App) View() string {
 			content = RenderMetrics(&a.metrics, a.metricsStore, a.history,
 				a.dashboard.Agents, a.health, a.width, contentHeight)
 		case ScreenWorkspace:
-			content = RenderWorkspaceShell(&a.workspace, a.stats, a.health, a.metricsStore, a.hostMetrics, a.width, contentHeight)
+			content = RenderWorkspaceShell(
+				&a.workspace,
+				a.stats,
+				a.health,
+				a.metricsStore,
+				a.hostMetrics,
+				MousePoint{X: a.mousePos.X, Y: a.mousePos.Y - 3},
+				a.width,
+				contentHeight,
+			)
 		case ScreenTools:
 			content = RenderTools(&a.tools, a.width, contentHeight)
 		case ScreenTargets:
@@ -1893,9 +1525,12 @@ func (a *App) View() string {
 	switch a.screen {
 	case ScreenDashboard:
 		hints = []KeyHint{
+			{"Click", "Open Card"},
 			{"Enter", "Project"},
+			{"W", "Workspace"},
 			{"Esc", "Menu"},
-			{"Ctrl+P", "Palette"},
+			{"c", "New"},
+			{"g/u", "Metrics/Tools"},
 			{"/", "Filter"},
 			{":", "Cmd"},
 			{"?", "Help"},
@@ -1985,7 +1620,7 @@ func (a *App) View() string {
 // Run starts the TUI.
 func Run(apiURL string, opts AppOptions) error {
 	app := NewApp(apiURL, opts)
-	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	app.program = p
 	_, err := p.Run()
 	return err

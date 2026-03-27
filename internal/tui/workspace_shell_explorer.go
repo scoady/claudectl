@@ -8,20 +8,7 @@ import (
 )
 
 func (w *WorkspaceShellModel) explorerItems() []workspaceShellExplorerItem {
-	items := make([]workspaceShellExplorerItem, 0, len(w.Entries)+1)
-	if w.CurrentDir != "" {
-		parent := filepath.Dir(w.CurrentDir)
-		if parent == "." {
-			parent = ""
-		}
-		items = append(items, workspaceShellExplorerItem{
-			Label:    "..",
-			Path:     parent,
-			Icon:     "↰",
-			IsDir:    true,
-			IsParent: true,
-		})
-	}
+	items := make([]workspaceShellExplorerItem, 0, len(w.Entries))
 	for _, entry := range w.Entries {
 		items = append(items, workspaceShellExplorerItem{
 			Label: entry.Name,
@@ -52,12 +39,31 @@ func (w *WorkspaceShellModel) ExplorerItems() []workspaceExplorerItem {
 	return out
 }
 
+func workspaceExplorerDepth(path string) int {
+	path = strings.Trim(strings.TrimSpace(path), "/")
+	if path == "" {
+		return 0
+	}
+	return strings.Count(path, "/")
+}
+
+func workspaceExplorerDisplayName(item workspaceShellExplorerItem) string {
+	if item.Label != "" {
+		return item.Label
+	}
+	base := filepath.Base(strings.TrimSpace(item.Path))
+	if base == "." || base == "/" {
+		return strings.TrimSpace(item.Path)
+	}
+	return base
+}
+
 func (w *WorkspaceShellModel) SelectedExplorerItem() (workspaceShellExplorerItem, bool) {
 	items := w.explorerItems()
-	if len(items) == 0 || w.SelectedEntry < 0 || w.SelectedEntry >= len(items) {
+	if len(items) == 0 || w.Selection.ExplorerItem < 0 || w.Selection.ExplorerItem >= len(items) {
 		return workspaceShellExplorerItem{}, false
 	}
-	return items[w.SelectedEntry], true
+	return items[w.Selection.ExplorerItem], true
 }
 
 func (w *WorkspaceShellModel) explorerAccentAndBadge(item workspaceShellExplorerItem) (lipgloss.Color, string) {

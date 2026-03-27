@@ -3,12 +3,24 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/scoady/codexctl/internal/api"
+	blocks "github.com/scoady/codexctl/internal/tui/components/blocks"
+	metricscomponent "github.com/scoady/codexctl/internal/tui/components/metrics"
 )
 
-// DashboardModel is the home screen showing project list + stats.
+const (
+	homeCardWorkspaces = "home:workspaces"
+	homeCardMetrics    = "home:metrics"
+	homeCardTools      = "home:tools"
+	homeCardCreate     = "home:create"
+	homeCardHero       = "home:hero"
+)
+
+// DashboardModel is the home screen model showing entry-point cards and project context.
 type DashboardModel struct {
 	Projects []api.Project
 	Agents   []api.Agent
@@ -16,12 +28,11 @@ type DashboardModel struct {
 	Selected int
 	Filter   string
 
-	// Agent count history for the dashboard sparkline (last 60 ticks = ~2 min at 2s tick)
+	// Agent count history for home sparkline animation.
 	AgentCountHistory []int
 }
 
 // RecordAgentCount appends the current agent count to the history ring buffer.
-// Called on each data refresh tick.
 func (d *DashboardModel) RecordAgentCount() {
 	const maxHistory = 60
 	d.AgentCountHistory = append(d.AgentCountHistory, len(d.Agents))
@@ -38,8 +49,7 @@ func (d *DashboardModel) FilteredProjects() []api.Project {
 	f := strings.ToLower(d.Filter)
 	var out []api.Project
 	for _, p := range d.Projects {
-		if strings.Contains(strings.ToLower(p.Name), f) ||
-			strings.Contains(strings.ToLower(p.Description), f) {
+		if strings.Contains(strings.ToLower(p.Name), f) || strings.Contains(strings.ToLower(p.Description), f) {
 			out = append(out, p)
 		}
 	}
@@ -67,232 +77,282 @@ func (d *DashboardModel) ClampSelection() {
 	}
 }
 
-// RenderDashboard renders the dashboard screen.
-func RenderDashboard(d *DashboardModel, width, height int) string {
-	ly := NewLayout(width, height)
-	var b strings.Builder
+func RenderDashboard(d *DashboardModel, mouse MousePoint, width, height int) string {
+	if height < 12 || width < 60 {
+		return zone.Scan(renderCompactHome(d, mouse, width, height))
+	}
 
-	// ── Stats bar ──
-	if d.Stats != nil {
-		projCount := Pill(fmt.Sprintf(" %d projects ", d.Stats.TotalProjects), Purple, BadgePurpleBg)
-		agentCount := Pill(fmt.Sprintf(" %d agents ", d.Stats.TotalAgents), Cyan, BadgeCyanBg)
-		workingCount := Pill(fmt.Sprintf(" %d working ", d.Stats.WorkingAgents), Amber, BadgeAmberBg)
-		idleCount := Pill(fmt.Sprintf(" %d idle ", d.Stats.IdleAgents), Green, BadgeGreenBg)
+	topH := Clamp(7, height/3, 9)
+	bottomH := max(10, height-topH-1)
+	gap := 2
+	cardW := max(22, (width-(gap*3))/4)
+	heroW := width
 
-		statsBar := " " + projCount + "  " + agentCount + "  " + workingCount + "  " + idleCount
-		b.WriteString(statsBar + "\n")
-		b.WriteString(HLine(ly.HLineMaxWidth, Muted) + "\n")
+	workspaces := renderHomeWorkspacesCard(d, mouse, cardW, topH)
+	metrics := renderHomeMetricsCard(d, mouse, cardW, topH)
+	tools := renderHomeToolsCard(d, mouse, cardW, topH)
+	create := renderHomeCreateCard(d, mouse, max(22, width-(cardW*3)-(gap*3)), topH)
+	hero := renderHomeBlockCanvas(d, mouse, heroW, bottomH)
+
+	topRow := lipgloss.JoinHorizontal(lipgloss.Top, workspaces, "  ", metrics, "  ", tools, "  ", create)
+	header := renderHomeHero(width, d)
+
+	return zone.Scan(strings.Join([]string{header, topRow, hero}, "\n"))
+}
+
+func renderCompactHome(d *DashboardModel, mouse MousePoint, width, height int) string {
+	lines := []string{
+		lipgloss.NewStyle().Foreground(Cyan).Bold(true).Render("c9s home"),
+		lipgloss.NewStyle().Foreground(Dim).Render("workspace shell, metrics, tools, and agents"),
+		"",
+	}
+	projects := d.FilteredProjects()
+	if len(projects) == 0 {
+		lines = append(lines, lipgloss.NewStyle().Foreground(Dim).Render("No projects yet. Create one to get started."))
 	} else {
-		b.WriteString("\n")
-	}
-
-	// Build agent count map
-	agentsByProject := make(map[string][]api.Agent)
-	for _, a := range d.Agents {
-		agentsByProject[a.ProjectName] = append(agentsByProject[a.ProjectName], a)
-	}
-
-	// Project table
-	filtered := d.FilteredProjects()
-
-	if len(filtered) == 0 {
-		b.WriteString("\n")
-		if d.Filter != "" {
-			b.WriteString(renderEmptyState(width, "No projects matching \""+d.Filter+"\""))
-		} else {
-			b.WriteString(renderEmptyState(width, "No projects found"))
-		}
-		return b.String()
-	}
-
-	// Column widths from layout
-	colIndicator := 3
-	colNum := ly.DashColNum
-	colName := ly.DashColName
-	colActivity := ly.DashColActivity
-	colAgents := ly.DashColAgents
-	colStatus := ly.DashColStatus
-	colDesc := ly.DashColDesc
-
-	th := Class("th")
-	td := Class("td")
-	tdSel := Class("td-selected")
-
-	// Header row
-	headerPad := repeatStr(" ", colIndicator)
-	header := headerPad +
-		th.Width(colNum).Render("#") +
-		th.Width(colName).Render("PROJECT") +
-		th.Width(colActivity).Render("") +
-		th.Width(colAgents).Render("AGENTS") +
-		th.Width(colStatus).Render("STATUS") +
-		th.Width(colDesc).Render("DESCRIPTION")
-	b.WriteString(header + "\n")
-
-	// Calculate visible range for scrolling
-	maxVisible := height - 10
-	if maxVisible < 5 {
-		maxVisible = 5
-	}
-
-	startIdx := 0
-	if d.Selected >= maxVisible {
-		startIdx = d.Selected - maxVisible + 1
-	}
-	endIdx := startIdx + maxVisible
-	if endIdx > len(filtered) {
-		endIdx = len(filtered)
-	}
-
-	for i := startIdx; i < endIdx; i++ {
-		p := filtered[i]
-		pa := agentsByProject[p.Name]
-
-		// Count working agents
-		working := 0
-		for _, a := range pa {
-			if a.Status == "working" || a.Status == "active" {
-				working++
+		for i, p := range projects[:minInt(len(projects), 5)] {
+			prefix := "  "
+			if i == d.Selected {
+				prefix = "▸ "
 			}
+			lines = append(lines, prefix+p.Name)
 		}
-
-		// Status pill
-		var statusStr string
-		if working > 0 {
-			statusStr = Class("status-active").Render(fmt.Sprintf("● %d working", working))
-		} else if len(pa) > 0 {
-			statusStr = Class("status-idle").Render("◌ idle")
-		} else {
-			statusStr = Class("dim").Render("· no agents")
-		}
-
-		// Activity sparkline
-		activity := Sparkline(len(pa))
-
-		// Description
-		desc := p.Description
-		if desc == "" && p.Goal != "" {
-			lines := strings.SplitN(p.Goal, "\n", 2)
-			desc = strings.TrimPrefix(strings.TrimSpace(lines[0]), "# ")
-		}
-		if len(desc) > colDesc-2 {
-			desc = desc[:colDesc-5] + "..."
-		}
-
-		// Selection indicator
-		indicator := "   "
-		if i == d.Selected {
-			indicator = Class("selection-indicator").Render(" ▌ ")
-		}
-
-		// Row style
-		cellStyle := td
-		numStyle := Class("dim")
-		if i == d.Selected {
-			cellStyle = tdSel
-			numStyle = lipgloss.NewStyle().Foreground(Cyan).Bold(true)
-		}
-
-		// Project name gets emphasis
-		nameStyle := cellStyle
-		if i == d.Selected {
-			nameStyle = lipgloss.NewStyle().Foreground(White).Bold(true).Background(Surface1).Padding(0, 1)
-		} else {
-			nameStyle = lipgloss.NewStyle().Foreground(White).Padding(0, 1)
-		}
-
-		numStr := fmt.Sprintf("%d", i+1)
-		row := indicator +
-			numStyle.Width(colNum).Render(numStr) +
-			nameStyle.Width(colName).Render(truncate(p.Name, colName-2)) +
-			cellStyle.Width(colActivity).Render(activity) +
-			cellStyle.Width(colAgents).Render(fmt.Sprintf("%d", len(pa))) +
-			cellStyle.Width(colStatus).Render(statusStr) +
-			cellStyle.Width(colDesc).Render(desc)
-
-		if i == d.Selected {
-			row = lipgloss.NewStyle().
-				Background(Surface1).
-				Width(ly.SelectedRowWidth).
-				Render(row)
-		}
-
-		b.WriteString(row + "\n")
 	}
-
-	// Scroll indicator
-	if len(filtered) > maxVisible {
-		scrollPct := float64(d.Selected) / float64(len(filtered)-1) * 100
-		scrollInfo := Class("dim").Render(fmt.Sprintf("  ↕ %d/%d  %.0f%%", d.Selected+1, len(filtered), scrollPct))
-
-		// Mini scrollbar
-		barLen := 10
-		pos := int(float64(d.Selected) / float64(len(filtered)-1) * float64(barLen-1))
-		scrollBar := ""
-		for j := 0; j < barLen; j++ {
-			if j == pos {
-				scrollBar += lipgloss.NewStyle().Foreground(Cyan).Render("█")
-			} else {
-				scrollBar += lipgloss.NewStyle().Foreground(Muted).Render("░")
-			}
-		}
-
-		b.WriteString("\n" + scrollInfo + "  " + scrollBar + "\n")
-	}
-
-	// ── Compact agent activity sparkline ──
-	// Show a mini braille sparkline of agent count over recent ticks
-	if len(d.AgentCountHistory) > 2 {
-		sparkWidth := Clamp(20, width/3, 50)
-		sparkLabel := Class("faint").Render("  agents ")
-		spark := RenderSparklineBraille(d.AgentCountHistory, sparkWidth, 1, Cyan)
-		b.WriteString("\n" + sparkLabel + spark)
-
-		// Append cost estimate if we have stats
-		if d.Stats != nil && d.Stats.TotalAgents > 0 {
-			// Estimate total cost from all visible agents
-			var totalCost float64
-			for _, a := range d.Agents {
-				totalCost += EstimateCost(a.Model, a.TurnCount)
-			}
-			if totalCost > 0 {
-				costStr := lipgloss.NewStyle().Foreground(Amber).
-					Render("  " + FormatCost(totalCost))
-				b.WriteString(costStr)
-			}
-		}
-		b.WriteString("\n")
-	}
-
-	return b.String()
+	return strings.Join(padOrTrimLines(lines, height), "\n")
 }
 
-func renderEmptyState(width int, message string) string {
-	art := lipgloss.NewStyle().Foreground(Muted).Render("       ·  ") +
-		lipgloss.NewStyle().Foreground(Faint).Render("     .  · ") + "\n" +
-		lipgloss.NewStyle().Foreground(Faint).Render("    .    ") +
-		lipgloss.NewStyle().Foreground(Dim).Render("  ·   ") +
-		lipgloss.NewStyle().Foreground(Muted).Render(" .") + "\n" +
-		lipgloss.NewStyle().Foreground(Dim).Render("  ·    ") +
-		lipgloss.NewStyle().Foreground(Faint).Render(".    ") +
-		lipgloss.NewStyle().Foreground(Muted).Render("·   .") + "\n"
-
-	msg := Class("dim").Render("  " + message)
-	hint := Class("faint").Render("  Press Ctrl+D to dispatch or : to enter a command")
-
-	content := art + "\n" + msg + "\n" + hint
-
-	boxWidth := Clamp(30, 50, width-4)
-
-	return lipgloss.NewStyle().
-		Padding(1, 2).
-		Width(boxWidth).
-		Render(content)
+func renderHomeHero(width int, d *DashboardModel) string {
+	title := lipgloss.NewStyle().Foreground(White).Bold(true).Render("Home")
+	sub := lipgloss.NewStyle().Foreground(Dim).Render("Terminal-native orchestration for projects, agents, tools, and canvases")
+	right := ""
+	if d.Stats != nil {
+		right = strings.Join([]string{
+			Pill(fmt.Sprintf(" %d projects ", d.Stats.TotalProjects), Purple, BadgePurpleBg),
+			Pill(fmt.Sprintf(" %d agents ", d.Stats.TotalAgents), Cyan, BadgeCyanBg),
+			Pill(fmt.Sprintf(" %d working ", d.Stats.WorkingAgents), Amber, BadgeAmberBg),
+		}, " ")
+	}
+	top := workspaceShellAlignedRow(title, right, width, lipgloss.NewStyle(), lipgloss.NewStyle())
+	return strings.Join([]string{top, sub}, "\n")
 }
 
-func minInt(a, b int) int {
-	if a < b {
-		return a
+func renderHomeWorkspacesCard(d *DashboardModel, mouse MousePoint, width, height int) string {
+	projects := d.FilteredProjects()
+	body := []string{
+		lipgloss.NewStyle().Foreground(SubText).Render("Jump into the shell, edit files, inspect git, and keep project context together."),
 	}
-	return b
+	if len(projects) == 0 {
+		body = append(body,
+			"",
+			lipgloss.NewStyle().Foreground(Dim).Render("No projects yet"),
+			lipgloss.NewStyle().Foreground(Dim).Render("Create one to start"),
+		)
+	} else {
+		body = append(body, "", lipgloss.NewStyle().Foreground(Dim).Render("Recent"))
+		for i, p := range projects[:minInt(len(projects), max(2, height-5))] {
+			prefix := "• "
+			color := SubText
+			if i == d.Selected {
+				prefix = "▸ "
+				color = Cyan
+			}
+			body = append(body, lipgloss.NewStyle().Foreground(color).Bold(i == d.Selected).Render(prefix+p.Name))
+		}
+	}
+	return renderZoneCard(zoneCardSpec{
+		ZoneID:   homeCardWorkspaces,
+		Icon:     "▣",
+		Title:    "Workspaces",
+		Badge:    fmt.Sprintf("%d", len(projects)),
+		Accent:   Cyan,
+		Width:    width,
+		Height:   height,
+		Hovered:  zoneInBounds(homeCardWorkspaces, teaMouseFromPoint(mouse)),
+		Selected: true,
+		Body:     body,
+	})
+}
+
+func renderHomeMetricsCard(d *DashboardModel, mouse MousePoint, width, height int) string {
+	values := d.AgentCountHistory
+	if len(values) == 0 {
+		values = []int{0, 1, 1, 2, 1}
+	}
+	body := []string{
+		lipgloss.NewStyle().Foreground(SubText).Render("Observe system and agent health in one place."),
+	}
+	if d.Stats != nil {
+		body = append(body, "",
+			lipgloss.NewStyle().Foreground(Cyan).Render(RenderSparklineBraille(values, max(10, width-8), 2, Cyan)),
+			lipgloss.NewStyle().Foreground(Dim).Render(fmt.Sprintf("%d total • %d working • %d idle", d.Stats.TotalAgents, d.Stats.WorkingAgents, d.Stats.IdleAgents)),
+		)
+	} else {
+		body = append(body, "", lipgloss.NewStyle().Foreground(Cyan).Render(RenderSparklineBraille(values, max(10, width-8), 2, Cyan)))
+	}
+	return renderZoneCard(zoneCardSpec{
+		ZoneID:   homeCardMetrics,
+		Icon:     "◈",
+		Title:    "Metrics",
+		Accent:   Purple,
+		Width:    width,
+		Height:   height,
+		Hovered:  zoneInBounds(homeCardMetrics, teaMouseFromPoint(mouse)),
+		Selected: false,
+		Body:     body,
+	})
+}
+
+func renderHomeToolsCard(d *DashboardModel, mouse MousePoint, width, height int) string {
+	body := []string{
+		lipgloss.NewStyle().Foreground(SubText).Render("Manage MCP tools, plugins, and local runtimes."),
+		"",
+		lipgloss.NewStyle().Foreground(Dim).Render("• inspect tools"),
+		lipgloss.NewStyle().Foreground(Dim).Render("• sync skills"),
+		lipgloss.NewStyle().Foreground(Dim).Render("• configure providers"),
+	}
+	return renderZoneCard(zoneCardSpec{
+		ZoneID:   homeCardTools,
+		Icon:     "⬢",
+		Title:    "Tools & Plugins",
+		Accent:   Amber,
+		Width:    width,
+		Height:   height,
+		Hovered:  zoneInBounds(homeCardTools, teaMouseFromPoint(mouse)),
+		Body:     body,
+	})
+}
+
+func renderHomeCreateCard(d *DashboardModel, mouse MousePoint, width, height int) string {
+	body := []string{
+		lipgloss.NewStyle().Foreground(SubText).Render("Bootstrap a new local repo, initialize git, and start a managed workspace."),
+		"",
+		lipgloss.NewStyle().Foreground(Green).Render("Create project"),
+		lipgloss.NewStyle().Foreground(Dim).Render("Press c or click this card"),
+	}
+	return renderZoneCard(zoneCardSpec{
+		ZoneID:   homeCardCreate,
+		Icon:     "+",
+		Title:    "New Project",
+		Accent:   Green,
+		Width:    width,
+		Height:   height,
+		Hovered:  zoneInBounds(homeCardCreate, teaMouseFromPoint(mouse)),
+		Body:     body,
+	})
+}
+
+func renderHomeHeroCanvas(d *DashboardModel, mouse MousePoint, width, height int) string {
+	frame := homeRobotFrame()
+	body := []string{
+		lipgloss.NewStyle().Foreground(SubText).Render("Project orchestration in one place"),
+		lipgloss.NewStyle().Foreground(Dim).Render("A local controller coordinating workspaces, tools, metrics, and canvases."),
+		"",
+	}
+	body = append(body, frame...)
+	body = append(body,
+		"",
+		lipgloss.NewStyle().Foreground(Cyan).Render("flow"),
+		lipgloss.NewStyle().Foreground(Dim).Render("create → enter workspace → delegate → inspect → iterate"),
+	)
+	return renderZoneCard(zoneCardSpec{
+		ZoneID:   homeCardHero,
+		Icon:     "✦",
+		Title:    "Orchestration Loop",
+		Accent:   Cyan,
+		Width:    width,
+		Height:   height,
+		Hovered:  zoneInBounds(homeCardHero, teaMouseFromPoint(mouse)),
+		Body:     body,
+	})
+}
+
+func renderHomeBlockCanvas(d *DashboardModel, mouse MousePoint, width, height int) string {
+	hovered := map[string]bool{}
+	return blocks.RenderCanvas(buildHomeCanvas(d), width, height, hovered)
+}
+
+func buildHomeCanvas(d *DashboardModel) blocks.Canvas {
+	agentValues := d.AgentCountHistory
+	if len(agentValues) == 0 {
+		agentValues = []int{0, 1, 2, 1, 2, 3}
+	}
+
+	working := 0
+	total := len(d.Agents)
+	if d.Stats != nil {
+		working = d.Stats.WorkingAgents
+		total = d.Stats.TotalAgents
+	}
+	projects := len(d.FilteredProjects())
+	if d.Stats != nil && d.Stats.TotalProjects > 0 {
+		projects = d.Stats.TotalProjects
+	}
+
+	telemetry := blocks.TelemetryBlock{
+		ID:     "home-telemetry",
+		Title:  "Workspace Telemetry",
+		Badge:  "live",
+		Accent: string(Cyan),
+		Placement: blocks.Placement{
+			Col:     0,
+			Row:     0,
+			ColSpan: 6,
+		},
+		Sizing: blocks.Sizing{MinHeight: 10, PreferredHeight: 10},
+		Model: metricscomponent.NewModel([]metricscomponent.Item{
+			{Label: "projects", Value: fmt.Sprintf("%d", projects), Spark: RenderSparklineStyled(agentValues, 8, Cyan), Color: string(Cyan)},
+			{Label: "agents", Value: fmt.Sprintf("%d", total), Spark: RenderSparklineStyled(agentValues, 8, Purple), Color: string(Purple)},
+			{Label: "working", Value: fmt.Sprintf("%d", working), Spark: RenderSparklineStyled(agentValues, 8, Green), Color: string(Green)},
+		}, time.Now().Format("Mon 3:04 PM")),
+		Notes: []string{
+			"Shared block: drop onto any canvas needing a compact telemetry strip.",
+			"Backed by the same metric primitives used in the workspace shell.",
+		},
+	}
+
+	milestones := blocks.MilestonesBlock{
+		ID:     "home-milestones",
+		Title:  "Milestones",
+		Badge:  "recent",
+		Accent: string(Purple),
+		Placement: blocks.Placement{
+			Col:     6,
+			Row:     0,
+			ColSpan: 6,
+		},
+		Sizing: blocks.Sizing{MinHeight: 10, PreferredHeight: 10},
+		Milestones: []blocks.Milestone{
+			{Tag: "v2.0.0", Title: "Workspace Shell", Summary: "Project dock, chat, files, git context, and canvas all landed in one shell."},
+			{Tag: "v2.0.1", Title: "Home + Refactor", Summary: "Home became the default entry point and the TUI architecture started splitting into reusable modules."},
+			{Tag: "next", Title: "Canvas + Blocks", Summary: "Shared canvas/grid primitives are now the intended way to stamp out new UI features."},
+		},
+	}
+
+	return blocks.NewCanvas(12, 2, telemetry, milestones)
+}
+
+func homeRobotFrame() []string {
+	frames := [][]string{
+		{
+			"      [◉_◉]        ──▶  [ task ]     [ tool ]",
+			"      /|_|\\\\          └─▶ [ git ]      [ note ]",
+			"     /_/ \\_\\\\",
+		},
+		{
+			"      [◉_◉]        ──▶  [ task ]  ✦   [ tool ]",
+			"      /|_|\\\\        ✦   └─▶ [ git ]      [ note ]",
+			"     /_/ \\_\\\\",
+		},
+		{
+			"      [◉_◉]   ✦    ──▶  [ task ]     [ tool ]",
+			"      /|_|\\\\          └─▶ [ git ]  ✦   [ note ]",
+			"     /_/ \\_\\\\",
+		},
+	}
+	frame := frames[int(time.Now().Unix())%len(frames)]
+	out := make([]string, 0, len(frame))
+	for _, line := range frame {
+		out = append(out, lipgloss.NewStyle().Foreground(Cyan).Render(line))
+	}
+	return out
 }

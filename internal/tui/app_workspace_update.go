@@ -79,6 +79,15 @@ func (a *App) handleWorkspaceUpdateMessage(msg tea.Msg) (tea.Model, tea.Cmd, boo
 		a.statusTime = time.Now()
 		return a, nil, true
 
+	case ClipboardWriteMsg:
+		if msg.Err != nil {
+			a.statusMsg = "Copy failed: " + msg.Err.Error()
+		} else {
+			a.statusMsg = coalesce(strings.TrimSpace(msg.Label), "Copied")
+		}
+		a.statusTime = time.Now()
+		return a, nil, true
+
 	case WorkspaceCanvasDataMsg:
 		if msg.Err == nil {
 			a.workspace.SetCanvasData(msg.Project, msg.Widgets, msg.Tabs)
@@ -135,8 +144,16 @@ func (a *App) handleWorkspaceUpdateMessage(msg tea.Msg) (tea.Model, tea.Cmd, boo
 			var cmd tea.Cmd
 			a.workspace.ComposerSpinner, cmd = a.workspace.ComposerSpinner.Update(msg)
 			a.workspace.refreshSessionViewport()
+			a.workspace.refreshSystemViewport()
 			return a, cmd, true
 		}
+	case WorkspaceBlinkMsg:
+		a.workspace.BlinkVisible = !a.workspace.BlinkVisible
+		if a.screen == ScreenWorkspace {
+			a.workspace.refreshSessionViewport()
+			a.workspace.refreshSystemViewport()
+		}
+		return a, a.workspaceBlinkCmd(), true
 	}
 	return a, nil, false
 }
@@ -190,7 +207,7 @@ func (a *App) handleWorkspaceFocusedInput(msg tea.KeyMsg) (tea.Model, tea.Cmd, b
 		cmd := a.workspace.UpdateEditor(msg, a.workspacePreviewWidth(), a.workspacePreviewHeight())
 		return a, cmd, true
 	}
-	if a.screen == ScreenWorkspace && a.workspace.DockMode != workspaceDockCanvas && a.workspace.FocusPane == 2 && a.workspace.ComposerFocused && !a.workspace.EditorActive {
+	if a.screen == ScreenWorkspace && a.workspace.DockMode == workspaceDockChat && a.workspace.FocusPane == 2 && a.workspace.ComposerFocused && !a.workspace.EditorActive {
 		switch msg.String() {
 		case "esc", "tab", "shift+tab":
 			return a, nil, false
@@ -198,6 +215,17 @@ func (a *App) handleWorkspaceFocusedInput(msg tea.KeyMsg) (tea.Model, tea.Cmd, b
 			return a, a.workspaceSubmitComposeCmd(), true
 		default:
 			cmd := a.workspace.UpdateComposer(msg, a.workspacePreviewWidth())
+			return a, cmd, true
+		}
+	}
+	if a.screen == ScreenWorkspace && a.workspace.DockMode == workspaceDockChat && a.workspace.FocusPane == 3 && a.workspace.SystemComposerFocused && !a.workspace.EditorActive {
+		switch msg.String() {
+		case "esc", "tab", "shift+tab":
+			return a, nil, false
+		case "enter":
+			return a, a.workspaceSubmitSystemComposeCmd(), true
+		default:
+			cmd := a.workspace.UpdateSystemComposer(msg, a.workspacePreviewWidth())
 			return a, cmd, true
 		}
 	}

@@ -10,6 +10,7 @@ const (
 	workspacePreviewFile     = "file"
 	workspacePreviewAgent    = "agent"
 
+	workspaceDockChat    = "chat"
 	workspaceDockFiles   = "files"
 	workspaceDockCanvas  = "canvas"
 	workspaceDockTasks   = "tasks"
@@ -131,10 +132,11 @@ type workspaceDockItem struct {
 
 func workspaceDockItems() []workspaceDockItem {
 	return []workspaceDockItem{
-		{Mode: workspaceDockFiles, Icon: "🗂", Label: "Files"},
+		{Mode: workspaceDockChat, Icon: "💬", Label: "Agent Chat"},
+		{Mode: workspaceDockFiles, Icon: "📁", Label: "Files"},
 		{Mode: workspaceDockCanvas, Icon: "🎨", Label: "Canvas"},
-		{Mode: workspaceDockTasks, Icon: "✨", Label: "Tasks"},
-		{Mode: workspaceDockMetrics, Icon: "📊", Label: "Metrics"},
-		{Mode: workspaceDockTools, Icon: "🔌", Label: "Tools"},
+		{Mode: workspaceDockTasks, Icon: "🧠", Label: "Tasks"},
+		{Mode: workspaceDockMetrics, Icon: "📈", Label: "Metrics"},
+		{Mode: workspaceDockTools, Icon: "🧰", Label: "Tools"},
 	}
 }

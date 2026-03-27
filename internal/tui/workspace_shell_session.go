@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scoady/codexctl/internal/api"
+	tuistyle "github.com/scoady/codexctl/internal/tui/style"
 )
 
 func (w *WorkspaceShellModel) SetFilePreview(path string, content *api.FileContent, err error) {
@@ -109,6 +111,7 @@ func (w *WorkspaceShellModel) SetTerminalPreview(sessionID string, messages []ap
 		w.TerminalStatus = fmt.Sprintf("%d events", len(messages))
 	}
 	w.TerminalStream = ""
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -121,6 +124,7 @@ func (w *WorkspaceShellModel) AppendLocalUserMessage(content string) {
 		Content:   content,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -133,22 +137,14 @@ func (w *WorkspaceShellModel) StartOpenFileTab(path string) {
 	if path == "" {
 		return
 	}
-	found := false
-	for _, tab := range w.OpenFileTabs {
-		if tab == path {
-			found = true
-			break
-		}
-	}
-	if !found {
-		w.OpenFileTabs = append(w.OpenFileTabs, path)
-	}
+	w.OpenFileTabs = []string{path}
 	w.ActiveFileTab = path
 	w.PendingFileTab = path
 	w.PreviewPath = path
 	w.PreviewTitle = filepath.Base(path)
 	w.PreviewKind = workspacePreviewFile
 	w.EditorActive = true
+	w.DockMode = workspaceDockFiles
 	if buf, ok := w.FileBuffers[path]; ok {
 		w.Editor.SetValue(buf)
 		w.EditorDirty = buf != w.FileSaved[path]
@@ -216,8 +212,36 @@ func (w *WorkspaceShellModel) ComposerValue() string {
 	return strings.TrimSpace(w.Composer.Value())
 }
 
-func (w *WorkspaceShellModel) TogglePassThrough() {
-	w.PassThrough = !w.PassThrough
+func (w *WorkspaceShellModel) SystemComposerValue() string {
+	return strings.TrimSpace(w.SystemComposer.Value())
+}
+
+func (w *WorkspaceShellModel) ComposeControllerMessage(userMessage string) string {
+	userMessage = strings.TrimSpace(userMessage)
+	if userMessage == "" {
+		return ""
+	}
+	systemContext := strings.TrimSpace(w.RecentSystemContextJSON())
+	if systemContext == "" {
+		return userMessage
+	}
+	return strings.TrimSpace(userMessage) + "\n\n" +
+		"[local_os_terminal_context]\n" +
+		systemContext + "\n" +
+		"[/local_os_terminal_context]"
+}
+
+func (w *WorkspaceShellModel) ToggleSystemDrawer() {
+	if w.DockMode != workspaceDockChat {
+		return
+	}
+	w.SystemDrawerOpen = !w.SystemDrawerOpen
+	if w.SystemDrawerOpen {
+		w.FocusSystemComposer()
+	} else {
+		w.BlurSystemComposer()
+		w.FocusComposer()
+	}
 }
 
 func (w *WorkspaceShellModel) FocusComposer() {
@@ -231,11 +255,33 @@ func (w *WorkspaceShellModel) BlurComposer() {
 	w.Composer.Blur()
 }
 
+func (w *WorkspaceShellModel) FocusSystemComposer() {
+	w.FocusPane = 3
+	w.SystemComposerFocused = true
+	w.SystemComposer.Focus()
+}
+
+func (w *WorkspaceShellModel) BlurSystemComposer() {
+	w.SystemComposerFocused = false
+	w.SystemComposer.Blur()
+}
+
 func (w *WorkspaceShellModel) UpdateComposer(msg tea.Msg, width int) tea.Cmd {
 	w.Composer.Width = max(12, width-4)
 	var cmd tea.Cmd
 	w.Composer, cmd = w.Composer.Update(msg)
 	return cmd
+}
+
+func (w *WorkspaceShellModel) UpdateSystemComposer(msg tea.Msg, width int) tea.Cmd {
+	w.SystemComposer.Width = max(12, width-4)
+	var cmd tea.Cmd
+	w.SystemComposer, cmd = w.SystemComposer.Update(msg)
+	return cmd
+}
+
+func (w *WorkspaceShellModel) ClearSystemComposer() {
+	w.SystemComposer.SetValue("")
 }
 
 func (w *WorkspaceShellModel) StartSessionTurn() {
@@ -244,6 +290,7 @@ func (w *WorkspaceShellModel) StartSessionTurn() {
 	w.PendingAssistantAt = time.Now().UTC().Format(time.RFC3339)
 	w.TerminalStatus = "Waiting for controller output"
 	w.TerminalStream = ""
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -254,6 +301,7 @@ func (w *WorkspaceShellModel) FinishSessionTurn(status string) {
 	if strings.TrimSpace(status) != "" {
 		w.TerminalStatus = status
 	}
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -266,7 +314,10 @@ func (w *WorkspaceShellModel) AppendExecCommand(command string) {
 		Content:   "$ " + command,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
+	w.FollowSessionTail = true
+	w.FollowSystemTail = true
 	w.refreshSessionViewport()
+	w.refreshSystemViewport()
 }
 
 func (w *WorkspaceShellModel) AppendExecResult(command string, result *api.ExecResult, err error) {
@@ -277,7 +328,10 @@ func (w *WorkspaceShellModel) AppendExecResult(command string, result *api.ExecR
 			Timestamp: stamp,
 		})
 		w.TerminalStatus = "Exec failed"
+		w.FollowSessionTail = true
+		w.FollowSystemTail = true
 		w.refreshSessionViewport()
+		w.refreshSystemViewport()
 		return
 	}
 	if result == nil {
@@ -303,7 +357,10 @@ func (w *WorkspaceShellModel) AppendExecResult(command string, result *api.ExecR
 	} else {
 		w.TerminalStatus = fmt.Sprintf("Command exited %d", result.ExitCode)
 	}
+	w.FollowSessionTail = true
+	w.FollowSystemTail = true
 	w.refreshSessionViewport()
+	w.refreshSystemViewport()
 }
 
 func (w *WorkspaceShellModel) AppendTerminalChunk(text string) {
@@ -313,6 +370,7 @@ func (w *WorkspaceShellModel) AppendTerminalChunk(text string) {
 	w.PendingAssistant = false
 	w.TerminalStream += text
 	w.TerminalStatus = "Streaming"
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -326,6 +384,7 @@ func (w *WorkspaceShellModel) AppendTerminalMilestone(label string) {
 	}
 	w.TerminalStream += "[tool] " + label + "\n"
 	w.TerminalStatus = "Running tools"
+	w.FollowSessionTail = true
 	w.refreshSessionViewport()
 }
 
@@ -338,7 +397,53 @@ func (w *WorkspaceShellModel) ClearTerminalView() {
 	w.PendingAssistant = false
 	w.PendingAssistantAt = ""
 	w.TerminalStatus = "Transcript cleared"
+	w.FollowSessionTail = true
+	w.FollowSystemTail = true
 	w.refreshSessionViewport()
+	w.refreshSystemViewport()
+}
+
+func (w *WorkspaceShellModel) RecentSystemContextJSON() string {
+	if len(w.LocalSystemMessages) == 0 {
+		return ""
+	}
+	type event struct {
+		Timestamp string `json:"timestamp"`
+		Source    string `json:"source"`
+		Content   string `json:"content"`
+	}
+	start := 0
+	if len(w.LocalSystemMessages) > 6 {
+		start = len(w.LocalSystemMessages) - 6
+	}
+	events := make([]event, 0, len(w.LocalSystemMessages)-start)
+	totalChars := 0
+	for _, msg := range w.LocalSystemMessages[start:] {
+		content := strings.TrimSpace(msg.Content)
+		if content == "" {
+			continue
+		}
+		if len(content) > 1200 {
+			content = content[:1200] + "\n...<truncated>"
+		}
+		events = append(events, event{
+			Timestamp: msg.Timestamp,
+			Source:    "user_system",
+			Content:   content,
+		})
+		totalChars += len(content)
+		if totalChars > 2400 {
+			break
+		}
+	}
+	if len(events) == 0 {
+		return ""
+	}
+	payload, err := json.MarshalIndent(events, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(payload)
 }
 
 func (w *WorkspaceShellModel) TranscriptPlainText() string {
@@ -436,14 +541,18 @@ func (w *WorkspaceShellModel) recordEditorHistory(value string) {
 
 func (w *WorkspaceShellModel) refreshSessionViewport() {
 	width := max(36, w.SessionViewport.Width-1)
-	follow := w.SessionViewport.AtBottom()
+	follow := w.FollowSessionTail || w.SessionViewport.AtBottom()
 	offset := w.SessionViewport.YOffset
 	rows := w.transcriptRows()
 	lines := make([]string, 0, len(w.TerminalLines)+len(rows)*2)
 	lines = append(lines, w.TerminalLines...)
 	for _, row := range rows {
 		if row.Kind == "thinking" {
-			lines = append(lines, workspaceShellMessageLines("assistant", w.ComposerSpinner.View()+" "+row.Content, row.Timestamp, width)...)
+			lines = append(lines, workspaceShellThinkingLines(w.ComposerSpinner.View(), row.Timestamp, width, w.BlinkVisible)...)
+			continue
+		}
+		if row.Kind == "stream" {
+			lines = append(lines, workspaceShellStreamingLines(row.Content, row.Timestamp, width, w.BlinkVisible)...)
 			continue
 		}
 		lines = append(lines, row.renderLines(width)...)
@@ -451,11 +560,43 @@ func (w *WorkspaceShellModel) refreshSessionViewport() {
 	if len(lines) == 0 {
 		lines = []string{lipgloss.NewStyle().Foreground(Dim).Render("No transcript yet.")}
 	}
-	w.SessionViewport.SetContent(strings.Join(lines, "\n"))
+	surfaced := make([]string, 0, len(lines))
+	for _, line := range lines {
+		surfaced = append(surfaced, tuistyle.WorkspaceTerminalSurfaceLine(line, width))
+	}
+	w.SessionViewport.SetContent(strings.Join(surfaced, "\n"))
 	if follow {
 		w.SessionViewport.GotoBottom()
+		w.FollowSessionTail = false
 	} else {
 		w.SessionViewport.SetYOffset(offset)
+	}
+}
+
+func (w *WorkspaceShellModel) refreshSystemViewport() {
+	width := max(28, w.SystemViewport.Width-1)
+	follow := w.FollowSystemTail || w.SystemViewport.AtBottom()
+	offset := w.SystemViewport.YOffset
+	lines := make([]string, 0, len(w.LocalSystemMessages)*2+2)
+	for _, msg := range w.LocalSystemMessages {
+		lines = append(lines, workspaceShellMessageLines("system", msg.Content, msg.Timestamp, width)...)
+	}
+	if len(lines) == 0 {
+		lines = []string{
+			lipgloss.NewStyle().Foreground(Dim).Render("Run local OS commands here."),
+			lipgloss.NewStyle().Foreground(Dim).Render("Output is mirrored into the agent transcript."),
+		}
+	}
+	surfaced := make([]string, 0, len(lines))
+	for _, line := range lines {
+		surfaced = append(surfaced, tuistyle.WorkspaceTerminalSurfaceLine(line, width))
+	}
+	w.SystemViewport.SetContent(strings.Join(surfaced, "\n"))
+	if follow {
+		w.SystemViewport.GotoBottom()
+		w.FollowSystemTail = false
+	} else {
+		w.SystemViewport.SetYOffset(offset)
 	}
 }
 

@@ -15,9 +15,12 @@ type workspaceShellLayout struct {
 	Activity   workspaceShellRect
 	Sidebar    workspaceShellRect
 	Main       workspaceShellRect
+	Chat       workspaceShellRect
+	Drawer     workspaceShellRect
 	Transcript workspaceShellRect
 	Preview    workspaceShellRect
 	Composer   workspaceShellRect
+	SysComposer workspaceShellRect
 	Picker     workspaceShellRect
 	Stacked    bool
 }

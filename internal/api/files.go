@@ -38,6 +38,8 @@ func (c *Client) ListFiles(project, path string) ([]FileEntry, error) {
 	q := "/api/projects/" + url.PathEscape(project) + "/files"
 	if path != "" {
 		q += "?path=" + url.QueryEscape(path)
+	} else {
+		q += "?recursive=1&depth=4"
 	}
 	err := c.get(q, &out)
 	return out, err

@@ -19,6 +19,11 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 			a.workspace.CloseProjectPicker()
 			return a, nil
 		}
+		if a.workspace.FocusPane == 3 {
+			a.workspace.BlurSystemComposer()
+			a.workspace.FocusComposer()
+			return a, nil
+		}
 		if a.workspace.EditorActive {
 			a.workspace.StopEditingPreview()
 			return a, nil
@@ -62,10 +67,18 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 			a.workspace.FocusPane = 1
 			return a, nil
 		}
+		if a.workspace.DockMode == workspaceDockFiles {
+			a.workspace.FocusPane = 2
+			return a, nil
+		}
+		a.workspace.BlurSystemComposer()
 		a.workspace.FocusComposer()
 		return a, nil
 	case "x":
-		a.workspace.TogglePassThrough()
+		if a.workspace.DockMode != workspaceDockChat {
+			return a, nil
+		}
+		a.workspace.ToggleSystemDrawer()
 		return a, nil
 	case "n":
 		if a.workspace.FocusPane == 1 && a.workspace.DockMode == workspaceDockFiles {
@@ -76,16 +89,24 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 		return a, copyWorkspaceTranscriptCmd(a.workspace.TranscriptPlainText())
 	case "tab":
 		a.workspace.BlurComposer()
-		a.workspace.FocusPane = nextWorkspacePane(a.workspace.FocusPane)
-		if a.workspace.FocusPane == 2 {
+		a.workspace.BlurSystemComposer()
+		a.workspace.FocusPane = nextWorkspacePane(a.workspace.FocusPane, a.workspace.SystemDrawerOpen && a.workspace.DockMode == workspaceDockChat)
+		if a.workspace.FocusPane == 2 && a.workspace.DockMode == workspaceDockChat {
 			a.workspace.FocusComposer()
+		}
+		if a.workspace.FocusPane == 3 && a.workspace.DockMode == workspaceDockChat {
+			a.workspace.FocusSystemComposer()
 		}
 		return a, nil
 	case "shift+tab":
 		a.workspace.BlurComposer()
-		a.workspace.FocusPane = prevWorkspacePane(a.workspace.FocusPane)
-		if a.workspace.FocusPane == 2 {
+		a.workspace.BlurSystemComposer()
+		a.workspace.FocusPane = prevWorkspacePane(a.workspace.FocusPane, a.workspace.SystemDrawerOpen && a.workspace.DockMode == workspaceDockChat)
+		if a.workspace.FocusPane == 2 && a.workspace.DockMode == workspaceDockChat {
 			a.workspace.FocusComposer()
+		}
+		if a.workspace.FocusPane == 3 && a.workspace.DockMode == workspaceDockChat {
+			a.workspace.FocusSystemComposer()
 		}
 		return a, nil
 	case "l", "right":
@@ -131,7 +152,11 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 				return a, nil
 			}
 		case 2:
+			a.workspace.FollowSessionTail = false
 			a.workspace.SessionViewport.LineDown(1)
+		case 3:
+			a.workspace.FollowSystemTail = false
+			a.workspace.SystemViewport.LineDown(1)
 		}
 		return a, nil
 	case "k", "up":
@@ -157,27 +182,55 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 				return a, nil
 			}
 		case 2:
+			a.workspace.FollowSessionTail = false
 			a.workspace.SessionViewport.LineUp(1)
+		case 3:
+			a.workspace.FollowSystemTail = false
+			a.workspace.SystemViewport.LineUp(1)
 		}
 		return a, nil
 	case "pgdown", "ctrl+f":
 		if a.workspace.FocusPane == 2 {
+			a.workspace.FollowSessionTail = false
 			a.workspace.SessionViewport.HalfViewDown()
+			return a, nil
+		}
+		if a.workspace.FocusPane == 3 {
+			a.workspace.FollowSystemTail = false
+			a.workspace.SystemViewport.HalfViewDown()
 			return a, nil
 		}
 	case "pgup", "ctrl+b":
 		if a.workspace.FocusPane == 2 {
+			a.workspace.FollowSessionTail = false
 			a.workspace.SessionViewport.HalfViewUp()
+			return a, nil
+		}
+		if a.workspace.FocusPane == 3 {
+			a.workspace.FollowSystemTail = false
+			a.workspace.SystemViewport.HalfViewUp()
 			return a, nil
 		}
 	case "end", "G":
 		if a.workspace.FocusPane == 2 {
+			a.workspace.FollowSessionTail = true
 			a.workspace.SessionViewport.GotoBottom()
+			return a, nil
+		}
+		if a.workspace.FocusPane == 3 {
+			a.workspace.FollowSystemTail = true
+			a.workspace.SystemViewport.GotoBottom()
 			return a, nil
 		}
 	case "home", "g":
 		if a.workspace.FocusPane == 2 {
+			a.workspace.FollowSessionTail = false
 			a.workspace.SessionViewport.GotoTop()
+			return a, nil
+		}
+		if a.workspace.FocusPane == 3 {
+			a.workspace.FollowSystemTail = false
+			a.workspace.SystemViewport.GotoTop()
 			return a, nil
 		}
 	case "enter":
@@ -197,10 +250,7 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 		case 1:
 			switch a.workspace.DockMode {
 			case workspaceDockFiles:
-				if a.workspace.EditorActive {
-					return a, nil
-				}
-				return a, a.workspaceOpenExplorerSelection()
+				return a, a.workspaceOpenSelectedFileTabCmd()
 			case workspaceDockCanvas:
 				return a, nil
 			case workspaceDockTasks:
@@ -208,6 +258,8 @@ func (a *App) handleWorkspaceKey(key string) (tea.Model, tea.Cmd) {
 			default:
 				return a, nil
 			}
+		case 3:
+			return a, a.workspaceSubmitSystemComposeCmd()
 		}
 		return a, nil
 	}

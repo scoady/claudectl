@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scoady/codexctl/internal/api"
+	tuistyle "github.com/scoady/codexctl/internal/tui/style"
 )
 
 func workspaceShellConversationLines(messages []api.Message, width, limit int) []string {
@@ -42,6 +43,38 @@ func workspaceShellMessageLine(role, content, ts string) string {
 	return strings.Join(workspaceShellMessageLines(role, content, ts, 120), "\n")
 }
 
+func workspaceShellTerminalRow(prefix, content string, width int, focused, busy bool) string {
+	prefix = strings.TrimSpace(prefix)
+	content = strings.TrimSpace(strings.ReplaceAll(content, "\n", " "))
+	line := ""
+	if prefix != "" {
+		if prefix == ">" {
+			line += tuistyle.WorkspaceTerminalPromptMarkerStyle(busy).Render(prefix)
+		} else {
+			line += tuistyle.WorkspaceTerminalPromptPrefixStyle().Render(prefix)
+		}
+		if content != "" {
+			line += " "
+		}
+	}
+	if content != "" {
+		line += tuistyle.WorkspaceTerminalPromptTextStyle().Render(content)
+	}
+	if focused {
+		cursor := tuistyle.WorkspaceTerminalPromptCursorStyle().Render(" ")
+		if prefix != "" {
+			cursor = tuistyle.WorkspaceTerminalCursorStyle().Render(" ")
+		}
+		line += cursor
+	}
+	if lipgloss.Width(line) > width {
+		line = truncate(line, width)
+	}
+	return tuistyle.WorkspaceTerminalSectionStyle().
+		Width(max(1, width)).
+		Render(line)
+}
+
 func workspaceShellMessageLines(role, content, ts string, width int) []string {
 	label := "codex"
 	color := Blue
@@ -53,7 +86,7 @@ func workspaceShellMessageLines(role, content, ts string, width int) []string {
 		color = Amber
 	} else if role == "assistant" {
 		label = "codex"
-		color = Cyan
+		color = Purple
 	}
 	stamp := "--:--"
 	if t, err := time.Parse(time.RFC3339, ts); err == nil {
@@ -117,6 +150,96 @@ func workspaceShellStreamLines(stream, ts string, width int) []string {
 	return out
 }
 
+func workspaceShellStreamingLines(stream, ts string, width int, blinkVisible bool) []string {
+	rawLines := strings.Split(strings.TrimSuffix(stream, "\n"), "\n")
+	if len(rawLines) == 0 {
+		return workspaceShellThinkingLines(workspaceShellThinkingLabel(), ts, width, blinkVisible)
+	}
+
+	lastAssistant := -1
+	for i, raw := range rawLines {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "[tool] ") {
+			continue
+		}
+		lastAssistant = i
+	}
+
+	out := make([]string, 0, len(rawLines)*2)
+	for i, raw := range rawLines {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "[tool] ") {
+			out = append(out, workspaceShellToolLines([]string{strings.TrimPrefix(line, "[tool] ")}, ts, width)...)
+			continue
+		}
+		if i == lastAssistant {
+			out = append(out, workspaceShellLiveAssistantLines(line, ts, width, blinkVisible)...)
+			continue
+		}
+		out = append(out, workspaceShellMessageLines("assistant", line, ts, width)...)
+	}
+	if len(out) == 0 {
+		return workspaceShellThinkingLines(workspaceShellThinkingLabel(), ts, width, blinkVisible)
+	}
+	return out
+}
+
+func workspaceShellThinkingLines(spinnerView, ts string, width int, blinkVisible bool) []string {
+	stamp := tsToStamp(ts)
+	const stampW = 6
+	bodyW := max(12, width-stampW)
+	codexBadge := tuistyle.WorkspaceTerminalPendingBadgeStyle().Render("codex")
+	body := lipgloss.JoinHorizontal(lipgloss.Top,
+		tuistyle.WorkspaceTerminalStatusStyle().Render(spinnerView),
+		" ",
+		codexBadge,
+	)
+	if blinkVisible {
+		body += " " + tuistyle.WorkspaceTerminalPendingCursorStyle().Render(" ")
+	}
+	return []string{
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			tuistyle.WorkspaceTerminalSectionStyle().Foreground(Dim).Width(stampW).Render(stamp),
+			tuistyle.WorkspaceTerminalSectionStyle().Width(max(1, bodyW)).Render(body),
+		),
+	}
+}
+
+func workspaceShellLiveAssistantLines(content, ts string, width int, blinkVisible bool) []string {
+	stamp := tsToStamp(ts)
+	const stampW = 6
+	const labelW = 7
+	bodyW := max(16, width-stampW-labelW)
+	parts := workspaceShellStructuredContentLines(content, bodyW)
+	if len(parts) == 0 {
+		parts = []string{""}
+	}
+	out := make([]string, 0, len(parts))
+	for i, part := range parts {
+		curStamp := ""
+		curLabel := ""
+		if i == 0 {
+			curStamp = stamp
+			curLabel = "codex"
+		}
+		body := tuistyle.WorkspaceTerminalSectionStyle().Foreground(White).Render(part)
+		if i == len(parts)-1 && blinkVisible {
+			body += tuistyle.WorkspaceTerminalPendingCursorStyle().Render(" ")
+		}
+		out = append(out, lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			tuistyle.WorkspaceTerminalSectionStyle().Foreground(Dim).Width(stampW).Render(curStamp),
+			tuistyle.WorkspaceTerminalRoleLabelStyle(curLabel, Purple, labelW).Render(curLabel),
+			body,
+		))
+	}
+	return out
+}
+
 func workspaceShellWrappedLines(stamp, label string, labelColor lipgloss.Color, content string, width int, bodyColor lipgloss.Color) []string {
 	const stampW = 6
 	const labelW = 7
@@ -134,9 +257,9 @@ func workspaceShellWrappedLines(stamp, label string, labelColor lipgloss.Color, 
 		}
 		out = append(out, lipgloss.JoinHorizontal(
 			lipgloss.Top,
-			lipgloss.NewStyle().Foreground(Dim).Width(stampW).Render(curStamp),
-			lipgloss.NewStyle().Foreground(labelColor).Bold(true).Width(labelW).Render(curLabel),
-			lipgloss.NewStyle().Foreground(bodyColor).Render(part),
+			tuistyle.WorkspaceTerminalSectionStyle().Foreground(Dim).Width(stampW).Render(curStamp),
+			tuistyle.WorkspaceTerminalRoleLabelStyle(curLabel, labelColor, labelW).Render(curLabel),
+			tuistyle.WorkspaceTerminalSectionStyle().Foreground(bodyColor).Render(part),
 		))
 	}
 	return out
@@ -231,7 +354,7 @@ func workspaceShellNumberedPrefix(line string) (string, string, bool) {
 
 func workspaceShellFileIcon(entry api.FileEntry) string {
 	if entry.Type == "directory" {
-		return "▣"
+		return "📁"
 	}
 	if entry.Type == "symlink" {
 		return "↗"
@@ -406,6 +529,8 @@ func workspaceShellCanvasWidgetDesc(widget api.Widget) string {
 
 func workspaceShellDockGlyph(mode string) string {
 	switch mode {
+	case workspaceDockChat:
+		return "◉"
 	case workspaceDockFiles:
 		return "▣"
 	case workspaceDockCanvas:
@@ -423,6 +548,8 @@ func workspaceShellDockGlyph(mode string) string {
 
 func workspaceShellDockTitle(mode string) string {
 	switch mode {
+	case workspaceDockChat:
+		return "Agent Chat"
 	case workspaceDockFiles:
 		return "Explorer"
 	case workspaceDockCanvas:
@@ -440,17 +567,14 @@ func workspaceShellDockTitle(mode string) string {
 
 func workspaceShellDockSubtitle(m *WorkspaceShellModel) string {
 	switch m.DockMode {
+	case workspaceDockChat:
+		return fmt.Sprintf("%d sessions", len(m.AgentsForCurrent()))
 	case workspaceDockFiles:
-		parts := []string{}
-		if label := workspaceShellGitBadge(m); label != "" {
-			parts = append(parts, label)
-		}
 		if m.CurrentDir == "" {
-			parts = append(parts, "Project root")
+			return "Project tree"
 		} else {
-			parts = append(parts, truncate(m.CurrentDir, 20))
+			return truncate(m.CurrentDir, 28)
 		}
-		return strings.Join(parts, "  ")
 	case workspaceDockCanvas:
 		active := coalesce(m.ActiveCanvas, "default")
 		return fmt.Sprintf("%d widgets  ·  %s", len(m.CanvasWidgetsForActiveTab()), active)
@@ -481,7 +605,7 @@ func workspaceShellGitBadge(m *WorkspaceShellModel) string {
 	}
 	provider := strings.TrimSpace(m.Git.Provider)
 	remote := strings.TrimSpace(m.Git.Remote)
-	icon := "⑂"
+	icon := "◆"
 	label := "local"
 	switch provider {
 	case "gitlab":
@@ -509,13 +633,10 @@ func workspaceShellGitBadge(m *WorkspaceShellModel) string {
 
 func workspaceShellLiveLabel(m *WorkspaceShellModel, health *api.HealthResponse) string {
 	parts := []string{}
-	if sid := m.ActiveSessionID(); sid != "" {
-		parts = append(parts, "session "+truncate(sid, 8))
-	}
 	if m.SessionTurnBusy {
 		parts = append(parts, "streaming")
 	}
-	if health != nil && health.Status != "" {
+	if health != nil && health.Status != "" && health.Status != "ok" {
 		parts = append(parts, health.Status)
 	}
 	if len(parts) == 0 {

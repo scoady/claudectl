@@ -17,7 +17,7 @@ type workspaceTranscriptRow struct {
 }
 
 func (w *WorkspaceShellModel) transcriptRows() []workspaceTranscriptRow {
-	rows := make([]workspaceTranscriptRow, 0, len(w.TerminalMessages)+len(w.PendingUserMessages)+len(w.LocalSystemMessages)+4)
+	rows := make([]workspaceTranscriptRow, 0, len(w.TerminalMessages)+len(w.PendingUserMessages)+4)
 	rows = append(rows, workspaceTranscriptRowsFromMessages(w.TerminalMessages)...)
 	for _, pending := range w.PendingUserMessages {
 		rows = append(rows, workspaceTranscriptRow{
@@ -27,15 +27,8 @@ func (w *WorkspaceShellModel) transcriptRows() []workspaceTranscriptRow {
 			Content:   pending.Content,
 		})
 	}
-	for _, msg := range w.LocalSystemMessages {
-		rows = append(rows, workspaceTranscriptRow{
-			Timestamp: msg.Timestamp,
-			Role:      "system",
-			Kind:      "message",
-			Content:   msg.Content,
-		})
-	}
-	if w.PendingAssistant {
+	stream := strings.TrimSpace(w.TerminalStream)
+	if w.PendingAssistant && stream == "" {
 		rows = append(rows, workspaceTranscriptRow{
 			Timestamp: coalesce(strings.TrimSpace(w.PendingAssistantAt), time.Now().UTC().Format(time.RFC3339)),
 			Role:      "assistant",
@@ -43,7 +36,7 @@ func (w *WorkspaceShellModel) transcriptRows() []workspaceTranscriptRow {
 			Content:   workspaceShellThinkingLabel(),
 		})
 	}
-	if stream := strings.TrimSpace(w.TerminalStream); stream != "" {
+	if stream != "" {
 		rows = append(rows, workspaceTranscriptRow{
 			Timestamp: coalesce(strings.TrimSpace(w.PendingAssistantAt), time.Now().UTC().Format(time.RFC3339)),
 			Role:      "assistant",
@@ -93,8 +86,6 @@ func (r workspaceTranscriptRow) renderLines(width int) []string {
 		return workspaceShellToolLines(r.Labels, r.Timestamp, width)
 	case "thinking":
 		return workspaceShellMessageLines("assistant", r.Content, r.Timestamp, width)
-	case "stream":
-		return workspaceShellStreamLines(r.Content, r.Timestamp, width)
 	default:
 		return workspaceShellMessageLines(r.Role, r.Content, r.Timestamp, width)
 	}

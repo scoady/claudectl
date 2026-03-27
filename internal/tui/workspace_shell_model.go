@@ -14,7 +14,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	editorcomponent "github.com/scoady/codexctl/internal/tui/components/editor"
 	"github.com/scoady/codexctl/internal/api"
+	tuistyle "github.com/scoady/codexctl/internal/tui/style"
 )
 
 type WorkspaceGitStatusMsg struct {
@@ -83,7 +85,7 @@ type WorkspaceShellModel struct {
 	Agents   []api.Agent
 
 	OpenProjectTabs []string
-	SelectedProject int
+	Selection       workspaceShellSelection
 	CurrentProject  string
 	CurrentDir      string
 	LoadedProject   string
@@ -92,15 +94,12 @@ type WorkspaceShellModel struct {
 	FocusPane int
 	DockMode  string
 
-	Entries              []api.FileEntry
-	SelectedEntry        int
-	Git                  workspaceGitContext
-	CanvasWidgets        []api.Widget
-	CanvasTabs           []string
-	ActiveCanvas         string
-	SelectedCanvasWidget int
-	SelectedAgent        int
-	LastSync             time.Time
+	Entries       []api.FileEntry
+	Git           workspaceGitContext
+	CanvasWidgets []api.Widget
+	CanvasTabs    []string
+	ActiveCanvas  string
+	LastSync      time.Time
 
 	PreviewPath     string
 	PreviewTitle    string
@@ -123,8 +122,11 @@ type WorkspaceShellModel struct {
 
 	Composer            textinput.Model
 	ComposerFocused     bool
+	SystemComposer      textinput.Model
+	SystemComposerFocused bool
 	ComposerSpinner     spinner.Model
-	PassThrough         bool
+	BlinkVisible        bool
+	SystemDrawerOpen    bool
 	SessionTurnBusy     bool
 	PendingAssistant    bool
 	PendingAssistantAt  string
@@ -141,6 +143,12 @@ type WorkspaceShellModel struct {
 	ProjectPicker     list.Model
 	ProjectPickerOpen bool
 	SessionViewport   viewport.Model
+	SystemViewport    viewport.Model
+	FollowSessionTail bool
+	FollowSystemTail  bool
+
+	LastExplorerClickPath string
+	LastExplorerClickAt   time.Time
 }
 
 type workspaceShellPendingUserMessage struct {
@@ -241,21 +249,34 @@ func NewWorkspaceShellModel() WorkspaceShellModel {
 	picker.DisableQuitKeybindings()
 
 	composer := textinput.New()
-	composer.Prompt = "› "
-	composer.Placeholder = "Message the controller"
+	composer.Prompt = ""
+	composer.Placeholder = ""
 	composer.CharLimit = 12000
 	composer.Focus()
 	composer.PromptStyle = lipgloss.NewStyle().Foreground(SubText)
 	composer.TextStyle = lipgloss.NewStyle().Foreground(White)
 	composer.PlaceholderStyle = lipgloss.NewStyle().Foreground(Dim)
-	composer.Cursor.Style = lipgloss.NewStyle().Foreground(Glass).Background(Cyan).Bold(true)
+	composer.Cursor.Style = lipgloss.NewStyle().Foreground(White)
 	composer.Cursor.TextStyle = lipgloss.NewStyle().Foreground(White)
-	composer.Cursor.SetMode(cursor.CursorStatic)
+	composer.Cursor.SetMode(cursor.CursorBlink)
+
+	systemComposer := textinput.New()
+	systemComposer.Prompt = "$ "
+	systemComposer.Placeholder = ""
+	systemComposer.CharLimit = 12000
+	systemComposer.Blur()
+	systemComposer.PromptStyle = lipgloss.NewStyle().Foreground(SubText)
+	systemComposer.TextStyle = lipgloss.NewStyle().Foreground(White)
+	systemComposer.PlaceholderStyle = lipgloss.NewStyle().Foreground(Dim)
+	systemComposer.Cursor.Style = lipgloss.NewStyle().Foreground(White)
+	systemComposer.Cursor.TextStyle = lipgloss.NewStyle().Foreground(White)
+	systemComposer.Cursor.SetMode(cursor.CursorBlink)
 
 	editor := textarea.New()
 	editor.Prompt = ""
 	editor.ShowLineNumbers = true
 	editor.Blur()
+	editorcomponent.ApplyWorkspaceTheme(&editor)
 
 	spin := spinner.New(
 		spinner.WithSpinner(spinner.MiniDot),
@@ -264,19 +285,28 @@ func NewWorkspaceShellModel() WorkspaceShellModel {
 
 	vp := viewport.New(80, 20)
 	vp.MouseWheelEnabled = true
+	vp.Style = tuistyle.WorkspaceTerminalSectionStyle()
+	sysVP := viewport.New(80, 12)
+	sysVP.MouseWheelEnabled = true
+	sysVP.Style = tuistyle.WorkspaceTerminalSectionStyle()
 
 	return WorkspaceShellModel{
 		FocusPane:       2,
-		DockMode:        workspaceDockFiles,
+		DockMode:        workspaceDockChat,
 		Git:             newWorkspaceGitContext(),
 		TerminalTitle:   "Controller",
 		TerminalStatus:  "Ready",
 		SidebarList:     sidebar,
 		ProjectPicker:   picker,
 		SessionViewport: vp,
+		SystemViewport:  sysVP,
+		FollowSessionTail: true,
+		FollowSystemTail:  true,
 		Composer:        composer,
 		ComposerFocused: true,
+		SystemComposer:  systemComposer,
 		ComposerSpinner: spin,
+		BlinkVisible:    true,
 		Editor:          editor,
 		EditorHistory:   []string{""},
 		FileBuffers:     map[string]string{},
@@ -292,15 +322,14 @@ func (w *WorkspaceShellModel) Sync() {
 	if len(w.Projects) == 0 {
 		w.OpenProjectTabs = nil
 		w.CurrentProject = ""
-		w.SelectedProject = 0
+		w.Selection = workspaceShellSelection{}
 		w.CurrentDir = ""
 		w.LoadedProject = ""
 		w.LoadedDir = ""
 		w.Entries = nil
 		w.Git.Reset()
 		w.resetCanvas()
-		w.SelectedEntry = 0
-		w.SelectedAgent = 0
+		w.Selection.ResetProjectContext()
 		w.resetPreview()
 		w.resetTerminal()
 		w.syncProjectPicker()
@@ -309,28 +338,23 @@ func (w *WorkspaceShellModel) Sync() {
 		return
 	}
 
-	if w.SelectedProject < 0 {
-		w.SelectedProject = 0
-	}
-	if w.SelectedProject >= len(w.Projects) {
-		w.SelectedProject = len(w.Projects) - 1
-	}
+	w.Selection.ClampProjectTab(len(w.Projects))
 
 	projectChanged := false
 	if w.CurrentProject == "" {
-		w.CurrentProject = w.Projects[w.SelectedProject].Name
+		w.CurrentProject = w.Projects[w.Selection.ProjectTab].Name
 		projectChanged = true
 	} else {
 		found := false
 		for i, p := range w.Projects {
 			if p.Name == w.CurrentProject {
-				w.SelectedProject = i
+				w.Selection.ProjectTab = i
 				found = true
 				break
 			}
 		}
 		if !found {
-			w.CurrentProject = w.Projects[w.SelectedProject].Name
+			w.CurrentProject = w.Projects[w.Selection.ProjectTab].Name
 			projectChanged = true
 		}
 	}
@@ -354,8 +378,7 @@ func (w *WorkspaceShellModel) Sync() {
 		w.Entries = nil
 		w.Git.Reset()
 		w.resetCanvas()
-		w.SelectedEntry = 0
-		w.SelectedAgent = 0
+		w.Selection.ResetProjectContext()
 		w.resetPreview()
 		w.resetTerminal()
 	}
@@ -374,7 +397,7 @@ func (w *WorkspaceShellModel) Current() *api.Project {
 	if len(w.Projects) == 0 {
 		return nil
 	}
-	return &w.Projects[w.SelectedProject]
+	return &w.Projects[w.Selection.ProjectTab]
 }
 
 func (w *WorkspaceShellModel) SelectDelta(delta int) bool {
@@ -386,9 +409,9 @@ func (w *WorkspaceShellModel) SetProjectByName(name string) bool {
 		if p.Name != name {
 			continue
 		}
-		changed := w.CurrentProject != name || w.SelectedProject != i
+		changed := w.CurrentProject != name || w.Selection.ProjectTab != i
 		w.ensureProjectTab(name)
-		w.SelectedProject = i
+		w.Selection.ProjectTab = i
 		w.CurrentProject = name
 		w.ProjectPickerOpen = false
 		w.Sync()
@@ -415,7 +438,7 @@ func (w *WorkspaceShellModel) CloseProjectTab(name string) bool {
 	w.OpenProjectTabs = append(w.OpenProjectTabs[:idx], w.OpenProjectTabs[idx+1:]...)
 	if len(w.OpenProjectTabs) == 0 {
 		w.CurrentProject = ""
-		w.SelectedProject = 0
+		w.Selection = workspaceShellSelection{}
 		w.CurrentDir = ""
 		w.LoadedProject = ""
 		w.LoadedDir = ""

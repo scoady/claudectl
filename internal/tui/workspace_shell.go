@@ -75,21 +75,16 @@ func (w *WorkspaceShellModel) SelectedAgentRef() *api.Agent {
 	if len(agents) == 0 {
 		return nil
 	}
-	if w.SelectedAgent < 0 {
-		w.SelectedAgent = 0
-	}
-	if w.SelectedAgent >= len(agents) {
-		w.SelectedAgent = len(agents) - 1
-	}
-	return &agents[w.SelectedAgent]
+	w.Selection.ClampAgent(len(agents))
+	return &agents[w.Selection.Agent]
 }
 
 func (w *WorkspaceShellModel) SetSelectedAgentIndex(idx int) bool {
 	agents := w.SubagentsForCurrent()
-	if idx < 0 || idx >= len(agents) || idx == w.SelectedAgent {
+	if idx < 0 || idx >= len(agents) || idx == w.Selection.Agent {
 		return false
 	}
-	w.SelectedAgent = idx
+	w.Selection.Agent = idx
 	w.rebuildSidebarList()
 	return true
 }
@@ -101,15 +96,7 @@ func (w *WorkspaceShellModel) SetEntries(project, dir string, entries []api.File
 	w.LoadedProject = project
 	w.LoadedDir = dir
 	w.Entries = append([]api.FileEntry(nil), entries...)
-	sort.Slice(w.Entries, func(i, j int) bool {
-		left := workspaceShellEntryRank(w.Entries[i].Type)
-		right := workspaceShellEntryRank(w.Entries[j].Type)
-		if left != right {
-			return left < right
-		}
-		return strings.ToLower(w.Entries[i].Name) < strings.ToLower(w.Entries[j].Name)
-	})
-	w.SelectedEntry = 0
+	w.Selection.ExplorerItem = 0
 	w.LastSync = time.Now()
 	w.rebuildSidebarList()
 }
@@ -134,7 +121,16 @@ func (w *WorkspaceShellModel) SetDockMode(mode string) bool {
 		return false
 	}
 	w.DockMode = mode
+	if mode != workspaceDockFiles {
+		w.StopEditingPreview()
+	}
+	if mode != workspaceDockChat {
+		w.SystemDrawerOpen = false
+		w.BlurSystemComposer()
+	}
 	if mode == workspaceDockCanvas {
+		w.BlurComposer()
+	} else if mode == workspaceDockFiles {
 		w.BlurComposer()
 	} else if w.FocusPane == 2 {
 		w.FocusComposer()
@@ -161,31 +157,44 @@ func (w *WorkspaceShellModel) StepDockMode(delta int) bool {
 
 func (w *WorkspaceShellModel) SetExplorerIndex(idx int) bool {
 	items := w.explorerItems()
-	if idx < 0 || idx >= len(items) || idx == w.SelectedEntry {
+	if idx < 0 || idx >= len(items) || idx == w.Selection.ExplorerItem {
 		return false
 	}
-	w.SelectedEntry = idx
+	w.Selection.ExplorerItem = idx
 	w.rebuildSidebarList()
 	return true
 }
 
 func (w *WorkspaceShellModel) OpenExplorerSelection() (loadDir, previewFile string) {
 	items := w.explorerItems()
-	if len(items) == 0 || w.SelectedEntry < 0 || w.SelectedEntry >= len(items) {
+	if len(items) == 0 || w.Selection.ExplorerItem < 0 || w.Selection.ExplorerItem >= len(items) {
 		return "", ""
 	}
-	item := items[w.SelectedEntry]
+	item := items[w.Selection.ExplorerItem]
 	if item.IsDir {
 		w.CurrentDir = item.Path
 		w.LoadedProject = ""
 		w.LoadedDir = ""
 		w.Entries = nil
-		w.SelectedEntry = 0
+		w.Selection.ExplorerItem = 0
 		w.rebuildSidebarList()
 		return item.Path, ""
 	}
-	w.StartOpenFileTab(item.Path)
 	return "", item.Path
+}
+
+func (w *WorkspaceShellModel) RegisterExplorerClick(path string, now time.Time) bool {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		w.LastExplorerClickPath = ""
+		w.LastExplorerClickAt = time.Time{}
+		return false
+	}
+	const doubleClickWindow = 450 * time.Millisecond
+	doubleClick := path == w.LastExplorerClickPath && !w.LastExplorerClickAt.IsZero() && now.Sub(w.LastExplorerClickAt) <= doubleClickWindow
+	w.LastExplorerClickPath = path
+	w.LastExplorerClickAt = now
+	return doubleClick
 }
 
 func (w *WorkspaceShellModel) ensureProjectTab(name string) {
@@ -221,6 +230,27 @@ func (w *WorkspaceShellModel) pruneProjectTabs() {
 func (w *WorkspaceShellModel) rebuildSidebarList() {
 	var items []list.Item
 	switch w.DockMode {
+	case workspaceDockChat:
+		w.SidebarList.SetDelegate(workspaceShellDelegate{})
+		if controller := w.TerminalAgentRef(); controller != nil {
+			items = append(items, workspaceShellListItem{
+				title:     "◉ " + truncate(coalesce(controller.Task, "Controller"), 42),
+				desc:      truncate("controller  "+coalesce(controller.Phase, controller.Status), 42),
+				badge:     truncate(controller.ElapsedString(), 8),
+				accent:    Cyan,
+				sessionID: controller.SessionID,
+			})
+		}
+		for _, agent := range w.SubagentsForCurrent() {
+			items = append(items, workspaceShellListItem{
+				title:     workspaceShellAgentIcon(agent) + " " + truncate(coalesce(agent.Task, "Untitled task"), 42),
+				desc:      truncate(agent.Status+"  "+coalesce(agent.Phase, "idle"), 42),
+				badge:     truncate(agent.ElapsedString(), 8),
+				accent:    workspaceShellAgentColor(agent),
+				sessionID: agent.SessionID,
+			})
+		}
+		w.SidebarList.SetItems(items)
 	case workspaceDockFiles:
 		w.SidebarList.SetDelegate(workspaceShellDelegate{compact: true})
 		for _, item := range w.explorerItems() {
@@ -233,12 +263,10 @@ func (w *WorkspaceShellModel) rebuildSidebarList() {
 				accent: accent,
 			})
 		}
-		if w.SelectedEntry >= len(items) {
-			w.SelectedEntry = max(0, len(items)-1)
-		}
+		w.Selection.ClampExplorer(len(items))
 		w.SidebarList.SetItems(items)
 		if len(items) > 0 {
-			w.SidebarList.Select(w.SelectedEntry)
+			w.SidebarList.Select(w.Selection.ExplorerItem)
 		}
 	case workspaceDockTasks:
 		w.SidebarList.SetDelegate(workspaceShellDelegate{})
@@ -251,12 +279,10 @@ func (w *WorkspaceShellModel) rebuildSidebarList() {
 				sessionID: agent.SessionID,
 			})
 		}
-		if w.SelectedAgent >= len(items) {
-			w.SelectedAgent = max(0, len(items)-1)
-		}
+		w.Selection.ClampAgent(len(items))
 		w.SidebarList.SetItems(items)
 		if len(items) > 0 {
-			w.SidebarList.Select(w.SelectedAgent)
+			w.SidebarList.Select(w.Selection.Agent)
 		}
 	case workspaceDockCanvas:
 		w.SidebarList.SetDelegate(workspaceShellDelegate{compact: true})
@@ -272,12 +298,10 @@ func (w *WorkspaceShellModel) rebuildSidebarList() {
 				accent: workspaceShellCanvasColor(widget),
 			})
 		}
-		if w.SelectedCanvasWidget >= len(items) {
-			w.SelectedCanvasWidget = max(0, len(items)-1)
-		}
+		w.Selection.ClampCanvasWidget(len(items))
 		w.SidebarList.SetItems(items)
 		if len(items) > 0 {
-			w.SidebarList.Select(w.SelectedCanvasWidget)
+			w.SidebarList.Select(w.Selection.CanvasWidget)
 		}
 	default:
 		w.SidebarList.SetItems(nil)
@@ -373,6 +397,8 @@ func (w *WorkspaceShellModel) resetPreview() {
 	w.Editor.SetValue("")
 	w.Editor.Blur()
 	w.EditorHistory = []string{""}
+	w.LastExplorerClickPath = ""
+	w.LastExplorerClickAt = time.Time{}
 }
 
 func (w *WorkspaceShellModel) resetTerminal() {
@@ -390,7 +416,7 @@ func (w *WorkspaceShellModel) resetCanvas() {
 	w.CanvasWidgets = nil
 	w.CanvasTabs = nil
 	w.ActiveCanvas = ""
-	w.SelectedCanvasWidget = 0
+	w.Selection.CanvasWidget = 0
 }
 
 func (w *WorkspaceShellModel) SetCanvasData(project string, widgets []api.Widget, tabs []string) {
@@ -439,9 +465,7 @@ func (w *WorkspaceShellModel) SetCanvasData(project string, widgets []api.Widget
 	if w.ActiveCanvas == "" && len(w.CanvasTabs) > 0 {
 		w.ActiveCanvas = w.CanvasTabs[0]
 	}
-	if widgets := w.CanvasWidgetsForActiveTab(); w.SelectedCanvasWidget >= len(widgets) {
-		w.SelectedCanvasWidget = max(0, len(widgets)-1)
-	}
+	w.Selection.ClampCanvasWidget(len(w.CanvasWidgetsForActiveTab()))
 	w.rebuildSidebarList()
 }
 
@@ -468,22 +492,17 @@ func (w *WorkspaceShellModel) SelectedCanvasWidgetRef() *api.Widget {
 	if len(widgets) == 0 {
 		return nil
 	}
-	if w.SelectedCanvasWidget < 0 {
-		w.SelectedCanvasWidget = 0
-	}
-	if w.SelectedCanvasWidget >= len(widgets) {
-		w.SelectedCanvasWidget = len(widgets) - 1
-	}
-	widget := widgets[w.SelectedCanvasWidget]
+	w.Selection.ClampCanvasWidget(len(widgets))
+	widget := widgets[w.Selection.CanvasWidget]
 	return &widget
 }
 
 func (w *WorkspaceShellModel) SetCanvasWidgetIndex(idx int) bool {
 	widgets := w.CanvasWidgetsForActiveTab()
-	if idx < 0 || idx >= len(widgets) || idx == w.SelectedCanvasWidget {
+	if idx < 0 || idx >= len(widgets) || idx == w.Selection.CanvasWidget {
 		return false
 	}
-	w.SelectedCanvasWidget = idx
+	w.Selection.CanvasWidget = idx
 	w.rebuildSidebarList()
 	return true
 }
@@ -497,7 +516,7 @@ func (w *WorkspaceShellModel) SetCanvasTab(tab string) bool {
 		return false
 	}
 	w.ActiveCanvas = tab
-	w.SelectedCanvasWidget = 0
+	w.Selection.CanvasWidget = 0
 	w.rebuildSidebarList()
 	return true
 }

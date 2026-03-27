@@ -5,7 +5,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func (a *App) workspaceOpenDockCmd() tea.Cmd {
@@ -88,20 +87,6 @@ func (a *App) workspaceOpenDockCmd() tea.Cmd {
 			Disabled: a.workspace.SelectedAgentRef() == nil,
 		},
 		MenuItem{
-			Label: "Metrics Dashboard",
-			Icon:  "◫",
-			Action: func() tea.Msg {
-				return NavigateMsg{Screen: ScreenMetrics}
-			},
-		},
-		MenuItem{
-			Label: "Manage Tools",
-			Icon:  "◈",
-			Action: func() tea.Msg {
-				return NavigateMsg{Screen: ScreenTools}
-			},
-		},
-		MenuItem{
 			Label: "Open Project Detail",
 			Icon:  "▣",
 			Action: func() tea.Msg {
@@ -112,21 +97,8 @@ func (a *App) workspaceOpenDockCmd() tea.Cmd {
 			},
 			Disabled: cur == nil,
 		},
-		MenuItem{
-			Label: "Back to Workspaces",
-			Icon:  "←",
-			Action: func() tea.Msg {
-				return NavigateMsg{Screen: ScreenDashboard}
-			},
-		},
 	)
-
-	return func() tea.Msg {
-		return ShowContextMenuMsg{
-			Title: "Workspace Dock",
-			Items: items,
-		}
-	}
+	return a.showAppMenuCmd("Workspace Dock", items)
 }
 
 func (a *App) workspaceOpenProjectSelectorCmd() tea.Cmd {
@@ -227,6 +199,7 @@ func (a *App) workspaceOpenSelectedFileTabCmd() tea.Cmd {
 		a.statusTime = time.Now()
 		return nil
 	}
+	a.workspace.SetDockMode(workspaceDockFiles)
 	a.workspace.StartOpenFileTab(item.Path)
 	return FetchWorkspaceFilePreviewCmd(a.client, cur.Name, item.Path)
 }
@@ -272,12 +245,7 @@ func (a *App) workspaceSubmitComposeCmd() tea.Cmd {
 		a.statusTime = time.Now()
 		return nil
 	}
-	if a.workspace.PassThrough {
-		a.workspace.ClearComposer()
-		a.workspace.StartSessionTurn()
-		a.workspace.AppendExecCommand(message)
-		return WorkspaceExecCmd(a.client, cur.Name, message)
-	}
+	composeMessage := a.workspace.ComposeControllerMessage(message)
 	a.workspace.AppendLocalUserMessage(message)
 	a.workspace.ClearComposer()
 	a.workspace.StartSessionTurn()
@@ -285,63 +253,63 @@ func (a *App) workspaceSubmitComposeCmd() tea.Cmd {
 		func() tea.Msg {
 			return a.workspace.ComposerSpinner.Tick()
 		},
-		WorkspaceComposeCmd(a.client, cur.Name, a.workspace.ActiveSessionID(), message),
+		WorkspaceComposeCmd(a.client, cur.Name, a.workspace.ActiveSessionID(), composeMessage),
 	)
 }
 
+func (a *App) workspaceSubmitSystemComposeCmd() tea.Cmd {
+	if a.client == nil {
+		return nil
+	}
+	message := a.workspace.SystemComposerValue()
+	if message == "" || a.workspace.SessionTurnBusy {
+		return nil
+	}
+	cur := a.workspace.Current()
+	if cur == nil {
+		a.statusMsg = "No active workspace"
+		a.statusTime = time.Now()
+		return nil
+	}
+	a.workspace.ClearSystemComposer()
+	a.workspace.StartSessionTurn()
+	a.workspace.AppendExecCommand(message)
+	return WorkspaceExecCmd(a.client, cur.Name, message)
+}
+
 func (a *App) workspacePreviewWidth() int {
-	if a.workspace.EditorActive {
-		ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.PreviewReady)
-		if ly.Main.W > 6 {
-			return ly.Main.W - 4
-		}
-		return a.width
-	}
-	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.PreviewReady)
-	target := ly.Preview
-	if !a.workspace.PreviewReady {
-		target = ly.Transcript
-	}
-	if target.W > 6 {
-		return target.W - 4
+	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.SystemDrawerOpen, a.workspace.DockMode)
+	if ly.Main.W > 6 {
+		return ly.Main.W - 4
 	}
 	return a.width
 }
 
 func (a *App) workspacePreviewHeight() int {
-	if a.workspace.EditorActive {
-		ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.PreviewReady)
-		if ly.Main.H > 8 {
-			return ly.Main.H - 8
-		}
-		return a.layout.ContentHeight
-	}
-	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.PreviewReady)
-	target := ly.Preview
-	if !a.workspace.PreviewReady {
-		target = ly.Transcript
-	}
-	if target.H > 4 {
-		return target.H - 3
+	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.SystemDrawerOpen, a.workspace.DockMode)
+	if ly.Main.H > 8 {
+		return ly.Main.H - 8
 	}
 	return a.layout.ContentHeight
 }
 
 func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if msg.Action != tea.MouseActionPress {
-		return a, nil
-	}
 	contentY := msg.Y - 3
 	if contentY < 0 || contentY >= a.layout.ContentHeight {
 		return a, nil
 	}
-	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.PreviewReady)
+	ly := computeWorkspaceShellAppLayout(a.width, a.layout.ContentHeight, a.workspace.SystemDrawerOpen, a.workspace.DockMode)
 	x := msg.X
 	y := contentY
+	zoneMsg := msg
+	zoneMsg.Y = contentY
 
-	if a.workspace.ProjectPickerOpen && ly.Picker.contains(x, y) {
-		row := y - ly.Picker.Y - 3
-		if row >= 0 && row < len(a.workspace.ProjectPicker.Items()) {
+	if msg.Action != tea.MouseActionPress {
+		return a, nil
+	}
+
+	if a.workspace.ProjectPickerOpen {
+		if row, ok := workspaceProjectPickerIndexAt(zoneMsg, &a.workspace); ok {
 			a.workspace.ProjectPicker.Select(row)
 			if a.workspace.SelectedProjectPickerAction() == "create" {
 				a.workspace.CloseProjectPicker()
@@ -351,6 +319,10 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			if projectName != "" && a.workspace.SetProjectByName(projectName) {
 				return a, tea.Batch(a.workspaceLoadDirCmd(), a.workspaceLoadTerminalCmd())
 			}
+			return a, nil
+		}
+		if !ly.Picker.contains(x, y) {
+			a.workspace.CloseProjectPicker()
 		}
 		return a, nil
 	}
@@ -359,6 +331,11 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	case ly.Activity.contains(x, y):
 		a.workspace.FocusPane = 0
 		a.workspace.BlurComposer()
+		a.workspace.BlurSystemComposer()
+		if mode, ok := workspaceActivityActionAt(zoneMsg); ok {
+			a.workspace.SetDockMode(mode)
+			return a, nil
+		}
 		if idx := workspaceShellDockIndexAt(y, ly.Activity); idx >= 0 {
 			a.workspace.SetDockMode(workspaceDockItems()[idx].Mode)
 		}
@@ -367,6 +344,7 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	case ly.Sidebar.contains(x, y):
 		a.workspace.FocusPane = 1
 		a.workspace.BlurComposer()
+		a.workspace.BlurSystemComposer()
 		switch a.workspace.DockMode {
 		case workspaceDockFiles:
 			row := y - ly.Sidebar.Y - 4
@@ -380,7 +358,18 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 					}
 					return a, a.workspaceOpenExplorerMenuCmd(baseDir, msg.X, contentY)
 				}
-				return a, a.workspaceOpenExplorerSelection()
+				item := items[row]
+				if item.IsDir {
+					return a, nil
+				}
+				if a.workspace.DockMode == workspaceDockFiles {
+					return a, a.workspaceOpenSelectedFileTabCmd()
+				}
+				doubleClick := a.workspace.RegisterExplorerClick(item.Path, time.Now())
+				if doubleClick {
+					return a, a.workspaceOpenSelectedFileTabCmd()
+				}
+				return a, nil
 			}
 			if msg.Button == tea.MouseButtonRight {
 				return a, a.workspaceOpenExplorerMenuCmd(strings.Trim(a.workspace.CurrentDir, "/"), msg.X, contentY)
@@ -405,8 +394,12 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case ly.Main.contains(x, y):
-		if a.workspace.DockMode == workspaceDockCanvas && y >= ly.Main.Y+3 && y <= ly.Main.Y+4 {
-			if tab, ok := workspaceShellCanvasTabActionAt(&a.workspace, ly, x); ok {
+		if a.workspace.DockMode == workspaceDockChat && zoneInBounds(workspaceSystemDrawerToggleZoneID(), zoneMsg) {
+			a.workspace.ToggleSystemDrawer()
+			return a, nil
+		}
+		if a.workspace.DockMode == workspaceDockCanvas {
+			if tab, ok := workspaceShellCanvasTabActionAt(&a.workspace, zoneMsg); ok {
 				a.workspace.SetCanvasTab(tab)
 				return a, nil
 			}
@@ -414,21 +407,40 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if a.workspace.DockMode == workspaceDockCanvas {
 			a.workspace.FocusPane = 2
 			a.workspace.BlurComposer()
+			a.workspace.BlurSystemComposer()
+			return a, nil
+		}
+		if a.workspace.SystemDrawerOpen && ly.Drawer.contains(x, y) {
+			a.workspace.BlurComposer()
+			a.workspace.FocusSystemComposer()
+			switch msg.Button {
+			case tea.MouseButtonWheelUp:
+				a.workspace.FollowSystemTail = false
+				a.workspace.SystemViewport.LineUp(3)
+				return a, nil
+			case tea.MouseButtonWheelDown:
+				a.workspace.FollowSystemTail = false
+				a.workspace.SystemViewport.LineDown(3)
+				return a, nil
+			}
 			return a, nil
 		}
 		if ly.Transcript.contains(x, y) {
 			a.workspace.FocusPane = 2
+			a.workspace.BlurSystemComposer()
 			switch msg.Button {
 			case tea.MouseButtonWheelUp:
+				a.workspace.FollowSessionTail = false
 				a.workspace.SessionViewport.LineUp(3)
 				return a, nil
 			case tea.MouseButtonWheelDown:
+				a.workspace.FollowSessionTail = false
 				a.workspace.SessionViewport.LineDown(3)
 				return a, nil
 			}
 		}
-		if y <= ly.Main.Y+2 {
-			if action, ok := workspaceShellTabActionAt(&a.workspace, ly, x); ok {
+		if !a.workspace.EditorActive && a.workspace.DockMode == workspaceDockChat {
+			if action, ok := workspaceShellTabActionAt(&a.workspace, zoneMsg); ok {
 				switch action.kind {
 				case "add":
 					a.workspace.OpenProjectPicker()
@@ -451,49 +463,21 @@ func (a *App) handleWorkspaceMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		if a.workspace.EditorActive {
 			a.workspace.FocusPane = 2
-			if y >= ly.Main.Y+3 && y <= ly.Main.Y+5 {
-				if action, ok := workspaceShellFileTabActionAt(&a.workspace, ly, x); ok {
-					switch action.kind {
-					case "close":
-						a.workspace.CloseFileTab(action.name)
-					case "activate":
-						a.workspace.ActivateFileTab(action.name)
-					}
-					return a, nil
+			a.workspace.BlurSystemComposer()
+			if action, ok := workspaceShellFileTabActionAt(&a.workspace, zoneMsg); ok {
+				switch action.kind {
+				case "close":
+					a.workspace.CloseFileTab(action.name)
+				case "activate":
+					a.workspace.ActivateFileTab(action.name)
 				}
+				return a, nil
 			}
 			return a, nil
 		}
-		if y >= ly.Composer.Y-1 && y <= ly.Composer.Y+ly.Composer.H {
-			toggleStart := ly.Main.X + 1
-			toggleEnd := toggleStart + min(max(16, lipgloss.Width(workspaceShellPassThroughPrompt(a.workspace.PassThrough))+6), max(18, ly.Composer.W/2))
-			if x >= toggleStart && x < toggleEnd {
-				a.workspace.TogglePassThrough()
-				a.workspace.FocusComposer()
-				return a, nil
-			}
-		}
+		a.workspace.BlurSystemComposer()
 		a.workspace.FocusComposer()
 		return a, nil
 	}
 	return a, nil
-}
-
-func workspaceShellTabActionAt(m *WorkspaceShellModel, ly workspaceShellLayout, x int) (workspaceTabAction, bool) {
-	innerW := max(12, ly.Main.W-4)
-	_, hits := workspaceShellRenderTabLine(m, innerW)
-	relX := x - (ly.Main.X + 2)
-	for _, hit := range hits {
-		if relX < hit.StartX || relX >= hit.EndX {
-			continue
-		}
-		if hit.Add {
-			return workspaceTabAction{kind: "add"}, true
-		}
-		if relX >= hit.CloseStart && relX < hit.CloseEnd {
-			return workspaceTabAction{kind: "close", name: hit.Name}, true
-		}
-		return workspaceTabAction{kind: "activate", name: hit.Name}, true
-	}
-	return workspaceTabAction{}, false
 }

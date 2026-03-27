@@ -62,3 +62,12 @@ func (a *App) hasBlockingOverlay() bool {
 		a.dispatch.Active() ||
 		a.inject.Active()
 }
+
+func (a *App) updateActiveOverlayMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd, bool) {
+	if a.contextMenu.Active() {
+		var cmd tea.Cmd
+		a.contextMenu, cmd = a.contextMenu.Update(msg)
+		return a, cmd, true
+	}
+	return a, nil, false
+}

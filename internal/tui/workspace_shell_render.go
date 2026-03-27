@@ -5,141 +5,91 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/scoady/codexctl/internal/api"
+	editorcomponent "github.com/scoady/codexctl/internal/tui/components/editor"
+	tuistyle "github.com/scoady/codexctl/internal/tui/style"
 )
 
 var (
-	workspaceShellChromeBg = lipgloss.Color("#080b10")
-	workspaceShellPanelBg  = lipgloss.Color("#0b0f15")
-	workspaceShellDockBg   = lipgloss.Color("#0b0f15")
-	workspaceShellLine     = lipgloss.Color("#16202c")
+	workspaceShellChromeBg = tuistyle.WorkspaceChromeBG
+	workspaceShellPanelBg  = tuistyle.WorkspacePanelBG
+	workspaceShellDockBg   = tuistyle.WorkspaceDockBG
+	workspaceShellLine     = tuistyle.WorkspaceLine
 )
 
-func RenderWorkspaceShell(m *WorkspaceShellModel, stats *api.StatsResponse, health *api.HealthResponse, store *MetricsStore, host workspaceHostMetrics, width, height int) string {
+func RenderWorkspaceShell(m *WorkspaceShellModel, stats *api.StatsResponse, health *api.HealthResponse, store *MetricsStore, host workspaceHostMetrics, mouse MousePoint, width, height int) string {
 	if height <= 3 {
 		return ""
 	}
-	bodyHeight := max(6, height-3)
-	layout := computeWorkspaceShellLayout(width, bodyHeight, false)
+	bodyHeight := max(6, height-4)
+	if workspaceDockShowsSidebar(m.DockMode) {
+		bodyHeight = max(6, height-5)
+	}
+	layout := computeWorkspaceShellLayout(width, bodyHeight, m.SystemDrawerOpen, m.DockMode)
 
-	m.SidebarList.SetSize(max(12, layout.Sidebar.W-4), max(4, layout.Sidebar.H-6))
+	sidebarBodyHeight := max(4, layout.Sidebar.H-6)
+	if m.DockMode == workspaceDockFiles {
+		sidebarBodyHeight = max(4, layout.Sidebar.H-8)
+	}
+	if layout.Sidebar.W > 0 {
+		m.SidebarList.SetSize(max(12, layout.Sidebar.W-4), sidebarBodyHeight)
+	}
 	m.ProjectPicker.SetSize(max(18, layout.Picker.W-2), max(4, layout.Picker.H-2))
 	m.Composer.Width = max(12, layout.Composer.W-6)
+	if layout.SysComposer.W > 0 {
+		m.SystemComposer.Width = max(12, layout.SysComposer.W-6)
+	}
 
-	activity := renderWorkspaceActivityPane(m, layout.Activity)
-	sidebar := renderWorkspaceSidebarPane(m, stats, layout.Sidebar)
-	main := renderWorkspaceTerminalPane(m, health, layout)
+	activity := renderWorkspaceActivityPane(m, layout.Activity, mouse)
+	main := renderWorkspaceTerminalPane(m, health, mouse, layout)
 
 	var body string
-	if layout.Stacked {
+	if layout.Sidebar.W == 0 {
+		body = lipgloss.JoinHorizontal(lipgloss.Top, activity, " ", main)
+	} else if layout.Stacked {
+		sidebar := renderWorkspaceSidebarPane(m, stats, layout.Sidebar, mouse)
 		body = lipgloss.JoinHorizontal(lipgloss.Top, activity, " ", lipgloss.JoinVertical(lipgloss.Left, sidebar, main))
 	} else {
+		sidebar := renderWorkspaceSidebarPane(m, stats, layout.Sidebar, mouse)
 		body = lipgloss.JoinHorizontal(lipgloss.Top, activity, " ", sidebar, " ", main)
 	}
-	return strings.Join([]string{
+	return zone.Scan(strings.Join([]string{
 		renderWorkspaceTopStrip(m, stats, health, store, host, width),
 		body,
 		renderWorkspaceBottomStrip(m, width),
-	}, "\n")
+	}, "\n"))
 }
 
-func renderWorkspaceActivityPane(m *WorkspaceShellModel, rect workspaceShellRect) string {
-	iconColors := map[string]lipgloss.Color{
-		workspaceDockFiles:   Cyan,
-		workspaceDockCanvas:  Green,
-		workspaceDockTasks:   Green,
-		workspaceDockMetrics: Purple,
-		workspaceDockTools:   Amber,
-	}
-	iconGlyphs := map[string]string{
-		workspaceDockFiles:   "▗▆▖",
-		workspaceDockCanvas:  "▚▞▟",
-		workspaceDockTasks:   "◖◉◗",
-		workspaceDockMetrics: "▁▅█",
-		workspaceDockTools:   "┠┼┨",
-	}
-	labelText := map[string]string{
-		workspaceDockFiles:   "files",
-		workspaceDockCanvas:  "canvas",
-		workspaceDockTasks:   "tasks",
-		workspaceDockMetrics: "stats",
-		workspaceDockTools:   "tools",
-	}
-
-	contentH := max(6, rect.H-2)
-	lines := make([]string, contentH)
-	lines[0] = lipgloss.NewStyle().Foreground(Cyan).Bold(true).Align(lipgloss.Center).Width(rect.W - 2).Render("c9")
-	for _, slot := range workspaceShellDockSlots(contentH) {
-		itemMode := slot.Mode
-		var item workspaceDockItem
-		for _, candidate := range workspaceDockItems() {
-			if candidate.Mode == itemMode {
-				item = candidate
-				break
-			}
-		}
-		color := iconColors[item.Mode]
-		icon := lipgloss.NewStyle().
-			Width(rect.W - 2).
-			Align(lipgloss.Center).
-			Foreground(color).
-			Bold(true).
-			Render(iconGlyphs[item.Mode])
-		label := lipgloss.NewStyle().
-			Width(rect.W - 2).
-			Align(lipgloss.Center).
-			Foreground(Dim).
-			Faint(true).
-			Render(labelText[item.Mode])
-		if item.Mode == m.DockMode {
-			icon = lipgloss.NewStyle().
-				Width(rect.W - 2).
-				Align(lipgloss.Center).
-				Foreground(color).
-				Bold(true).
-				Render(iconGlyphs[item.Mode])
-			label = lipgloss.NewStyle().
-				Width(rect.W - 2).
-				Align(lipgloss.Center).
-				Foreground(White).
-				Faint(true).
-				Render(labelText[item.Mode])
-		}
-		if slot.IconLine >= 0 && slot.IconLine < len(lines) {
-			lines[slot.IconLine] = icon
-		}
-		if slot.LabelLine >= 0 && slot.LabelLine < len(lines) {
-			lines[slot.LabelLine] = label
-		}
-	}
-
-	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(focusBorder(m.FocusPane == 0)).
-		Padding(0, 1).
-		Width(rect.W).
-		Height(rect.H).
-		Background(workspaceShellDockBg).
-		Render(strings.Join(lines, "\n"))
-}
-
-func renderWorkspaceSidebarPane(m *WorkspaceShellModel, stats *api.StatsResponse, rect workspaceShellRect) string {
+func renderWorkspaceSidebarPane(m *WorkspaceShellModel, stats *api.StatsResponse, rect workspaceShellRect, mouse MousePoint) string {
 	var body string
+	footer := ""
 	switch m.DockMode {
-	case workspaceDockFiles, workspaceDockTasks, workspaceDockCanvas:
+	case workspaceDockChat:
+		body = m.SidebarList.View()
+	case workspaceDockFiles:
+		body = renderWorkspaceExplorerList(m, rect.W-4, rect.H-8, mouse)
+	case workspaceDockTasks, workspaceDockCanvas:
 		body = m.SidebarList.View()
 	case workspaceDockMetrics:
 		body = renderWorkspaceStatusBody(m, stats, rect.W-4, rect.H-6)
 	case workspaceDockTools:
 		body = renderWorkspaceToolsBody(rect.W-4, rect.H-6)
 	}
+	if m.DockMode == workspaceDockFiles {
+		footer = renderWorkspaceExplorerFooter(m, rect.W-4)
+	}
 
-	content := strings.Join([]string{
+	lines := []string{
 		lipgloss.NewStyle().Foreground(White).Bold(true).Render(workspaceShellDockTitle(m.DockMode)),
 		lipgloss.NewStyle().Foreground(Dim).Render(workspaceShellDockSubtitle(m)),
 		"",
 		body,
-	}, "\n")
+	}
+	if footer != "" {
+		lines = append(lines, "", footer)
+	}
+	content := strings.Join(lines, "\n")
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -151,10 +101,9 @@ func renderWorkspaceSidebarPane(m *WorkspaceShellModel, stats *api.StatsResponse
 		Render(content)
 }
 
-func renderWorkspaceTerminalPane(m *WorkspaceShellModel, health *api.HealthResponse, layout workspaceShellLayout) string {
+func renderWorkspaceTerminalPane(m *WorkspaceShellModel, health *api.HealthResponse, mouse MousePoint, layout workspaceShellLayout) string {
 	innerW := max(12, layout.Main.W-4)
 	innerH := max(8, layout.Main.H-2)
-	transcriptH := max(4, innerH-6)
 
 	projectName := "No project"
 	projectPath := "Press p to choose a project"
@@ -162,57 +111,20 @@ func renderWorkspaceTerminalPane(m *WorkspaceShellModel, health *api.HealthRespo
 		projectName = cur.Name
 		projectPath = truncate(cur.Path, max(18, innerW-24))
 	}
-	branch := "--"
-	if strings.TrimSpace(m.Git.Branch) != "" {
-		branch = m.Git.Branch
-	}
+	header1, header2 := renderWorkspaceMainHeaders(m, mouse, innerW, projectName, projectPath)
 
-	tabW := max(12, innerW-14)
-	tabLine, _ := workspaceShellRenderTabLine(m, tabW)
-	branchLabel := lipgloss.NewStyle().Foreground(SubText).Render("git " + branch)
-	header1 := tabLine + strings.Repeat(" ", max(1, innerW-lipgloss.Width(tabLine)-lipgloss.Width(branchLabel))) + branchLabel
-	header2 := workspaceShellAlignedRow(
-		projectName+"  "+projectPath,
-		workspaceShellLiveLabel(m, health),
-		innerW,
-		lipgloss.NewStyle().Foreground(Dim),
-		lipgloss.NewStyle().Foreground(Cyan),
-	)
-
-	if !m.ProjectPickerOpen && m.DockMode == workspaceDockCanvas && !m.EditorActive {
-		return renderWorkspaceCanvasPane(m, layout, innerW, innerH, header1, header2)
-	}
-
-	if !m.ProjectPickerOpen && m.EditorActive && m.ActiveFileTab != "" {
-		fileTabLine, _ := workspaceShellRenderFileTabLine(m, innerW)
-		fileStatus := "saved"
-		if m.EditorDirty {
-			fileStatus = "modified"
-		}
-		infoRow := workspaceShellAlignedRow(
-			coalesce(m.ActiveFileTab, "file"),
-			fileStatus,
-			innerW,
-			lipgloss.NewStyle().Foreground(SubText),
-			lipgloss.NewStyle().Foreground(Cyan),
-		)
-		editorH := max(4, innerH-6)
-		m.Editor.SetWidth(innerW)
-		m.Editor.SetHeight(editorH)
-		editorLines := padOrTrimLines(strings.Split(m.Editor.View(), "\n"), editorH)
+	if m.ProjectPickerOpen {
+		pickerLines := padOrTrimLines(strings.Split(renderWorkspaceProjectPicker(m, layout.Picker, mouse), "\n"), max(4, innerH-3))
 		lines := []string{
 			header1,
 			header2,
 			HLine(innerW, workspaceShellLine),
-			fileTabLine,
-			infoRow,
-			HLine(innerW, workspaceShellLine),
 		}
-		lines = append(lines, editorLines...)
+		lines = append(lines, pickerLines...)
 		lines = padOrTrimLines(lines, innerH)
 		return lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(focusBorder(m.FocusPane == 2 || m.EditorActive)).
+			BorderForeground(focusBorder(m.FocusPane == 2)).
 			Padding(0, 1).
 			Width(layout.Main.W).
 			Height(layout.Main.H).
@@ -220,34 +132,52 @@ func renderWorkspaceTerminalPane(m *WorkspaceShellModel, health *api.HealthRespo
 			Render(strings.Join(lines, "\n"))
 	}
 
-	transcriptLines := []string{}
-	if m.ProjectPickerOpen {
-		pickerLines := strings.Split(m.ProjectPicker.View(), "\n")
-		transcriptLines = append(transcriptLines,
-			lipgloss.NewStyle().Foreground(Cyan).Bold(true).Render("Projects"),
-			lipgloss.NewStyle().Foreground(Dim).Render("Switch workspace"),
-			"",
-		)
-		transcriptLines = append(transcriptLines, pickerLines...)
-	} else {
-		m.SessionViewport.Width = innerW
-		m.SessionViewport.Height = transcriptH
-		m.refreshSessionViewport()
-		transcriptLines = strings.Split(m.SessionViewport.View(), "\n")
+	if m.DockMode == workspaceDockCanvas && !m.EditorActive {
+		return renderWorkspaceCanvasPane(m, mouse, layout, innerW, innerH, header1, header2)
 	}
-	transcriptLines = padOrTrimLines(transcriptLines, transcriptH)
-	m.Composer.Prompt = workspaceShellPassThroughPrompt(m.PassThrough)
-	lines := []string{
+
+	if m.DockMode == workspaceDockFiles {
+		fileStatus := "saved"
+		if m.EditorDirty {
+			fileStatus = "modified"
+		}
+		infoRow := workspaceShellAlignedRow(
+			coalesce(m.PreviewTitle, "No file selected"),
+			fileStatus,
+			innerW,
+			lipgloss.NewStyle().Foreground(SubText),
+			lipgloss.NewStyle().Foreground(Cyan),
+		)
+		bodyH := max(4, innerH-5)
+		bodyLines := renderWorkspaceFileBody(m, innerW, bodyH)
+		lines := []string{
+			header1,
+			header2,
+			HLine(innerW, workspaceShellLine),
+			infoRow,
+			HLine(innerW, workspaceShellLine),
+		}
+		lines = append(lines, bodyLines...)
+		lines = padOrTrimLines(lines, innerH)
+		return lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(focusBorder(m.FocusPane == 2 || m.DockMode == workspaceDockFiles)).
+			Padding(0, 1).
+			Width(layout.Main.W).
+			Height(layout.Main.H).
+			Background(workspaceShellChromeBg).
+			Render(strings.Join(lines, "\n"))
+	}
+
+	if m.DockMode == workspaceDockChat {
+		return renderWorkspaceChatPane(m, layout, mouse, header1, header2)
+	}
+
+	lines := padOrTrimLines([]string{
 		header1,
 		header2,
 		HLine(innerW, workspaceShellLine),
-	}
-	lines = append(lines, transcriptLines...)
-	lines = append(lines,
-		HLine(innerW, workspaceShellLine),
-		m.Composer.View(),
-	)
-	lines = padOrTrimLines(lines, innerH)
+	}, innerH)
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -259,8 +189,153 @@ func renderWorkspaceTerminalPane(m *WorkspaceShellModel, health *api.HealthRespo
 		Render(strings.Join(lines, "\n"))
 }
 
-func renderWorkspaceCanvasPane(m *WorkspaceShellModel, layout workspaceShellLayout, innerW, innerH int, header1, header2 string) string {
-	tabLine, _ := workspaceShellRenderCanvasTabLine(m, innerW)
+func renderWorkspaceChatPane(m *WorkspaceShellModel, layout workspaceShellLayout, mouse MousePoint, header1, header2 string) string {
+	innerW := max(12, layout.Main.W-4)
+	innerH := max(8, layout.Main.H-2)
+	bodyH := max(6, innerH-3)
+	chatBlockH := bodyH
+	drawerBlockH := 0
+	if m.SystemDrawerOpen {
+		chatBlockH = max(8, (bodyH-1)/2)
+		drawerBlockH = max(7, bodyH-chatBlockH-1)
+	}
+
+	chatInnerW := innerW
+	chatBodyBudget := max(3, chatBlockH-3)
+	transcriptH := max(4, chatBodyBudget-2)
+	m.SessionViewport.Width = chatInnerW
+	m.SessionViewport.Height = transcriptH
+	m.refreshSessionViewport()
+	chatBody := padOrTrimLines(strings.Split(m.SessionViewport.View(), "\n"), transcriptH)
+	chatBody = append(chatBody, "", renderWorkspaceInlineInput(m.Composer, chatInnerW, ">", m.ComposerFocused, m.BlinkVisible, m.SessionTurnBusy))
+	chatTitleView, chatTitleW := workspaceShellChatBlockTitle(m)
+	chatBlock := renderWorkspaceTerminalBlock(workspaceTerminalBlockSpec{
+		TitleView: chatTitleView,
+		TitleW:    chatTitleW,
+		Status:    workspaceShellChatMetaStatus(m),
+		Width:     innerW,
+		Height:    chatBlockH,
+		Focused:   m.FocusPane == 2,
+		BodyLines: chatBody,
+	})
+	lines := []string{header1, header2, HLine(innerW, workspaceShellLine)}
+	lines = append(lines, strings.Split(chatBlock, "\n")...)
+
+	if m.SystemDrawerOpen {
+		drawerInnerW := innerW
+		systemBodyBudget := max(3, drawerBlockH-3)
+		systemBodyH := max(4, systemBodyBudget-2)
+		m.SystemViewport.Width = drawerInnerW
+		m.SystemViewport.Height = systemBodyH
+		m.refreshSystemViewport()
+		systemBody := padOrTrimLines(strings.Split(m.SystemViewport.View(), "\n"), systemBodyH)
+		systemBody = append(systemBody, "", renderWorkspaceInlineInput(m.SystemComposer, drawerInnerW, "$", m.SystemComposerFocused, m.BlinkVisible, false))
+		drawer := renderWorkspaceTerminalBlock(workspaceTerminalBlockSpec{
+			Title:     "OS Terminal",
+			Status:    "local shell",
+			Width:     innerW,
+			Height:    drawerBlockH,
+			Focused:   m.FocusPane == 3,
+			BodyLines: systemBody,
+		})
+		lines = append(lines, HLine(innerW, workspaceShellLine))
+		lines = append(lines, strings.Split(drawer, "\n")...)
+	}
+
+	lines = padOrTrimLines(lines, innerH)
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(focusBorder(m.FocusPane == 2 || m.FocusPane == 3)).
+		Padding(0, 1).
+		Width(layout.Main.W).
+		Height(layout.Main.H).
+		Background(workspaceShellChromeBg).
+		Render(strings.Join(lines, "\n"))
+}
+
+func renderWorkspaceMainHeaders(m *WorkspaceShellModel, mouse MousePoint, innerW int, projectName, projectPath string) (string, string) {
+	if m.DockMode == workspaceDockChat {
+		tabW := max(12, innerW-14)
+		tabLine := workspaceShellRenderTabLine(m, tabW, mouse)
+		header1 := lipgloss.NewStyle().Width(innerW).Render(tabLine)
+		accessory := renderWorkspaceDrawerToggleButton(m.SystemDrawerOpen, mouse)
+		header2 := workspaceShellAlignedRow(
+			projectName+"  "+projectPath,
+			accessory,
+			innerW,
+			lipgloss.NewStyle().Foreground(Dim),
+			lipgloss.NewStyle(),
+		)
+		return header1, header2
+	}
+	title := workspaceShellDockTitle(m.DockMode)
+	if m.DockMode == workspaceDockFiles && strings.TrimSpace(m.PreviewTitle) != "" {
+		title = m.PreviewTitle
+	}
+	header1 := workspaceShellAlignedRow(
+		title,
+		"",
+		innerW,
+		lipgloss.NewStyle().Foreground(White).Bold(true),
+		lipgloss.NewStyle().Foreground(Cyan),
+	)
+	header2 := workspaceShellAlignedRow(
+		projectName+"  "+projectPath,
+		"",
+		innerW,
+		lipgloss.NewStyle().Foreground(Dim),
+		lipgloss.NewStyle().Foreground(Cyan),
+	)
+	return header1, header2
+}
+
+func renderWorkspaceFileBody(m *WorkspaceShellModel, innerW, bodyH int) []string {
+	if m.EditorActive && m.ActiveFileTab != "" {
+		m.Editor.SetWidth(innerW)
+		m.Editor.SetHeight(bodyH)
+		return padOrTrimLines(strings.Split(tuistyle.WorkspaceTerminalSectionStyle().Width(innerW).Render(m.Editor.View()), "\n"), bodyH)
+	}
+	if strings.TrimSpace(m.PreviewBody) != "" {
+		lines := padOrTrimLines(strings.Split(m.PreviewBody, "\n"), bodyH)
+		for i := range lines {
+			lines[i] = tuistyle.WorkspaceTerminalSectionStyle().Width(innerW).Render(lines[i])
+		}
+		return lines
+	}
+	return editorcomponent.RenderEmptyState(innerW, bodyH)
+}
+
+func workspaceShellChatBlockTitle(m *WorkspaceShellModel) (string, int) {
+	labelText := "Agent Chat"
+	label := tuistyle.WorkspaceTerminalTitleStyle().Render(labelText)
+	state := workspaceShellChatStateLabel(m)
+	if state == "" {
+		return label, lipgloss.Width(labelText)
+	}
+	view := label + "  " + tuistyle.WorkspaceTerminalStateStyle(m.SessionTurnBusy).Render(state)
+	return view, lipgloss.Width(labelText) + 2 + lipgloss.Width(state)
+}
+
+func workspaceShellChatStateLabel(m *WorkspaceShellModel) string {
+	if strings.TrimSpace(m.TerminalStream) != "" {
+		return "generating"
+	}
+	if m.SessionTurnBusy || m.PendingAssistant {
+		return "thinking"
+	}
+	return "ready"
+}
+
+func workspaceShellChatMetaStatus(m *WorkspaceShellModel) string {
+	rows := m.transcriptRows()
+	if len(rows) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d events", len(rows))
+}
+
+func renderWorkspaceCanvasPane(m *WorkspaceShellModel, mouse MousePoint, layout workspaceShellLayout, innerW, innerH int, header1, header2 string) string {
+	tabLine := workspaceShellRenderCanvasTabLine(m, innerW, mouse)
 	lines := []string{
 		header1,
 		header2,
@@ -292,44 +367,6 @@ func renderWorkspaceCanvasPane(m *WorkspaceShellModel, layout workspaceShellLayo
 		Render(strings.Join(lines, "\n"))
 }
 
-func workspaceShellRenderFileTabLine(m *WorkspaceShellModel, width int) (string, []workspaceShellFileTabHit) {
-	if width <= 8 {
-		return "", nil
-	}
-	hits := make([]workspaceShellFileTabHit, 0, len(m.OpenFileTabs))
-	parts := make([]string, 0, len(m.OpenFileTabs))
-	x := 0
-	for _, path := range m.OpenFileTabs {
-		label := "  " + truncate(filepathBase(path), 20) + dirtySuffixForPath(m, path) + "  ×  "
-		style := lipgloss.NewStyle().
-			Foreground(SubText)
-		if path == m.ActiveFileTab {
-			style = style.
-				Foreground(White).
-				Bold(true)
-		}
-		rendered := style.Render(label)
-		partW := lipgloss.Width(rendered)
-		if x+partW > width {
-			break
-		}
-		hits = append(hits, workspaceShellFileTabHit{
-			Path:       path,
-			StartX:     x,
-			EndX:       x + partW,
-			CloseStart: x + max(0, partW-5),
-			CloseEnd:   x + partW,
-		})
-		parts = append(parts, rendered)
-		x += partW + 1
-	}
-	line := strings.Join(parts, " ")
-	if lipgloss.Width(line) < width {
-		line += strings.Repeat(" ", width-lipgloss.Width(line))
-	}
-	return line, hits
-}
-
 func dirtySuffixForPath(m *WorkspaceShellModel, path string) string {
 	if path == m.ActiveFileTab && m.EditorDirty {
 		return " •"
@@ -352,86 +389,6 @@ func filepathBase(path string) string {
 		return path[last+1:]
 	}
 	return path
-}
-
-func workspaceShellRenderTabLine(m *WorkspaceShellModel, width int) (string, []workspaceShellTabHit) {
-	if width <= 8 {
-		return "", nil
-	}
-	hits := make([]workspaceShellTabHit, 0, len(m.OpenProjectTabs)+1)
-	parts := make([]string, 0, len(m.OpenProjectTabs)+1)
-	x := 0
-	for _, tab := range m.OpenProjectTabs {
-		label := "  " + truncate(tab, 18) + "  ×  "
-		style := lipgloss.NewStyle().
-			Foreground(SubText).
-			Padding(0, 0)
-		if tab == m.CurrentProject {
-			style = style.
-				Foreground(White).
-				Bold(true)
-		}
-		rendered := style.Render(label)
-		partW := lipgloss.Width(rendered)
-		if x+partW > width-4 {
-			break
-		}
-		hits = append(hits, workspaceShellTabHit{
-			Name:       tab,
-			StartX:     x,
-			EndX:       x + partW,
-			CloseStart: x + max(0, partW-5),
-			CloseEnd:   x + partW,
-		})
-		parts = append(parts, rendered)
-		x += partW + 1
-	}
-	addLabel := lipgloss.NewStyle().
-		Foreground(Cyan).
-		Bold(true).
-		Render("  +  ")
-	if x+lipgloss.Width(addLabel) <= width {
-		hits = append(hits, workspaceShellTabHit{
-			Add:    true,
-			StartX: max(0, x-1),
-			EndX:   x + lipgloss.Width(addLabel) + 2,
-		})
-		parts = append(parts, addLabel)
-	}
-	line := strings.Join(parts, " ")
-	if lipgloss.Width(line) < width {
-		line += strings.Repeat(" ", width-lipgloss.Width(line))
-	}
-	return line, hits
-}
-
-func workspaceShellRenderCanvasTabLine(m *WorkspaceShellModel, width int) (string, []workspaceShellCanvasTabHit) {
-	if width <= 8 {
-		return "", nil
-	}
-	hits := make([]workspaceShellCanvasTabHit, 0, len(m.CanvasTabs))
-	parts := make([]string, 0, len(m.CanvasTabs))
-	x := 0
-	for _, tab := range m.CanvasTabs {
-		label := "  " + truncate(tab, 18) + "  "
-		style := lipgloss.NewStyle().Foreground(SubText)
-		if tab == m.ActiveCanvas {
-			style = style.Foreground(White).Bold(true)
-		}
-		rendered := style.Render(label)
-		partW := lipgloss.Width(rendered)
-		if x+partW > width {
-			break
-		}
-		hits = append(hits, workspaceShellCanvasTabHit{Name: tab, StartX: x, EndX: x + partW})
-		parts = append(parts, rendered)
-		x += partW + 1
-	}
-	line := strings.Join(parts, " ")
-	if lipgloss.Width(line) < width {
-		line += strings.Repeat(" ", width-lipgloss.Width(line))
-	}
-	return line, hits
 }
 
 func workspaceShellCanvasWidgetLines(widget api.Widget, width, height int) []string {
@@ -626,8 +583,8 @@ func workspaceShellCanvasIntValues(v interface{}) []int {
 }
 
 func workspaceShellAlignedRow(left, right string, width int, leftStyle, rightStyle lipgloss.Style) string {
-	left = strings.TrimSpace(left)
-	right = strings.TrimSpace(right)
+	left = workspaceSingleLine(left)
+	right = workspaceSingleLine(right)
 	rightW := lipgloss.Width(right)
 	leftW := width - rightW
 	if right != "" {
@@ -647,22 +604,34 @@ func workspaceShellAlignedRow(left, right string, width int, leftStyle, rightSty
 	return row
 }
 
-func workspaceShellComposerMeta(m *WorkspaceShellModel) string {
-	box := "☐"
-	label := "codex"
-	if m.PassThrough {
-		box = "☑"
-		label = "direct"
+func workspaceSingleLine(s string) string {
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
+	for strings.Contains(s, "  ") {
+		s = strings.ReplaceAll(s, "  ", " ")
 	}
-	return "enter send  x " + box + " " + label + "  n new  y copy  p projects  tab nav"
+	return s
 }
 
-func workspaceShellPassThroughPrompt(passThrough bool) string {
-	box := "□"
-	if passThrough {
-		box = "▣"
+func renderWorkspaceExplorerFooter(m *WorkspaceShellModel, width int) string {
+	gitLine := lipgloss.NewStyle().Foreground(SubText).Render(workspaceShellGitBadge(m))
+	if strings.TrimSpace(gitLine) == "" {
+		gitLine = lipgloss.NewStyle().Foreground(Dim).Render("⑂ local repo")
 	}
-	return box + "  pass thru to os  › "
+	treeLine := lipgloss.NewStyle().Foreground(Dim).Render(coalesce(strings.TrimSpace(m.CurrentDir), "Project root"))
+	meta := fmt.Sprintf("%d files", len(m.Entries))
+	if len(m.Git.Status) > 0 {
+		meta = fmt.Sprintf("%s  ·  %d changed", meta, len(m.Git.Status))
+	}
+	metaLine := lipgloss.NewStyle().Foreground(Dim).Render(meta)
+	lines := []string{
+		HLine(width, workspaceShellLine),
+		gitLine,
+		treeLine,
+		metaLine,
+	}
+	return strings.Join(lines, "\n")
 }
 
 func renderWorkspaceStatusBody(m *WorkspaceShellModel, stats *api.StatsResponse, width, height int) string {
